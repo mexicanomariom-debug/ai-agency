@@ -3,6 +3,8 @@ import { getTranslations, setRequestLocale } from "next-intl/server";
 import { use } from "react";
 import { buildPageMetadata } from "@/lib/seo";
 import Hero from "@/components/home/Hero";
+import TrustSection from "@/components/home/TrustSection";
+import IndustriesSection from "@/components/home/IndustriesSection";
 import Benefits from "@/components/home/Benefits";
 import ServicesPreview from "@/components/home/ServicesPreview";
 import CtaSection from "@/components/home/CtaSection";
@@ -31,6 +33,8 @@ export default function HomePage({ params }: Props) {
   return (
     <>
       <Hero />
+      <TrustSection />
+      <IndustriesSection />
       <Benefits />
       <ServicesPreview />
       <CtaSection />

@@ -22,6 +22,8 @@ const SERVICES: { key: string; icon: LucideIcon }[] = [
 const STEPS = ["discovery", "design", "build", "launch", "support"] as const;
 
 const OVERVIEW_KEYS = ["l1", "l2", "l3", "l4", "l5"] as const;
+const INDUSTRY_FOCUS = ["dental", "beauty", "medical"] as const;
+const PACKAGES = ["starter", "business", "pro", "enterprise"] as const;
 
 export default function ServicesContent() {
   const t = useTranslations("services");
@@ -85,6 +87,100 @@ export default function ServicesContent() {
                   >
                     <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-accent-bright" />
                     {t(`items.${key}.features.${f}`)}
+                  </li>
+                ))}
+              </ul>
+            </motion.div>
+          ))}
+        </div>
+      </section>
+
+      <section className="border-t border-border bg-surface/30">
+        <div className="mx-auto max-w-6xl px-4 py-16 sm:px-6 sm:py-20">
+          <h2 className="text-2xl font-bold tracking-tight sm:text-3xl">
+            {t("industries.title")}
+          </h2>
+          <p className="mt-3 max-w-3xl text-muted">{t("industries.subtitle")}</p>
+          <div className="mt-10 grid gap-6 lg:grid-cols-3">
+            {INDUSTRY_FOCUS.map((key, i) => (
+              <motion.div
+                key={key}
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: i * 0.08 }}
+                className="rounded-2xl border border-border bg-surface p-6"
+              >
+                <h3 className="text-lg font-semibold">
+                  {t(`industries.items.${key}.title`)}
+                </h3>
+                <p className="mt-3 text-sm leading-relaxed text-muted">
+                  {t(`industries.items.${key}.description`)}
+                </p>
+                <ul className="mt-4 space-y-2">
+                  {(["f1", "f2", "f3", "f4"] as const).map((f) => (
+                    <li
+                      key={f}
+                      className="flex items-start gap-2 text-sm text-foreground"
+                    >
+                      <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-accent-bright" />
+                      {t(`industries.items.${key}.features.${f}`)}
+                    </li>
+                  ))}
+                </ul>
+                <p className="mt-5 rounded-xl border border-accent/20 bg-accent/5 px-4 py-3 text-sm">
+                  <span className="font-semibold text-accent-bright">
+                    {t(`industries.items.${key}.price`)}
+                  </span>
+                  <span className="mt-1 block text-xs text-muted">
+                    {t(`industries.items.${key}.priceNote`)}
+                  </span>
+                </p>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section className="mx-auto max-w-6xl px-4 py-16 sm:px-6 sm:py-20">
+        <h2 className="text-2xl font-bold tracking-tight sm:text-3xl">
+          {t("pricing.title")}
+        </h2>
+        <p className="mt-3 max-w-3xl text-muted">{t("pricing.subtitle")}</p>
+        <p className="mt-2 text-sm text-muted">{t("pricing.note")}</p>
+        <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          {PACKAGES.map((key, i) => (
+            <motion.div
+              key={key}
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ delay: i * 0.06 }}
+              className={`flex flex-col rounded-2xl border p-6 ${
+                key === "business"
+                  ? "border-accent/50 bg-accent/5"
+                  : "border-border bg-surface"
+              }`}
+            >
+              {key === "business" && (
+                <span className="mb-3 w-fit rounded-full bg-accent px-3 py-0.5 text-xs font-semibold text-white">
+                  {t("pricing.popular")}
+                </span>
+              )}
+              <h3 className="font-semibold">{t(`pricing.packages.${key}.name`)}</h3>
+              <p className="mt-2 text-2xl font-bold text-accent-bright">
+                {t(`pricing.packages.${key}.price`)}
+              </p>
+              <p className="mt-1 text-xs text-muted">
+                {t(`pricing.packages.${key}.period`)}
+              </p>
+              <p className="mt-4 flex-1 text-sm leading-relaxed text-muted">
+                {t(`pricing.packages.${key}.description`)}
+              </p>
+              <ul className="mt-4 space-y-2 border-t border-border pt-4">
+                {(["i1", "i2", "i3"] as const).map((item) => (
+                  <li key={item} className="text-xs text-muted">
+                    ✓ {t(`pricing.packages.${key}.includes.${item}`)}
                   </li>
                 ))}
               </ul>

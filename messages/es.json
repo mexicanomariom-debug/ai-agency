@@ -54,11 +54,11 @@
   },
   "home": {
     "hero": {
-      "badge": "Agencia de IA de nueva generación",
-      "title": "Agentes de IA que trabajan por ti",
-      "subtitle": "Automatizamos tareas rutinarias, implementamos asistentes inteligentes e integramos IA en tus procesos de negocio. Tu equipo se enfoca en la estrategia, la IA se encarga del resto.",
-      "ctaPrimary": "Hablar del proyecto",
-      "ctaSecondary": "Nuestros servicios"
+      "badge": "AI-Agentes — agencia con implementaciones reales",
+      "title": "Agentes de IA para clínicas, salones y negocios de servicios",
+      "subtitle": "Citas de pacientes, respuestas a clientes en WhatsApp, sustitución de operadores de primera línea, automatización de entregas de comida — implementación llave en mano en 2–4 semanas. Auditoría gratuita y presupuesto fijo antes de comenzar.",
+      "ctaPrimary": "Consulta gratuita",
+      "ctaSecondary": "Ver precios"
     },
     "stats": {
       "cost": {
@@ -72,6 +72,96 @@
       "speed": {
         "value": "×10",
         "label": "más rápido el procesamiento de solicitudes"
+      }
+    },
+    "trust": {
+      "title": "Quiénes somos y cómo trabajamos",
+      "subtitle": "AI-Agentes no es un «botón mágico», es un equipo de ingeniería. Cada proyecto empieza con el análisis de tus procesos, un presupuesto fijo y un contrato. Sabes qué obtienes, cuánto cuesta y quién responde.",
+      "points": {
+        "t1": "Contacto directo: Mario Mares Galeev gestiona los proyectos personalmente y responde a las solicitudes",
+        "t2": "Auditoría gratuita en 24 horas — sin compromisos ni pagos ocultos",
+        "t3": "Presupuesto fijo antes de empezar el desarrollo — sin sorpresas en el precio",
+        "t4": "Lanzamiento en 2–4 semanas, formación de tu equipo y soporte técnico después del arranque"
+      },
+      "founder": {
+        "name": "Mario Mares Galeev",
+        "role": "CEO & Lead AI Engineer",
+        "bio": "Más de 10 años en desarrollo de software y automatización. Especialización en clínicas médicas, odontología, belleza y negocios de servicios. Trabajamos en ruso, español e inglés."
+      },
+      "steps": {
+        "audit": {
+          "title": "Auditoría",
+          "description": "Analizamos procesos, calculamos ROI, entregamos presupuesto"
+        },
+        "build": {
+          "title": "Desarrollo",
+          "description": "Construimos el agente, conectamos CRM y mensajería"
+        },
+        "launch": {
+          "title": "Lanzamiento",
+          "description": "Probamos, formamos al equipo, entregamos en operación"
+        }
+      },
+      "cta": "Solicitar auditoría gratuita"
+    },
+    "industries": {
+      "title": "Dónde implementamos IA",
+      "subtitle": "Escenarios concretos para tu sector — no promesas abstractas, sino tareas que resolvemos cada día",
+      "items": {
+        "dental": {
+          "title": "Clínicas dentales",
+          "description": "El administrador de IA gestiona citas 24/7, responde preguntas sobre precios y servicios, envía recordatorios y reduce las ausencias.",
+          "examples": {
+            "e1": "Reserva de citas por WhatsApp y web",
+            "e2": "Respuestas sobre coste de implantes, blanqueamiento y ortodoncia",
+            "e3": "Recordatorios 24 h antes y recopilación de reseñas tras la visita"
+          }
+        },
+        "medical": {
+          "title": "Centros médicos",
+          "description": "Automatización de citas con especialistas, enrutado de consultas, integración con HIS y CRM de la clínica.",
+          "examples": {
+            "e1": "Citas con 5–20 médicos según disponibilidad",
+            "e2": "Recopilación previa de anamnesis antes de la visita",
+            "e3": "Notificaciones cuando los análisis están listos"
+          }
+        },
+        "beauty": {
+          "title": "Salones de belleza y clínicas estéticas",
+          "description": "El bot reserva tratamientos, asesora sobre servicios, gestiona la fidelización y recupera clientes inactivos.",
+          "examples": {
+            "e1": "Citas para manicura, cosmética, masajes y depilación",
+            "e2": "Selección de tratamientos y promociones según la consulta",
+            "e3": "Recordatorios y reactivación de clientes que llevan tiempo sin visitar"
+          }
+        },
+        "food": {
+          "title": "Delivery de comida y restaurantes",
+          "description": "Toma de pedidos, estado de entrega, gestión de quejas y ventas adicionales — sin esperar a un operador.",
+          "examples": {
+            "e1": "Pedidos en Telegram / WhatsApp con menú",
+            "e2": "Respuesta a «¿dónde está mi pedido?» por número en tiempo real",
+            "e3": "Recopilación de feedback y programa de fidelización"
+          }
+        },
+        "delivery": {
+          "title": "Servicios de mensajería y logística",
+          "description": "Seguimiento de paquetes, cambio de dirección, reprogramación de entregas — la IA gestiona el 80% de consultas habituales.",
+          "examples": {
+            "e1": "Estado del paquete por número de seguimiento",
+            "e2": "Reprogramación y cambio de dirección de entrega",
+            "e3": "Escalación de casos complejos al gestor"
+          }
+        },
+        "operators": {
+          "title": "Sustitución de operadores de primera línea",
+          "description": "La IA resuelve el 70–90% de consultas habituales: FAQ, estados, citas, calificación de leads. El operador interviene solo en casos complejos.",
+          "examples": {
+            "e1": "Sustitución de 1–3 operadores sin pérdida de calidad",
+            "e2": "Funcionamiento 24/7 sin turnos ni bajas",
+            "e3": "Ahorro desde $1,500/mes en salarios"
+          }
+        }
       }
     },
     "benefits": {
@@ -97,9 +187,9 @@
       }
     },
     "cta": {
-      "title": "¿Listo para automatizar tu negocio?",
-      "subtitle": "Cuéntanos tu caso: te propondremos una solución y estimaremos plazos en 24 horas.",
-      "button": "Contáctanos"
+      "title": "Obtén presupuesto en 24 horas",
+      "subtitle": "Describe tu negocio — odontología, salón, delivery o call center. Propondremos una solución con precio y plazos, sin presión.",
+      "button": "Solicitar presupuesto"
     },
     "servicesPreview": {
       "title": "Nuestros servicios",
@@ -180,6 +270,100 @@
           "f1": "Auditoría gratuita de procesos y estimación de plazos en 24 horas",
           "f2": "Lanzamiento de solución operativa en 2–4 semanas",
           "f3": "Soporte técnico, actualizaciones de modelos y formación de tu equipo"
+        }
+      }
+    },
+    "industries": {
+      "title": "Soluciones por sector",
+      "subtitle": "Más detalles sobre implementación en odontología, belleza y centros médicos — con precios orientativos",
+      "items": {
+        "dental": {
+          "title": "Clínicas dentales",
+          "description": "Administrador de IA para clínicas con 1–10 sillones: citas, consultas sobre servicios, recordatorios, integración con CRM y Google Calendar.",
+          "features": {
+            "f1": "Reserva de citas 24/7 por WhatsApp, Telegram y web",
+            "f2": "Respuestas sobre precios: implantes, prótesis, higiene, ortodoncia",
+            "f3": "Recordatorios de visita → reducción de ausencias del 25–35%",
+            "f4": "Integración con amoCRM, Bitrix24, YClients, Google Calendar"
+          },
+          "price": "desde $2,500",
+          "priceNote": "implementación llave en mano + desde $150/mes de soporte"
+        },
+        "beauty": {
+          "title": "Salones de belleza y cosmetología",
+          "description": "Bot administrador para salones de belleza, barberías y clínicas de cosmetología: reserva de profesionales, promociones y fidelización.",
+          "features": {
+            "f1": "Reserva con un profesional concreto según servicio y duración",
+            "f2": "Consultas sobre tratamientos, precios y promociones",
+            "f3": "Reactivación de clientes que no visitan desde hace 30+ días",
+            "f4": "Integración con YClients, Dikidi, amoCRM, Instagram DM"
+          },
+          "price": "desde $1,800",
+          "priceNote": "implementación llave en mano + desde $120/mes de soporte"
+        },
+        "medical": {
+          "title": "Centros médicos y policlínicas",
+          "description": "Citas multiespecialidad, recopilación de anamnesis, enrutado de consultas. Adecuado para centros con 5–50+ especialistas.",
+          "features": {
+            "f1": "Citas con médicos de distintas especialidades según disponibilidad",
+            "f2": "Cuestionario previo antes de la visita",
+            "f3": "Notificaciones sobre análisis listos y visitas de seguimiento",
+            "f4": "Integración con HIS, CRM y telefonía"
+          },
+          "price": "desde $3,500",
+          "priceNote": "depende del número de médicos e integraciones"
+        }
+      }
+    },
+    "pricing": {
+      "title": "Precios orientativos",
+      "subtitle": "Paquetes transparentes — el presupuesto final se fija tras la auditoría gratuita. Sin pagos ocultos.",
+      "note": "Precios en USD. Pago en EUR o RUB posible. IVA/impuestos según jurisdicción del cliente.",
+      "popular": "Popular",
+      "packages": {
+        "starter": {
+          "name": "Inicio",
+          "price": "desde $990",
+          "period": "implementación única",
+          "description": "Chatbot sencillo para pequeños negocios: FAQ, citas, respuestas en mensajería.",
+          "includes": {
+            "i1": "Bot de WhatsApp o Telegram",
+            "i2": "Hasta 50 escenarios de respuesta",
+            "i3": "Lanzamiento en 1–2 semanas"
+          }
+        },
+        "business": {
+          "name": "Negocio",
+          "price": "desde $2,500",
+          "period": "implementación única",
+          "description": "Para clínicas, salones y delivery: citas, CRM, recordatorios, sustitución de 1 operador.",
+          "includes": {
+            "i1": "Bot multicanal (web + mensajería)",
+            "i2": "Integración CRM / calendario",
+            "i3": "Soporte desde $150/mes"
+          }
+        },
+        "pro": {
+          "name": "Pro",
+          "price": "desde $5,000",
+          "period": "implementación única",
+          "description": "Agente de IA a medida: calificación de leads, multiagente, analítica, varias integraciones.",
+          "includes": {
+            "i1": "Arquitectura personalizada",
+            "i2": "Panel y monitorización",
+            "i3": "Soporte desde $300/mes"
+          }
+        },
+        "enterprise": {
+          "name": "Empresarial",
+          "price": "desde $10,000",
+          "period": "evaluación por proyecto",
+          "description": "Implementaciones complejas: call center, varios departamentos, APIs personalizadas, SLA.",
+          "includes": {
+            "i1": "Integraciones ilimitadas",
+            "i2": "Soporte dedicado",
+            "i3": "Contrato SLA"
+          }
         }
       }
     },
