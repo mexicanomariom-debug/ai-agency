@@ -61,33 +61,33 @@
       "slides": {
         "dental": {
           "label": "Dentistry",
-          "title": "«How much for an implant?» — AI answers and books the appointment",
-          "subtitle": "24/7 booking, service pricing, visit reminders — WhatsApp, Telegram, website. Fewer no-shows, less front-desk load."
+          "title": "«How much is an implant?» — AI quotes prices and books the appointment",
+          "subtitle": "Smart admin on WhatsApp and Telegram 24/7: calculates costs from your price list and logs patients into your HIS/CRM. Cuts front-desk load and no-shows with automatic reminders."
         },
         "medical": {
           "label": "Medical centers",
-          "title": "«Book me a cardiologist on Friday» — AI routes and schedules",
-          "subtitle": "Booking across 5–50 doctors, pre-visit intake, lab result notifications. HIS, CRM, and telephony integration."
+          "title": "«I need a cardiologist» — AI picks the specialist and open slot",
+          "subtitle": "Instantly checks live doctor schedules, books visits, collects pre-visit intake, and auto-sends lab-ready notifications to patients."
         },
         "beauty": {
-          "label": "Beauty & cosmetology",
-          "title": "«Any slots with my stylist tomorrow?» — AI picks time and service",
-          "subtitle": "Booking with a specific stylist, treatment and promo consultations, reactivation of dormant clients."
+          "label": "Beauty salons & cosmetology",
+          "title": "«Any evening slots?» — AI offers open times and confirms booking",
+          "subtitle": "Books treatments with stylists 24/7, runs loyalty programs in chat, and reactivates dormant clients with personalized offers."
         },
         "food": {
-          "label": "Food delivery",
-          "title": "«Where's my order?» — AI takes orders and tracks delivery",
-          "subtitle": "Menu orders in messaging apps, real-time status, complaints and upsells — no queue on the line."
+          "label": "Food delivery & restaurants",
+          "title": "«Where's my order — can I add sauce?» — AI handles tickets in 3 seconds",
+          "subtitle": "Takes orders via messaging apps, calculates delivery ETA via API, and resolves complaints. No more lost customers from busy lines at peak hours."
         },
         "logistics": {
-          "label": "Logistics & couriers",
-          "title": "«Move delivery to tomorrow» — AI changes address and time",
-          "subtitle": "Parcel tracking, address changes, rescheduling. 80% of routine inquiries without an operator; complex cases to a manager."
+          "label": "Logistics services",
+          "title": "«Move delivery to tomorrow» — AI updates order details without an operator",
+          "subtitle": "Handles 80% of routine work: parcel tracking, address or time changes. Complex cases hand off seamlessly to a manager with full chat history."
         },
-        "realestate": {
-          "label": "Real estate & rentals",
-          "title": "«Show me a 2-bed under $80K» — AI qualifies leads and books viewings",
-          "subtitle": "Property matching by budget, viewing appointments, mortgage and paperwork FAQ. Leads aren't lost at night or on weekends."
+        "operators": {
+          "label": "First-line support",
+          "title": "AI operator resolves up to 90% of common requests without humans",
+          "subtitle": "Knows your knowledge base inside out, answers FAQ instantly, qualifies inbound leads, and passes a warm CRM card with full dialog history. Saves from $1,500/month on support staff."
         }
       }
     },

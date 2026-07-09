@@ -61,33 +61,33 @@
       "slides": {
         "dental": {
           "label": "Odontología",
-          "title": "«¿Cuánto cuesta el implante?» — La IA responde y agenda la cita",
-          "subtitle": "Citas 24/7, precios de servicios, recordatorios de visita — WhatsApp, Telegram y web. Menos ausencias, menos carga para recepción."
+          "title": "«¿Cuánto cuesta la implantación?» — La IA asesora sobre precios y agenda la cita",
+          "subtitle": "Administrador inteligente en WhatsApp y Telegram 24/7: calcula el coste según tarifas y registra al paciente en su HIS/CRM. Reduce la carga de recepción y las ausencias con recordatorios automáticos."
         },
         "medical": {
           "label": "Centros médicos",
-          "title": "«Cita con el cardiólogo el viernes» — La IA enruta y agenda",
-          "subtitle": "Citas con 5–50 médicos, anamnesis previa, avisos de análisis. Integración con HIS, CRM y telefonía."
+          "title": "«Necesito un cardiólogo» — La IA elige especialista y horario libre",
+          "subtitle": "Consulta al instante el calendario de médicos, confirma la cita, recoge anamnesis previa y envía avisos automáticos cuando los análisis están listos."
         },
         "beauty": {
-          "label": "Belleza y cosmetología",
-          "title": "«¿Hay hueco con el estilista mañana?» — La IA elige hora y servicio",
-          "subtitle": "Reserva con profesional concreto, consultas sobre tratamientos y promos, reactivación de clientes inactivos."
+          "label": "Salones de belleza y cosmetología",
+          "title": "«¿Hay hueco por la tarde?» — La IA ofrece slots libres y confirma la reserva",
+          "subtitle": "Reserva procedimientos con profesionales 24/7, gestiona fidelización en el chat y reactiva clientes inactivos con ofertas personalizadas."
         },
         "food": {
-          "label": "Delivery de comida",
-          "title": "«¿Dónde está mi pedido?» — La IA toma el pedido y rastrea la entrega",
-          "subtitle": "Pedidos desde el menú en mensajería, estado en tiempo real, quejas y venta adicional — sin cola en la línea."
+          "label": "Delivery y restaurantes",
+          "title": "«¿Dónde está mi pedido y puedo añadir salsa?» — La IA responde en 3 segundos",
+          "subtitle": "Toma pedidos por mensajería, calcula tiempos de entrega vía API y gestiona quejas. Sin clientes perdidos por líneas saturadas en hora punta."
         },
         "logistics": {
-          "label": "Logística y mensajería",
-          "title": "«Cambien la entrega a mañana» — La IA cambia dirección y horario",
-          "subtitle": "Seguimiento de paquetes, cambio de dirección, reprogramación. El 80% de consultas sin operador; casos complejos al gestor."
+          "label": "Servicios logísticos",
+          "title": "«Cambien la entrega a mañana» — La IA modifica el pedido sin operador",
+          "subtitle": "Asume el 80% de la rutina: tracking por número, cambio de dirección u horario. Casos complejos se transfieren al gestor con todo el historial del chat."
         },
-        "realestate": {
-          "label": "Inmobiliaria y alquiler",
-          "title": "«Muéstrenme un piso de 2 hab. hasta 80K» — La IA cualifica y agenda visita",
-          "subtitle": "Selección por presupuesto, cita para visita, FAQ sobre hipoteca y documentos. Leads no se pierden de noche ni en fin de semana."
+        "operators": {
+          "label": "Primera línea de soporte",
+          "title": "Operador IA resuelve hasta el 90% de consultas frecuentes sin humanos",
+          "subtitle": "Domina la base de conocimiento, responde FAQ al instante, cualifica leads y entrega en CRM una ficha de cliente listo con historial. Ahorra desde $1.500/mes en soporte."
         }
       }
     },

@@ -13,7 +13,7 @@ const SLIDES = [
   "beauty",
   "food",
   "logistics",
-  "realestate",
+  "operators",
 ] as const;
 
 const SLIDE_INTERVAL_MS = 5500;
@@ -63,7 +63,7 @@ export default function Hero() {
         >
           {/* Fixed-height slide area — no absolute positioning */}
           <div className="overflow-hidden">
-            <div className="flex min-h-[9rem] flex-col items-center justify-center sm:min-h-[15.5rem] lg:min-h-[16.5rem]">
+            <div className="flex min-h-[10.5rem] flex-col items-center justify-center sm:min-h-[15.5rem] lg:min-h-[16.5rem]">
               <AnimatePresence mode="wait" initial={false}>
                 <motion.div
                   key={activeSlide}
@@ -83,7 +83,7 @@ export default function Hero() {
                     </span>
                   </h1>
 
-                  <p className="mt-3 line-clamp-2 max-w-2xl text-xs leading-relaxed text-muted sm:mt-5 sm:line-clamp-none sm:text-base lg:text-lg">
+                  <p className="mt-3 line-clamp-3 max-w-2xl text-xs leading-relaxed text-muted sm:mt-5 sm:line-clamp-none sm:text-base lg:text-lg">
                     {t(`slides.${activeSlide}.subtitle`)}
                   </p>
                 </motion.div>
