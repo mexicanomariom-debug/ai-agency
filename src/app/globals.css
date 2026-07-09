@@ -72,10 +72,10 @@ body {
 @keyframes sky-twinkle {
   0%,
   100% {
-    opacity: 0.2;
+    opacity: 0.25;
   }
   50% {
-    opacity: 0.55;
+    opacity: 0.72;
   }
 }
 
@@ -130,7 +130,6 @@ body {
 }
 
 .falling-stars .shooting-star--once {
-  animation-duration: 2.1s;
   animation-timing-function: ease-in;
   animation-fill-mode: forwards;
   animation-iteration-count: 1;
@@ -159,11 +158,11 @@ body {
 .falling-stars .shooting-star__tail {
   position: absolute;
   top: 0;
-  width: 26px;
-  height: 1px;
+  width: 34px;
+  height: 1.5px;
   border-radius: 2px;
-  opacity: 0.28;
-  filter: blur(0.8px);
+  opacity: 0.42;
+  filter: blur(0.7px);
 }
 
 .falling-stars .shooting-star--ltr .shooting-star__head {
@@ -177,8 +176,8 @@ body {
   background: linear-gradient(
     90deg,
     transparent 0%,
-    rgba(255, 255, 255, 0.04) 45%,
-    rgba(255, 255, 255, 0.22) 100%
+    rgba(255, 255, 255, 0.08) 40%,
+    rgba(255, 255, 255, 0.38) 100%
   );
 }
 
@@ -193,8 +192,8 @@ body {
   background: linear-gradient(
     270deg,
     transparent 0%,
-    rgba(255, 255, 255, 0.04) 45%,
-    rgba(255, 255, 255, 0.22) 100%
+    rgba(255, 255, 255, 0.08) 40%,
+    rgba(255, 255, 255, 0.38) 100%
   );
 }
 
