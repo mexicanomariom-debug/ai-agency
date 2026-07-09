@@ -3,6 +3,9 @@ import { getTranslations, setRequestLocale } from "next-intl/server";
 import { useTranslations } from "next-intl";
 import { use } from "react";
 import { buildPageMetadata } from "@/lib/seo";
+import PageHeader from "@/components/ui/PageHeader";
+import ContactForm, { ContactInfo } from "@/components/contact/ContactContent";
+import CtaBanner from "@/components/ui/CtaBanner";
 
 type Props = {
   params: Promise<{ locale: string }>;
@@ -28,10 +31,26 @@ export default function ContactPage({ params }: Props) {
   const t = useTranslations("contact");
 
   return (
-    <section className="mx-auto max-w-6xl px-4 py-24 sm:px-6">
-      <h1 className="text-4xl font-bold tracking-tight">{t("title")}</h1>
-      <p className="mt-4 text-lg text-muted">{t("subtitle")}</p>
-      <p className="mt-8 text-foreground">{t("person")}</p>
-    </section>
+    <>
+      <PageHeader
+        title={t("title")}
+        subtitle={t("subtitle")}
+        description={t("description")}
+      />
+      <section className="mx-auto grid max-w-6xl gap-12 px-4 py-16 sm:px-6 sm:py-20 lg:grid-cols-2">
+        <div>
+          <h2 className="text-xl font-semibold">{t("form.title")}</h2>
+          <div className="mt-6">
+            <ContactForm />
+          </div>
+        </div>
+        <ContactInfo />
+      </section>
+      <CtaBanner
+        namespace="contact.cta"
+        href="https://t.me/aiagentes"
+        external
+      />
+    </>
   );
 }

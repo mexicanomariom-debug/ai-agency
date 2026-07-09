@@ -3,6 +3,9 @@ import { getTranslations, setRequestLocale } from "next-intl/server";
 import { useTranslations } from "next-intl";
 import { use } from "react";
 import { buildPageMetadata } from "@/lib/seo";
+import PageHeader from "@/components/ui/PageHeader";
+import ServicesContent from "@/components/services/ServicesContent";
+import CtaBanner from "@/components/ui/CtaBanner";
 
 type Props = {
   params: Promise<{ locale: string }>;
@@ -28,9 +31,14 @@ export default function ServicesPage({ params }: Props) {
   const t = useTranslations("services");
 
   return (
-    <section className="mx-auto max-w-6xl px-4 py-24 sm:px-6">
-      <h1 className="text-4xl font-bold tracking-tight">{t("title")}</h1>
-      <p className="mt-4 text-lg text-muted">{t("subtitle")}</p>
-    </section>
+    <>
+      <PageHeader
+        title={t("title")}
+        subtitle={t("subtitle")}
+        description={t("description")}
+      />
+      <ServicesContent />
+      <CtaBanner namespace="services.cta" />
+    </>
   );
 }

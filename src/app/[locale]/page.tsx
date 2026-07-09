@@ -4,6 +4,7 @@ import { use } from "react";
 import { buildPageMetadata } from "@/lib/seo";
 import Hero from "@/components/home/Hero";
 import Benefits from "@/components/home/Benefits";
+import ServicesPreview from "@/components/home/ServicesPreview";
 import CtaSection from "@/components/home/CtaSection";
 
 type Props = {
@@ -31,6 +32,7 @@ export default function HomePage({ params }: Props) {
     <>
       <Hero />
       <Benefits />
+      <ServicesPreview />
       <CtaSection />
     </>
   );

@@ -94,23 +94,299 @@
       "title": "¿Listo para automatizar tu negocio?",
       "subtitle": "Cuéntanos tu caso: te propondremos una solución y estimaremos plazos en 24 horas.",
       "button": "Contáctanos"
+    },
+    "servicesPreview": {
+      "title": "Qué hacemos",
+      "subtitle": "Ciclo completo: de la idea al agente de IA funcionando en tu negocio",
+      "link": "Todos los servicios",
+      "items": {
+        "assistants": {
+          "title": "Asistentes de IA",
+          "description": "Asistentes inteligentes para equipo y clientes — responden, asesoran y resuelven tareas 24/7."
+        },
+        "automation": {
+          "title": "Automatización",
+          "description": "Eliminamos la rutina: solicitudes, informes, envíos, recordatorios — sin intervención humana."
+        },
+        "crm": {
+          "title": "Integraciones CRM",
+          "description": "Conectamos IA con HubSpot, Bitrix24, amoCRM — sincronización automática de datos."
+        }
+      }
     }
   },
   "services": {
     "title": "Servicios",
-    "subtitle": "Qué hacemos"
+    "subtitle": "Qué hacemos",
+    "description": "AI-Agentes diseña, desarrolla e implementa soluciones de IA llave en mano: desde asistentes inteligentes hasta la automatización completa de procesos de negocio.",
+    "items": {
+      "assistants": {
+        "title": "Asistentes de IA",
+        "description": "Asistentes inteligentes para tu equipo y clientes: responden preguntas, asesoran y ayudan a tomar decisiones basadas en los datos de la empresa.",
+        "features": {
+          "f1": "Entrenamiento con documentos y base de conocimiento",
+          "f2": "Funciona en Telegram, WhatsApp, web y CRM",
+          "f3": "Soporte en ruso y español"
+        }
+      },
+      "automation": {
+        "title": "Automatización de tareas",
+        "description": "Eliminamos tareas repetitivas: procesamiento de solicitudes, envíos, informes, recordatorios — todo lo que consume tiempo del equipo.",
+        "features": {
+          "f1": "Pipelines y triggers automáticos",
+          "f2": "Generación de documentos e informes",
+          "f3": "Integración con herramientas existentes"
+        }
+      },
+      "crm": {
+        "title": "Integraciones CRM",
+        "description": "Conectamos agentes de IA con tu CRM: HubSpot, Bitrix24, amoCRM, Salesforce y otros — sincronización automática de datos.",
+        "features": {
+          "f1": "Autocompletado de fichas de clientes",
+          "f2": "Calificación de leads y scoring",
+          "f3": "Sincronización bidireccional de datos"
+        }
+      },
+      "agents": {
+        "title": "Agentes de IA a medida",
+        "description": "Desarrollamos agentes para tu caso específico: ventas, soporte, RRHH, analítica — con lógica y escenarios únicos.",
+        "features": {
+          "f1": "Arquitectura personalizada para cada tarea",
+          "f2": "Sistemas multiagente para procesos complejos",
+          "f3": "Monitorización y analítica del agente"
+        }
+      },
+      "support": {
+        "title": "Soporte y evolución",
+        "description": "No abandonamos tras el lanzamiento: monitorizamos agentes, actualizamos modelos y añadimos escenarios según crece tu negocio.",
+        "features": {
+          "f1": "Soporte técnico 24/7",
+          "f2": "Actualizaciones y mejoras regulares",
+          "f3": "Formación de tu equipo en IA"
+        }
+      }
+    },
+    "process": {
+      "title": "Cómo trabajamos",
+      "subtitle": "Proceso transparente desde la primera llamada hasta el lanzamiento — normalmente 2–4 semanas",
+      "steps": {
+        "discovery": {
+          "title": "Análisis",
+          "description": "Estudiamos tu negocio, procesos y puntos débiles. Identificamos dónde la IA tendrá mayor impacto."
+        },
+        "design": {
+          "title": "Diseño",
+          "description": "Creamos la arquitectura, escenarios del agente y plan de integraciones. Lo acordamos contigo."
+        },
+        "build": {
+          "title": "Desarrollo",
+          "description": "Construimos el agente, conectamos integraciones, entrenamos con tus datos. Mostramos resultados intermedios."
+        },
+        "launch": {
+          "title": "Lanzamiento",
+          "description": "Probamos en condiciones reales, formamos al equipo y desplegamos en producción."
+        },
+        "support": {
+          "title": "Soporte",
+          "description": "Monitorizamos, optimizamos y escalamos. El agente crece junto con tu negocio."
+        }
+      }
+    },
+    "cta": {
+      "title": "¿Necesitas una solución para tu caso?",
+      "subtitle": "Cuéntanos el proceso que quieres automatizar — propondremos la arquitectura gratis.",
+      "button": "Hablar del proyecto"
+    }
   },
   "solutions": {
     "title": "Soluciones",
-    "subtitle": "Cómo la IA ahorra tiempo y dinero a tu negocio"
+    "subtitle": "Cómo la IA ahorra tiempo y dinero a tu negocio",
+    "description": "Escenarios reales de implementación de agentes de IA — con resultados medibles para negocios de cualquier escala.",
+    "intro": "Cada caso es una tarea típica que resolvemos para nuestros clientes. Las cifras se basan en promedios tras implementar agentes de IA en proyectos similares.",
+    "cases": {
+      "support": {
+        "title": "Automatización de soporte al cliente",
+        "industry": "E-commerce / SaaS",
+        "problem": "Un equipo de 5 operadores no daba abasto con 200+ consultas diarias. Tiempo medio de respuesta: 4 horas, los clientes se iban a la competencia.",
+        "solution": "Implementamos un agente de IA de primera línea: resuelve el 80% de consultas típicas al instante y transfiere casos complejos al operador con contexto completo.",
+        "results": {
+          "metric1": { "value": "-75%", "label": "tiempo de respuesta" },
+          "metric2": { "value": "80%", "label": "resolución automática" },
+          "metric3": { "value": "+32%", "label": "satisfacción" }
+        }
+      },
+      "leads": {
+        "title": "Calificación de leads en CRM",
+        "industry": "B2B / Ventas",
+        "problem": "Los comerciales dedicaban 3 horas diarias a procesar solicitudes: aclarar necesidades, rellenar CRM y agendar reuniones.",
+        "solution": "El agente de IA recibe solicitudes de todos los canales, hace preguntas de calificación, evalúa el lead y crea la ficha en CRM con prioridad.",
+        "results": {
+          "metric1": { "value": "×10", "label": "velocidad de procesamiento" },
+          "metric2": { "value": "-60%", "label": "carga de comerciales" },
+          "metric3": { "value": "+45%", "label": "conversión a venta" }
+        }
+      },
+      "documents": {
+        "title": "Procesamiento de documentos",
+        "industry": "Finanzas / Legal",
+        "problem": "Empleados extraían datos manualmente de 500+ documentos al mes: facturas, contratos, actas. Errores en el 12% de los casos.",
+        "solution": "El agente de IA reconoce, clasifica y extrae campos clave de documentos, cargando los datos en el sistema contable.",
+        "results": {
+          "metric1": { "value": "×15", "label": "velocidad de procesamiento" },
+          "metric2": { "value": "-95%", "label": "errores" },
+          "metric3": { "value": "-70%", "label": "costes de rutina" }
+        }
+      },
+      "ecommerce": {
+        "title": "Consultor en tienda online",
+        "industry": "Retail / E-commerce",
+        "problem": "Los compradores no encontraban el producto adecuado en un catálogo de 3000 artículos. El 40% se iba sin comprar.",
+        "solution": "Consultor de IA en la web: ayuda a elegir producto, compara características y facilita el pedido en un clic.",
+        "results": {
+          "metric1": { "value": "+28%", "label": "conversión" },
+          "metric2": { "value": "+18%", "label": "ticket medio" },
+          "metric3": { "value": "24/7", "label": "disponibilidad" }
+        }
+      },
+      "scheduling": {
+        "title": "Reservas y planificación",
+        "industry": "Servicios / Salud",
+        "problem": "Administradores dedicaban 4 horas diarias a llamadas para citas, cambios y recordatorios.",
+        "solution": "El agente de IA gestiona citas por mensajería y web, sincroniza con el calendario y envía recordatorios.",
+        "results": {
+          "metric1": { "value": "-90%", "label": "llamadas manuales" },
+          "metric2": { "value": "-35%", "label": "ausencias" },
+          "metric3": { "value": "×5", "label": "citas al día" }
+        }
+      }
+    },
+    "impact": {
+      "title": "Impacto medio tras la implementación",
+      "subtitle": "Métricas que nuestros clientes obtienen en los primeros 3 meses",
+      "items": {
+        "time": { "value": "×10", "label": "procesos más rápidos" },
+        "cost": { "value": "-60%", "label": "reducción de costes" },
+        "quality": { "value": "-95%", "label": "menos errores" },
+        "scale": { "value": "24/7", "label": "sin descansos" }
+      }
+    },
+    "cta": {
+      "title": "¿Reconoces tu caso?",
+      "subtitle": "Cuéntanos tu proceso — te mostraremos cómo un agente de IA lo resolverá para tu negocio.",
+      "button": "Hablar del caso"
+    }
   },
   "about": {
     "title": "Nosotros",
-    "subtitle": "Filosofía de la agencia"
+    "subtitle": "Filosofía de la agencia",
+    "description": "AI-Agentes es un equipo de ingenieros y estrategas que convierten la inteligencia artificial en una herramienta real para el negocio.",
+    "story": {
+      "title": "Quiénes somos",
+      "p1": "AI-Agentes es una agencia de desarrollo de agentes de IA y automatización de procesos de negocio. Creamos soluciones que funcionan de verdad: responden a clientes, procesan solicitudes, se integran con CRM y ahorran decenas de horas cada semana.",
+      "p2": "Nuestro equipo trabaja en la intersección de tecnología y negocio. No vendemos «magia de IA» — construimos herramientas concretas con ROI medible. Cada proyecto empieza con un análisis: dónde la automatización dará el máximo efecto con el mínimo coste."
+    },
+    "mission": {
+      "label": "Misión",
+      "text": "Hacer que los agentes de IA sean una herramienta accesible y comprensible para negocios de cualquier escala — desde startups hasta corporaciones."
+    },
+    "vision": {
+      "label": "Visión",
+      "text": "Un mundo donde el trabajo rutinario está automatizado y las personas se dedican a lo que realmente requiere inteligencia humana y creatividad."
+    },
+    "values": {
+      "title": "Nuestros valores",
+      "subtitle": "Principios que guían cada proyecto",
+      "items": {
+        "innovation": {
+          "title": "Innovación",
+          "description": "Usamos LLM de vanguardia, frameworks de agentes y las mejores prácticas del sector."
+        },
+        "transparency": {
+          "title": "Transparencia",
+          "description": "Hablamos con honestidad sobre capacidades y límites de la IA. Sin promesas de «reemplazar a todos los empleados»."
+        },
+        "results": {
+          "title": "Resultados",
+          "description": "Evaluamos cada proyecto por métricas: tiempo, dinero, calidad. Si la IA no se amortiza — lo decimos claramente."
+        },
+        "security": {
+          "title": "Seguridad",
+          "description": "Los datos de clientes están protegidos. Trabajamos con GDPR, cifrado y entornos aislados."
+        }
+      }
+    },
+    "tech": {
+      "title": "Tecnologías",
+      "subtitle": "Stack con el que construimos agentes de IA",
+      "items": {
+        "llm": {
+          "title": "Grandes modelos de lenguaje",
+          "description": "GPT-4, Claude, Gemini y modelos open-source — elegimos el óptimo para cada tarea."
+        },
+        "automation": {
+          "title": "Frameworks de agentes",
+          "description": "LangChain, CrewAI, AutoGen — para sistemas multiagente y pipelines complejos."
+        },
+        "integrations": {
+          "title": "Integraciones",
+          "description": "API, webhooks, CRM, mensajería, Google Workspace, Notion — conectamos con tu ecosistema."
+        },
+        "cloud": {
+          "title": "Infraestructura cloud",
+          "description": "Vercel, AWS, Google Cloud — despliegues escalables y fiables con monitorización 24/7."
+        }
+      }
+    },
+    "founder": {
+      "title": "Fundador",
+      "name": "Mario Mares Galeev",
+      "role": "CEO & Lead AI Engineer",
+      "bio": "Más de 10 años en desarrollo de software y automatización de procesos de negocio. Creó AI-Agentes para hacer accesible la inteligencia artificial a empresas en Rusia, España y Latinoamérica."
+    },
+    "cta": {
+      "title": "¿Quieres trabajar con nosotros?",
+      "subtitle": "Estamos abiertos a alianzas y nuevos proyectos. Escríbenos — hablamos de tu caso.",
+      "button": "Contactar"
+    }
   },
   "contact": {
     "title": "Contacto",
     "subtitle": "Ponte en contacto",
-    "person": "Mario Mares Galeev"
+    "description": "Cuéntanos tu caso — respondemos en 24 horas con una propuesta de solución y estimación de plazos.",
+    "person": "Mario Mares Galeev",
+    "role": "CEO & Lead AI Engineer",
+    "personBio": "Responde personalmente a todas las consultas. Cuéntanos tu negocio y tu caso — propondremos la mejor solución de IA.",
+    "channelsTitle": "Canales de contacto",
+    "channels": {
+      "whatsapp": "Escribir por WhatsApp"
+    },
+    "hours": {
+      "title": "Horario",
+      "schedule": "Lun–Vie: 10:00 – 19:00 (MSK / CET)",
+      "note": "Los agentes de IA de nuestros clientes trabajan 24/7. Respondemos consultas en horario laboral."
+    },
+    "form": {
+      "title": "Formulario de contacto",
+      "name": "Tu nombre",
+      "email": "Email",
+      "company": "Empresa (opcional)",
+      "message": "Cuéntanos tu caso",
+      "submit": "Enviar solicitud",
+      "emailSubject": "Solicitud desde la web",
+      "emailBody": {
+        "name": "Nombre",
+        "email": "Email",
+        "company": "Empresa"
+      },
+      "success": {
+        "title": "¡Gracias por contactarnos!",
+        "message": "Se abrirá tu cliente de correo para enviar el mensaje. Responderemos en 24 horas."
+      }
+    },
+    "cta": {
+      "title": "¿Prefieres mensajería?",
+      "subtitle": "Escríbenos por Telegram — respondemos más rápido.",
+      "button": "Escribir en Telegram"
+    }
   }
 }
