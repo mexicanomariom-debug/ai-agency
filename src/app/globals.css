@@ -72,10 +72,40 @@ body {
 @keyframes sky-twinkle {
   0%,
   100% {
-    opacity: 0.25;
+    opacity: 0.12;
+    transform: scale(0.8);
   }
-  50% {
-    opacity: 0.72;
+  6% {
+    opacity: 0.9;
+    transform: scale(1.05);
+  }
+  10% {
+    opacity: 0.15;
+    transform: scale(0.82);
+  }
+  38% {
+    opacity: 0.2;
+    transform: scale(0.85);
+  }
+  42% {
+    opacity: 0.75;
+    transform: scale(1);
+  }
+  47% {
+    opacity: 0.1;
+    transform: scale(0.78);
+  }
+  68% {
+    opacity: 0.18;
+    transform: scale(0.84);
+  }
+  73% {
+    opacity: 0.55;
+    transform: scale(0.95);
+  }
+  78% {
+    opacity: 0.12;
+    transform: scale(0.8);
   }
 }
 
@@ -84,7 +114,9 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  animation: sky-twinkle 5s ease-in-out infinite;
+  animation-name: sky-twinkle;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
 }
 
 .falling-stars .sky-star__svg {
