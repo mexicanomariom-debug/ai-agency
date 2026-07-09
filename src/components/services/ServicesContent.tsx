@@ -66,7 +66,7 @@ export default function ServicesContent() {
             {t("industries.title")}
           </h2>
           <p className="mt-3 max-w-3xl text-muted">{t("industries.subtitle")}</p>
-          <div className="mt-10 grid gap-6 lg:grid-cols-3">
+          <div className="mt-10 grid items-stretch gap-6 lg:grid-cols-3">
             {INDUSTRY_FOCUS.map((key, i) => (
               <motion.div
                 key={key}
@@ -74,7 +74,7 @@ export default function ServicesContent() {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ delay: i * 0.08 }}
-                className="rounded-2xl border border-border bg-surface p-6"
+                className="flex h-full flex-col rounded-2xl border border-border bg-surface p-6"
               >
                 <h3 className="text-lg font-semibold">
                   {t(`industries.items.${key}.title`)}
@@ -82,7 +82,7 @@ export default function ServicesContent() {
                 <p className="mt-3 text-sm leading-relaxed text-muted">
                   {t(`industries.items.${key}.description`)}
                 </p>
-                <ul className="mt-4 space-y-2">
+                <ul className="mt-4 flex-1 space-y-2">
                   {(["f1", "f2", "f3", "f4"] as const).map((f) => (
                     <li
                       key={f}
@@ -93,11 +93,11 @@ export default function ServicesContent() {
                     </li>
                   ))}
                 </ul>
-                <div className="mt-5 rounded-xl border border-accent/20 bg-accent/5 p-4">
-                  <p className="text-xl font-bold text-accent-bright">
+                <div className="mt-6 rounded-xl border border-accent/20 bg-accent/5 p-4">
+                  <p className="text-xl font-bold leading-tight text-accent-bright">
                     {t(`industries.items.${key}.price`)}
                   </p>
-                  <p className="mt-1 text-xs text-muted">
+                  <p className="mt-1 min-h-[2rem] text-xs leading-relaxed text-muted">
                     {t(`industries.items.${key}.priceNote`)}
                   </p>
                 </div>

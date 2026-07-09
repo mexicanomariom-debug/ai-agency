@@ -28,7 +28,7 @@ export default function MarketPricing() {
         initial={{ opacity: 0, y: 20 }}
         whileInView={{ opacity: 1, y: 0 }}
         viewport={{ once: true }}
-        className="mx-auto mt-10 max-w-2xl rounded-2xl border border-border bg-surface p-6 sm:p-8"
+        className="mx-auto mt-10 max-w-5xl rounded-2xl border border-border bg-surface p-6 sm:p-8"
       >
         <div className="mb-6 border-b border-border pb-4 text-center">
           <h3 className="text-lg font-semibold">
@@ -39,32 +39,36 @@ export default function MarketPricing() {
           </p>
         </div>
 
-        <div className="grid gap-4 sm:grid-cols-2">
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {PACKAGES.map((pkg) => (
             <div
               key={pkg}
-              className={`rounded-xl border p-4 ${
+              className={`flex h-full min-h-[8.5rem] flex-col rounded-xl border p-4 ${
                 pkg === "business"
-                  ? "border-accent/40 bg-accent/5 sm:col-span-2"
+                  ? "border-accent/40 bg-accent/5"
                   : "border-border bg-background"
               }`}
             >
-              <div className="flex items-center justify-between gap-2">
+              <div className="flex min-h-6 items-center justify-between gap-2">
                 <span className="text-sm font-medium">
                   {t(`packages.${pkg}.name`)}
                 </span>
-                {pkg === "business" && (
-                  <span className="rounded-full bg-accent px-2 py-0.5 text-[10px] font-semibold text-white">
+                {pkg === "business" ? (
+                  <span className="shrink-0 rounded-full bg-accent px-2 py-0.5 text-[10px] font-semibold text-white">
                     {t("popular")}
                   </span>
+                ) : (
+                  <span className="h-5 w-14 shrink-0" aria-hidden />
                 )}
               </div>
-              <p className="mt-1 text-xl font-bold text-accent-bright">
-                {t(`markets.${market}.packages.${pkg}.price`)}
-              </p>
-              <p className="mt-1 text-xs text-muted">
-                {t(`markets.${market}.packages.${pkg}.support`)}
-              </p>
+              <div className="mt-auto pt-4">
+                <p className="text-xl font-bold leading-tight text-accent-bright">
+                  {t(`markets.${market}.packages.${pkg}.price`)}
+                </p>
+                <p className="mt-1 min-h-[2rem] text-xs leading-relaxed text-muted">
+                  {t(`markets.${market}.packages.${pkg}.support`)}
+                </p>
+              </div>
             </div>
           ))}
         </div>
