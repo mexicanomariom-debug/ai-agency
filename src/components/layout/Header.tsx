@@ -30,7 +30,7 @@ export default function Header() {
         >
           <Bot className="h-6 w-6 text-accent-bright" />
           <span>
-            Neuro<span className="text-accent-bright">Flow</span>
+            AI-<span className="text-accent-bright">Agentes</span>
           </span>
         </Link>
 

@@ -1,7 +1,36 @@
 {
   "meta": {
-    "title": "NeuroFlow — Agentes de IA y automatización de negocios",
-    "description": "Desarrollamos agentes de IA y automatizamos procesos de negocio: asistentes de IA, integraciones con CRM, automatización de tareas rutinarias."
+    "siteName": "AI-Agentes",
+    "defaultTitle": "AI-Agentes — Agentes de IA y automatización de negocios",
+    "description": "AI-Agentes — agencia de desarrollo de agentes de IA y automatización de negocios. Asistentes de IA, integraciones CRM, automatización de tareas. Ahorro de hasta un 60% en costes operativos.",
+    "keywords": "agentes de IA, desarrollo de agentes IA, automatización de negocios, asistentes de IA, integración CRM, chatbots, inteligencia artificial para empresas, automatización de procesos, ai-agentes, ai-agentes.com",
+    "pages": {
+      "home": {
+        "title": "AI-Agentes — Agentes de IA y automatización de negocios",
+        "description": "Desarrollamos agentes de IA y automatizamos procesos de negocio. Asistentes de IA, integraciones CRM, automatización de tareas — ahorro de hasta un 60%. Consulta gratuita en 24 horas.",
+        "keywords": "agentes de IA, automatización de negocios, asistentes de IA, desarrollo de chatbots, integración CRM, ai-agentes.com, agencia de inteligencia artificial"
+      },
+      "services": {
+        "title": "Servicios — desarrollo de agentes de IA y automatización",
+        "description": "Servicios de AI-Agentes: desarrollo de asistentes de IA, automatización de tareas rutinarias, integraciones con CRM y mensajería. Implementación llave en mano.",
+        "keywords": "servicios de agentes IA, desarrollo de asistentes IA, automatización de tareas, integración CRM, implementación de inteligencia artificial"
+      },
+      "solutions": {
+        "title": "Soluciones y casos — cómo la IA ahorra tiempo y dinero",
+        "description": "Casos de AI-Agentes: cómo los agentes de IA reducen costes hasta un 60%, aceleran solicitudes 10 veces y trabajan 24/7 sin descanso.",
+        "keywords": "casos de IA, ejemplos de automatización, ROI inteligencia artificial, ahorro en automatización, IA para pequeñas empresas"
+      },
+      "about": {
+        "title": "Nosotros — agencia AI-Agentes",
+        "description": "AI-Agentes — agencia de nueva generación. Enfoque en tecnologías modernas, procesos transparentes y resultados medibles para cada cliente.",
+        "keywords": "AI-Agentes, agencia de IA, desarrollo de agentes IA, equipo de inteligencia artificial, automatización de negocios"
+      },
+      "contact": {
+        "title": "Contacto — hablar con AI-Agentes",
+        "description": "Contacta con AI-Agentes: hablamos de tu proyecto, proponemos una solución y estimamos plazos en 24 horas. Email, Telegram, WhatsApp.",
+        "keywords": "contacto AI-Agentes, contratar agente de IA, consulta de automatización, contactar agencia de IA"
+      }
+    }
   },
   "nav": {
     "home": "Inicio",

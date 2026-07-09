@@ -23,7 +23,7 @@ export default function Footer() {
           <Link href="/" className="flex items-center gap-2 text-lg font-bold">
             <Bot className="h-6 w-6 text-accent-bright" />
             <span>
-              Neuro<span className="text-accent-bright">Flow</span>
+              AI-<span className="text-accent-bright">Agentes</span>
             </span>
           </Link>
           <p className="mt-4 max-w-xs text-sm leading-relaxed text-muted">
@@ -66,7 +66,7 @@ export default function Footer() {
             </li>
             <li>
               <a
-                href="https://t.me/neuroflow"
+                href="https://t.me/aiagentes"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex items-center gap-2 text-sm text-muted transition-colors hover:text-foreground"
@@ -93,7 +93,7 @@ export default function Footer() {
       <div className="border-t border-border">
         <div className="mx-auto max-w-6xl px-4 py-5 sm:px-6">
           <p className="text-xs text-muted">
-            © {year} NeuroFlow. {t("rights")}
+            © {year} AI-Agentes. {t("rights")}
           </p>
         </div>
       </div>
