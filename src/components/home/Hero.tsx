@@ -15,40 +15,23 @@ const SLIDES = [
   "realestate",
 ] as const;
 
-const SLIDE_INTERVAL_MS = 5000;
-
-const container = {
-  hidden: {},
-  visible: { transition: { staggerChildren: 0.12 } },
-};
-
-const item = {
-  hidden: { opacity: 0, y: 24 },
-  visible: {
-    opacity: 1,
-    y: 0,
-    transition: { duration: 0.6, ease: [0.22, 1, 0.36, 1] as const },
-  },
-};
-
-const slideVariants = {
-  enter: { opacity: 0, y: 20 },
-  center: { opacity: 1, y: 0 },
-  exit: { opacity: 0, y: -16 },
-};
+const SLIDE_INTERVAL_MS = 5500;
 
 export default function Hero() {
   const t = useTranslations("home.hero");
   const tStats = useTranslations("home.stats");
   const [activeIndex, setActiveIndex] = useState(0);
+  const [isPaused, setIsPaused] = useState(false);
 
   useEffect(() => {
+    if (isPaused) return;
+
     const timer = setInterval(() => {
       setActiveIndex((prev) => (prev + 1) % SLIDES.length);
     }, SLIDE_INTERVAL_MS);
 
     return () => clearInterval(timer);
-  }, []);
+  }, [isPaused]);
 
   const activeSlide = SLIDES[activeIndex];
 
@@ -63,82 +46,78 @@ export default function Hero() {
         className="pointer-events-none absolute inset-0 bg-[linear-gradient(to_right,var(--border)_1px,transparent_1px),linear-gradient(to_bottom,var(--border)_1px,transparent_1px)] bg-[size:56px_56px] opacity-20 [mask-image:radial-gradient(ellipse_70%_60%_at_50%_0%,black,transparent)]"
       />
 
-      <motion.div
-        variants={container}
-        initial="hidden"
-        animate="visible"
-        className="relative mx-auto flex max-w-6xl flex-col items-center px-4 pb-20 pt-24 text-center sm:px-6 sm:pb-28 sm:pt-32"
-      >
-        <motion.div variants={item} className="flex flex-col items-center gap-3">
-          <div className="flex items-center gap-2 rounded-full border border-border bg-surface px-4 py-1.5 text-xs font-medium text-muted sm:text-sm">
-            <Sparkles className="h-3.5 w-3.5 text-accent-bright" />
-            {t("badge")}
-          </div>
-
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={activeSlide}
-              initial={{ opacity: 0, scale: 0.96 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.96 }}
-              transition={{ duration: 0.25 }}
-              className="rounded-full border border-accent/30 bg-accent/10 px-4 py-1 text-xs font-semibold text-accent-bright sm:text-sm"
-            >
-              {t(`slides.${activeSlide}.label`)}
-            </motion.div>
-          </AnimatePresence>
-        </motion.div>
-
-        <div className="relative mt-8 min-h-[9rem] w-full max-w-4xl sm:min-h-[11rem] lg:min-h-[12rem]">
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={activeSlide}
-              variants={slideVariants}
-              initial="enter"
-              animate="center"
-              exit="exit"
-              transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
-              className="absolute inset-0 flex flex-col items-center justify-center"
-            >
-              <h1 className="text-4xl font-bold leading-[1.1] tracking-tight sm:text-6xl lg:text-7xl">
-                <span className="bg-gradient-to-b from-foreground to-muted bg-clip-text text-transparent">
-                  {t(`slides.${activeSlide}.title`)}
-                </span>
-              </h1>
-              <p className="mt-6 max-w-2xl text-base leading-relaxed text-muted sm:text-lg">
-                {t(`slides.${activeSlide}.subtitle`)}
-              </p>
-            </motion.div>
-          </AnimatePresence>
+      <div className="relative mx-auto flex max-w-6xl flex-col items-center px-4 pb-20 pt-24 text-center sm:px-6 sm:pb-28 sm:pt-32">
+        <div className="flex items-center gap-2 rounded-full border border-border bg-surface px-4 py-1.5 text-xs font-medium text-muted sm:text-sm">
+          <Sparkles className="h-3.5 w-3.5 shrink-0 text-accent-bright" />
+          {t("badge")}
         </div>
 
-        <motion.div
-          variants={item}
-          className="mt-4 flex items-center gap-2"
-          role="tablist"
-          aria-label={t("slidesAria")}
+        <div
+          className="mt-8 w-full max-w-4xl"
+          onMouseEnter={() => setIsPaused(true)}
+          onMouseLeave={() => setIsPaused(false)}
+          onFocusCapture={() => setIsPaused(true)}
+          onBlurCapture={() => setIsPaused(false)}
         >
-          {SLIDES.map((slide, index) => (
-            <button
-              key={slide}
-              type="button"
-              role="tab"
-              aria-selected={index === activeIndex}
-              aria-label={t(`slides.${slide}.label`)}
-              onClick={() => setActiveIndex(index)}
-              className={`h-2 rounded-full transition-all ${
-                index === activeIndex
-                  ? "w-8 bg-accent-bright"
-                  : "w-2 bg-border hover:bg-muted"
-              }`}
-            />
-          ))}
-        </motion.div>
+          {/* Fixed-height slide area — no absolute positioning */}
+          <div className="overflow-hidden">
+            <div className="flex min-h-[13.5rem] flex-col items-center justify-center sm:min-h-[15.5rem] lg:min-h-[16.5rem]">
+              <AnimatePresence mode="wait" initial={false}>
+                <motion.div
+                  key={activeSlide}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.35, ease: "easeInOut" }}
+                  className="flex w-full flex-col items-center"
+                >
+                  <span className="mb-5 inline-flex rounded-full border border-accent/30 bg-accent/10 px-4 py-1 text-xs font-semibold text-accent-bright sm:text-sm">
+                    {t(`slides.${activeSlide}.label`)}
+                  </span>
 
-        <motion.div
-          variants={item}
-          className="mt-10 flex w-full flex-col items-center gap-3 sm:w-auto sm:flex-row"
-        >
+                  <h1 className="text-3xl font-bold leading-[1.15] tracking-tight sm:text-5xl lg:text-6xl">
+                    <span className="bg-gradient-to-b from-foreground to-muted bg-clip-text text-transparent">
+                      {t(`slides.${activeSlide}.title`)}
+                    </span>
+                  </h1>
+
+                  <p className="mt-5 max-w-2xl text-sm leading-relaxed text-muted sm:text-base lg:text-lg">
+                    {t(`slides.${activeSlide}.subtitle`)}
+                  </p>
+                </motion.div>
+              </AnimatePresence>
+            </div>
+          </div>
+
+          {/* Dots — static layout, outside animated area */}
+          <div
+            className="mt-6 flex items-center justify-center gap-2.5"
+            role="tablist"
+            aria-label={t("slidesAria")}
+          >
+            {SLIDES.map((slide, index) => (
+              <button
+                key={slide}
+                type="button"
+                role="tab"
+                aria-selected={index === activeIndex}
+                aria-label={t(`slides.${slide}.label`)}
+                onClick={() => setActiveIndex(index)}
+                className="flex h-6 w-6 items-center justify-center"
+              >
+                <span
+                  className={`block rounded-full transition-all duration-300 ${
+                    index === activeIndex
+                      ? "h-2 w-7 bg-accent-bright"
+                      : "h-2 w-2 bg-border hover:bg-muted"
+                  }`}
+                />
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="mt-10 flex w-full flex-col items-center gap-3 sm:w-auto sm:flex-row">
           <Link
             href="/contact"
             className="group flex w-full items-center justify-center gap-2 rounded-xl bg-accent px-7 py-3.5 text-sm font-semibold text-white shadow-[0_0_32px_var(--accent-glow)] transition-all hover:bg-accent-bright hover:shadow-[0_0_48px_var(--accent-glow)] sm:w-auto"
@@ -152,12 +131,9 @@ export default function Hero() {
           >
             {t("ctaSecondary")}
           </Link>
-        </motion.div>
+        </div>
 
-        <motion.dl
-          variants={item}
-          className="mt-20 grid w-full max-w-3xl grid-cols-1 gap-4 sm:grid-cols-3"
-        >
+        <dl className="mt-20 grid w-full max-w-3xl grid-cols-1 gap-4 sm:grid-cols-3">
           {(["cost", "uptime", "speed"] as const).map((key) => (
             <div
               key={key}
@@ -172,8 +148,8 @@ export default function Hero() {
               </dd>
             </div>
           ))}
-        </motion.dl>
-      </motion.div>
+        </dl>
+      </div>
     </section>
   );
 }

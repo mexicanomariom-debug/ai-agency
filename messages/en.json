@@ -309,7 +309,7 @@
     },
     "industries": {
       "title": "Industry solutions",
-      "subtitle": "Dentistry, beauty, and healthcare — pricing adapted for Russia, Spain, and Latin America. 30–50% below market rates.",
+      "subtitle": "Dentistry, beauty, and healthcare — pricing for the LATAM market. 30–50% below market rates.",
       "items": {
         "dental": {
           "title": "Dental clinics",
@@ -320,12 +320,8 @@
             "f3": "Visit reminders → 25–35% reduction in no-shows",
             "f4": "Integration with amoCRM, Bitrix24, YClients, Google Calendar"
           },
-          "prices": {
-            "ru": { "label": "Russia", "price": "from 79,000 ₽" },
-            "es": { "label": "Spain", "price": "from €990" },
-            "latam": { "label": "LATAM", "price": "from $597" }
-          },
-          "priceNote": "support: from 4,900 ₽ / €79 / $47 per month"
+          "price": "from $597",
+          "priceNote": "turnkey implementation · support from $47/month"
         },
         "beauty": {
           "title": "Beauty salons and cosmetology",
@@ -336,12 +332,8 @@
             "f3": "Reactivation of clients who haven't visited in 30+ days",
             "f4": "Integration with YClients, Dikidi, amoCRM, Instagram DM"
           },
-          "prices": {
-            "ru": { "label": "Russia", "price": "from 59,000 ₽" },
-            "es": { "label": "Spain", "price": "from €790" },
-            "latam": { "label": "LATAM", "price": "from $447" }
-          },
-          "priceNote": "support: from 3,900 ₽ / €69 / $39 per month"
+          "price": "from $447",
+          "priceNote": "turnkey implementation · support from $39/month"
         },
         "medical": {
           "title": "Medical centers and clinics",
@@ -352,19 +344,15 @@
             "f3": "Notifications for ready test results and follow-up visits",
             "f4": "Integration with HIS, CRM, and telephony"
           },
-          "prices": {
-            "ru": { "label": "Russia", "price": "from 119,000 ₽" },
-            "es": { "label": "Spain", "price": "from €1,490" },
-            "latam": { "label": "LATAM", "price": "from $897" }
-          },
+          "price": "from $897",
           "priceNote": "depends on number of doctors and integrations"
         }
       }
     },
     "pricing": {
-      "title": "Pricing by market",
-      "subtitle": "Adapted rates for Russia, Spain, and LATAM. Below competitors for comparable scope — see comparison table.",
-      "note": "Indicative pricing. Final quote is fixed after a free audit. VAT/taxes per client jurisdiction.",
+      "title": "Pricing",
+      "subtitle": "Rates for the LATAM market. Below competitors for comparable scope — see comparison table.",
+      "note": "Prices in US dollars (USD), indicative. Final quote is fixed after a free audit.",
       "popular": "Popular",
       "packages": {
         "starter": { "name": "Starter" },
@@ -406,7 +394,7 @@
       },
       "competitors": {
         "title": "Competitor comparison",
-        "subtitle": "We analyzed agency and SaaS pricing on each market. AI-Agentes delivers custom implementation 30–50% cheaper with comparable functionality.",
+        "subtitle": "We analyzed agency and SaaS pricing in LATAM. AI-Agentes delivers custom implementation 30–50% cheaper with comparable functionality.",
         "headers": {
           "company": "Competitor",
           "market": "Market",

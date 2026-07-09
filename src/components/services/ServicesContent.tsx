@@ -23,7 +23,6 @@ const SERVICES: { key: string; icon: LucideIcon }[] = [
 const STEPS = ["discovery", "design", "build", "launch", "support"] as const;
 const OVERVIEW_KEYS = ["l1", "l2", "l3", "l4", "l5"] as const;
 const INDUSTRY_FOCUS = ["dental", "beauty", "medical"] as const;
-const MARKETS = ["ru", "es", "latam"] as const;
 
 export default function ServicesContent() {
   const t = useTranslations("services");
@@ -94,21 +93,11 @@ export default function ServicesContent() {
                     </li>
                   ))}
                 </ul>
-                <div className="mt-5 space-y-2 rounded-xl border border-accent/20 bg-accent/5 p-4">
-                  {MARKETS.map((m) => (
-                    <div
-                      key={m}
-                      className="flex items-center justify-between gap-2 text-sm"
-                    >
-                      <span className="text-xs text-muted">
-                        {t(`industries.items.${key}.prices.${m}.label`)}
-                      </span>
-                      <span className="font-semibold text-accent-bright">
-                        {t(`industries.items.${key}.prices.${m}.price`)}
-                      </span>
-                    </div>
-                  ))}
-                  <p className="pt-1 text-xs text-muted">
+                <div className="mt-5 rounded-xl border border-accent/20 bg-accent/5 p-4">
+                  <p className="text-xl font-bold text-accent-bright">
+                    {t(`industries.items.${key}.price`)}
+                  </p>
+                  <p className="mt-1 text-xs text-muted">
                     {t(`industries.items.${key}.priceNote`)}
                   </p>
                 </div>

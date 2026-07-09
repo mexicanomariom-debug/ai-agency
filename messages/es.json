@@ -309,7 +309,7 @@
     },
     "industries": {
       "title": "Soluciones por sector",
-      "subtitle": "Odontología, belleza y medicina — precios adaptados a Rusia, España y Latinoamérica. 30–50% por debajo del mercado.",
+      "subtitle": "Odontología, belleza y medicina — precios para el mercado español. 30–50% por debajo del mercado.",
       "items": {
         "dental": {
           "title": "Clínicas dentales",
@@ -320,12 +320,8 @@
             "f3": "Recordatorios de visita → reducción de ausencias del 25–35%",
             "f4": "Integración con amoCRM, Bitrix24, YClients, Google Calendar"
           },
-          "prices": {
-            "ru": { "label": "Rusia", "price": "desde 79 000 ₽" },
-            "es": { "label": "España", "price": "desde 990 €" },
-            "latam": { "label": "LATAM", "price": "desde $597" }
-          },
-          "priceNote": "soporte: desde 4 900 ₽ / 79 € / $47 al mes"
+          "price": "desde 990 €",
+          "priceNote": "implementación llave en mano · soporte desde 79 €/mes"
         },
         "beauty": {
           "title": "Salones de belleza y cosmetología",
@@ -336,12 +332,8 @@
             "f3": "Reactivación de clientes que no visitan desde hace 30+ días",
             "f4": "Integración con YClients, Dikidi, amoCRM, Instagram DM"
           },
-          "prices": {
-            "ru": { "label": "Rusia", "price": "desde 59 000 ₽" },
-            "es": { "label": "España", "price": "desde 790 €" },
-            "latam": { "label": "LATAM", "price": "desde $447" }
-          },
-          "priceNote": "soporte: desde 3 900 ₽ / 69 € / $39 al mes"
+          "price": "desde 790 €",
+          "priceNote": "implementación llave en mano · soporte desde 69 €/mes"
         },
         "medical": {
           "title": "Centros médicos y policlínicas",
@@ -352,19 +344,15 @@
             "f3": "Notificaciones sobre análisis listos y visitas de seguimiento",
             "f4": "Integración con HIS, CRM y telefonía"
           },
-          "prices": {
-            "ru": { "label": "Rusia", "price": "desde 119 000 ₽" },
-            "es": { "label": "España", "price": "desde 1 490 €" },
-            "latam": { "label": "LATAM", "price": "desde $897" }
-          },
+          "price": "desde 1 490 €",
           "priceNote": "depende del número de médicos e integraciones"
         }
       }
     },
     "pricing": {
-      "title": "Precios por mercado",
-      "subtitle": "Tarifas adaptadas a Rusia, España y LATAM. Por debajo de la competencia con el mismo alcance — comparación en la tabla.",
-      "note": "Precios orientativos. El presupuesto final se fija tras la auditoría gratuita. IVA/impuestos según jurisdicción.",
+      "title": "Precios",
+      "subtitle": "Tarifas para el mercado español. Por debajo de la competencia con el mismo alcance — comparación en la tabla.",
+      "note": "Precios en euros (€), orientativos. El presupuesto final se fija tras la auditoría gratuita.",
       "popular": "Popular",
       "packages": {
         "starter": { "name": "Inicio" },
@@ -406,7 +394,7 @@
       },
       "competitors": {
         "title": "Comparación con la competencia",
-        "subtitle": "Analizamos precios de agencias y plataformas SaaS en cada mercado. AI-Agentes ofrece implementación a medida un 30–50% más barata con funcionalidad comparable.",
+        "subtitle": "Analizamos precios de agencias y plataformas SaaS en España. AI-Agentes ofrece implementación a medida un 30–50% más barata con funcionalidad comparable.",
         "headers": {
           "company": "Competidor",
           "market": "Mercado",
