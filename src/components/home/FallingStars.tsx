@@ -145,8 +145,10 @@ export default function FallingStars({ slideIndex }: Props) {
           className={`shooting-star shooting-star--${star.direction} shooting-star--once`}
           style={{ top: star.top, animationDuration: `${star.duration}s` }}
         >
-          <StarHead gradientId={`${baseId}-burst-${star.id}`} />
-          <span className="shooting-star__tail" />
+          <span className="shooting-star__streak">
+            <span className="shooting-star__tail" />
+            <StarHead gradientId={`${baseId}-burst-${star.id}`} />
+          </span>
         </span>
       ))}
     </div>

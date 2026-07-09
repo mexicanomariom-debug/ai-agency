@@ -180,52 +180,63 @@ body {
   animation-name: shoot-once-rtl;
 }
 
-.falling-stars .shooting-star__head {
+.falling-stars .shooting-star__streak {
   position: absolute;
-  top: -5px;
+  top: -6px;
+  display: flex;
+  align-items: center;
+  transform-origin: center center;
+}
+
+.falling-stars .shooting-star--ltr .shooting-star__streak {
+  left: 0;
+  flex-direction: row;
+  transform: rotate(atan2(12vh, 124vw));
+}
+
+.falling-stars .shooting-star--rtl .shooting-star__streak {
+  right: 0;
+  flex-direction: row-reverse;
+  transform: rotate(atan2(12vh, -124vw));
+}
+
+.falling-stars .shooting-star__head {
+  position: relative;
+  top: 0;
   display: block;
+  flex-shrink: 0;
   shape-rendering: geometricPrecision;
 }
 
 .falling-stars .shooting-star__tail {
-  position: absolute;
-  top: 0;
-  width: 34px;
-  height: 1.5px;
-  border-radius: 2px;
-  opacity: 0.42;
-  filter: blur(0.7px);
-}
-
-.falling-stars .shooting-star--ltr .shooting-star__head {
-  left: -1px;
-}
-
-.falling-stars .shooting-star--ltr .shooting-star__tail {
-  right: 4px;
-  transform: translateX(-100%) rotate(-10deg);
-  transform-origin: right center;
+  width: clamp(88px, 16vw, 168px);
+  height: 2px;
+  flex-shrink: 0;
+  margin-inline-end: -1px;
+  border-radius: 999px;
+  opacity: 0.72;
   background: linear-gradient(
     90deg,
     transparent 0%,
-    rgba(255, 255, 255, 0.08) 40%,
-    rgba(255, 255, 255, 0.38) 100%
+    rgba(255, 255, 255, 0.02) 12%,
+    rgba(255, 255, 255, 0.1) 38%,
+    rgba(255, 255, 255, 0.42) 72%,
+    rgba(255, 255, 255, 0.82) 100%
   );
-}
-
-.falling-stars .shooting-star--rtl .shooting-star__head {
-  right: -1px;
+  box-shadow: 0 0 6px rgba(255, 255, 255, 0.14);
+  filter: blur(0.35px);
 }
 
 .falling-stars .shooting-star--rtl .shooting-star__tail {
-  left: 4px;
-  transform: rotate(10deg);
-  transform-origin: left center;
+  margin-inline-end: 0;
+  margin-inline-start: -1px;
   background: linear-gradient(
     270deg,
     transparent 0%,
-    rgba(255, 255, 255, 0.08) 40%,
-    rgba(255, 255, 255, 0.38) 100%
+    rgba(255, 255, 255, 0.02) 12%,
+    rgba(255, 255, 255, 0.1) 38%,
+    rgba(255, 255, 255, 0.42) 72%,
+    rgba(255, 255, 255, 0.82) 100%
   );
 }
 
