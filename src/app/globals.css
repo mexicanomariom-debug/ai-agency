@@ -81,54 +81,42 @@ body {
 
 .falling-stars .sky-star {
   position: absolute;
-  width: 2px;
-  height: 2px;
-  border-radius: 50%;
-  background: #f1f5f9;
-  box-shadow: 0 0 4px 1px rgba(199, 210, 254, 0.25);
+  display: flex;
+  align-items: center;
+  justify-content: center;
   animation: sky-twinkle 5s ease-in-out infinite;
 }
 
-/* Left → right: flies diagonally down across the hero */
-@keyframes shoot-ltr {
-  0%,
-  72%,
-  100% {
-    transform: translate(-14vw, 0);
+.falling-stars .sky-star__svg {
+  display: block;
+  shape-rendering: geometricPrecision;
+}
+
+/* One-shot streak per hero slide — faster pass */
+@keyframes shoot-once-ltr {
+  0% {
+    transform: translate3d(-12vw, 0, 0);
     opacity: 0;
   }
-  73% {
-    transform: translate(-14vw, 0);
-    opacity: 0;
-  }
-  74% {
-    transform: translate(-14vw, 0);
+  6% {
     opacity: 1;
   }
-  92% {
-    transform: translate(114vw, 18vh);
+  100% {
+    transform: translate3d(112vw, 12vh, 0);
     opacity: 0;
   }
 }
 
-/* Right → left */
-@keyframes shoot-rtl {
-  0%,
-  72%,
-  100% {
-    transform: translate(14vw, 0);
+@keyframes shoot-once-rtl {
+  0% {
+    transform: translate3d(12vw, 0, 0);
     opacity: 0;
   }
-  73% {
-    transform: translate(14vw, 0);
-    opacity: 0;
-  }
-  74% {
-    transform: translate(14vw, 0);
+  6% {
     opacity: 1;
   }
-  92% {
-    transform: translate(-114vw, 18vh);
+  100% {
+    transform: translate3d(-112vw, 12vh, 0);
     opacity: 0;
   }
 }
@@ -138,72 +126,75 @@ body {
   left: 0;
   width: 0;
   height: 0;
-  animation-timing-function: linear;
-  animation-iteration-count: infinite;
   will-change: transform, opacity;
 }
 
-.falling-stars .shooting-star--ltr {
-  animation-name: shoot-ltr;
+.falling-stars .shooting-star--once {
+  animation-duration: 2.1s;
+  animation-timing-function: ease-in;
+  animation-fill-mode: forwards;
+  animation-iteration-count: 1;
+}
+
+.falling-stars .shooting-star--ltr.shooting-star--once {
+  animation-name: shoot-once-ltr;
 }
 
 .falling-stars .shooting-star--rtl {
   left: auto;
   right: 0;
-  animation-name: shoot-rtl;
+}
+
+.falling-stars .shooting-star--rtl.shooting-star--once {
+  animation-name: shoot-once-rtl;
 }
 
 .falling-stars .shooting-star__head {
   position: absolute;
-  top: 0;
-  width: 3px;
-  height: 3px;
-  border-radius: 50%;
-  background: #ffffff;
-  box-shadow:
-    0 0 4px 1px rgba(255, 255, 255, 0.9),
-    0 0 10px 2px rgba(199, 210, 254, 0.45);
+  top: -5px;
+  display: block;
+  shape-rendering: geometricPrecision;
 }
 
 .falling-stars .shooting-star__tail {
   position: absolute;
-  top: 1px;
-  width: 48px;
+  top: 0;
+  width: 26px;
   height: 1px;
-  border-radius: 1px;
-  filter: blur(0.6px);
-  opacity: 0.7;
+  border-radius: 2px;
+  opacity: 0.28;
+  filter: blur(0.8px);
 }
 
 .falling-stars .shooting-star--ltr .shooting-star__head {
-  left: 0;
+  left: -1px;
 }
 
 .falling-stars .shooting-star--ltr .shooting-star__tail {
-  right: 2px;
-  transform: translateX(-100%) rotate(-12deg);
+  right: 4px;
+  transform: translateX(-100%) rotate(-10deg);
   transform-origin: right center;
   background: linear-gradient(
     90deg,
     transparent 0%,
-    rgba(255, 255, 255, 0.1) 35%,
-    rgba(255, 255, 255, 0.7) 100%
+    rgba(255, 255, 255, 0.04) 45%,
+    rgba(255, 255, 255, 0.22) 100%
   );
 }
 
 .falling-stars .shooting-star--rtl .shooting-star__head {
-  right: 0;
+  right: -1px;
 }
 
 .falling-stars .shooting-star--rtl .shooting-star__tail {
-  left: 2px;
-  transform: rotate(12deg);
+  left: 4px;
+  transform: rotate(10deg);
   transform-origin: left center;
   background: linear-gradient(
     270deg,
     transparent 0%,
-    rgba(255, 255, 255, 0.1) 35%,
-    rgba(255, 255, 255, 0.7) 100%
+    rgba(255, 255, 255, 0.04) 45%,
+    rgba(255, 255, 255, 0.22) 100%
   );
 }
 

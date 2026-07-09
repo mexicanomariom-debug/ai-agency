@@ -38,7 +38,7 @@ export default function Hero() {
 
   return (
     <section className="relative overflow-hidden">
-      <FallingStars />
+      <FallingStars slideIndex={activeIndex} />
       <div
         aria-hidden
         className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_60%_50%_at_50%_-10%,var(--accent-glow),transparent)]"
