@@ -1,0 +1,537 @@
+{
+  "meta": {
+    "siteName": "AI-Agentes",
+    "defaultTitle": "AI-Agentes — AI Agents & Business Automation",
+    "description": "AI-Agentes — AI agent development and business automation agency. AI assistants, CRM integrations, task automation. Save up to 60% on operational costs.",
+    "keywords": "AI agents, AI agent development, business automation, AI assistants, CRM integration, chatbots, artificial intelligence for business, process automation, ai-agentes, ai-agentes.com",
+    "pages": {
+      "home": {
+        "title": "AI-Agentes — AI Agents & Business Automation",
+        "description": "We build AI agents and automate business processes. AI assistants, CRM integrations, task automation — save up to 60%. Free consultation within 24 hours.",
+        "keywords": "AI agents, business automation, AI assistants, chatbot development, CRM integration, ai-agentes.com, artificial intelligence agency"
+      },
+      "services": {
+        "title": "AI-Agentes Services — AI Agent Development & Automation",
+        "description": "AI-Agentes offers 5 core services: AI assistants and chatbots, process automation, CRM integrations, custom AI agent development, and turnkey implementation.",
+        "keywords": "AI agent services, chatbot development, process automation, CRM integration, artificial intelligence implementation, turnkey AI"
+      },
+      "solutions": {
+        "title": "Solutions & Case Studies — How AI Saves Time and Money",
+        "description": "AI-Agentes case studies: how AI agents reduce costs by up to 60%, process requests 10× faster, and work 24/7 without downtime.",
+        "keywords": "AI case studies, automation examples, artificial intelligence ROI, automation savings, AI for small business"
+      },
+      "portfolio": {
+        "title": "Work Examples — Real AI Implementation Case Studies",
+        "description": "Public AI agent implementation cases: Comboios de Portugal, Siemens, Klarna, Stannp, and more. Real figures and results from across industries.",
+        "keywords": "AI work examples, chatbot case studies, AI agency portfolio, real automation projects, CRM integration cases"
+      },
+      "about": {
+        "title": "About — AI-Agentes Agency",
+        "description": "AI-Agentes — a next-generation agency. Focused on modern technology, transparent processes, and measurable results for every client.",
+        "keywords": "AI-Agentes, AI agency, AI agent development, artificial intelligence team, business automation"
+      },
+      "contact": {
+        "title": "Contact — Talk to AI-Agentes",
+        "description": "Contact AI-Agentes: we'll discuss your project, propose a solution, and estimate timelines within 24 hours. Email, Telegram, WhatsApp.",
+        "keywords": "contact AI-Agentes, hire AI agent, automation consultation, contact AI agency"
+      }
+    }
+  },
+  "nav": {
+    "home": "Home",
+    "services": "Services",
+    "solutions": "Solutions",
+    "portfolio": "Portfolio",
+    "about": "About",
+    "contact": "Contact",
+    "cta": "Discuss your project"
+  },
+  "footer": {
+    "tagline": "AI agents and automation that work for your business 24/7.",
+    "navTitle": "Navigation",
+    "contactTitle": "Contact",
+    "rights": "All rights reserved."
+  },
+  "home": {
+    "hero": {
+      "badge": "Next-generation AI agency",
+      "title": "AI agents that work for you",
+      "subtitle": "We automate routine tasks, deploy intelligent assistants, and integrate AI into your business processes. Your team focuses on strategy — AI handles the rest.",
+      "ctaPrimary": "Discuss your project",
+      "ctaSecondary": "Our services"
+    },
+    "stats": {
+      "cost": {
+        "value": "-60%",
+        "label": "operational costs after automation"
+      },
+      "uptime": {
+        "value": "24/7",
+        "label": "agents work without breaks or vacations"
+      },
+      "speed": {
+        "value": "×10",
+        "label": "faster request processing"
+      }
+    },
+    "benefits": {
+      "title": "Why AI agents",
+      "subtitle": "Technology that pays for itself from month one",
+      "items": {
+        "speed": {
+          "title": "24/7 speed",
+          "description": "AI agents don't sleep, don't get tired, and process requests instantly — at any hour."
+        },
+        "cost": {
+          "title": "Cost reduction",
+          "description": "Automating routine tasks cuts operational expenses by up to 60%."
+        },
+        "scale": {
+          "title": "Scalability",
+          "description": "A single agent handles thousands of requests in parallel — without hiring more staff."
+        },
+        "accuracy": {
+          "title": "Accuracy",
+          "description": "Minimal human error: agents follow protocols and learn from your data."
+        }
+      }
+    },
+    "cta": {
+      "title": "Ready to automate your business?",
+      "subtitle": "Tell us about your case — we'll propose a solution and estimate timelines within 24 hours.",
+      "button": "Contact us"
+    },
+    "servicesPreview": {
+      "title": "Our services",
+      "subtitle": "We implement AI in your business turnkey — from consultation to a working agent",
+      "link": "Learn more about services",
+      "items": {
+        "assistants": {
+          "title": "AI assistants & chatbots",
+          "description": "Smart bots on web, Telegram, and WhatsApp — serving customers and supporting your team 24/7."
+        },
+        "automation": {
+          "title": "Process automation",
+          "description": "Requests, documents, reports, and reminders — run on their own, without manual work."
+        },
+        "crm": {
+          "title": "CRM integrations",
+          "description": "We connect AI with amoCRM, Bitrix24, HubSpot — data syncs automatically."
+        }
+      }
+    }
+  },
+  "services": {
+    "title": "Services",
+    "subtitle": "What we offer",
+    "description": "AI-Agentes is a full-cycle agency. We don't sell packaged software — we design, build, and deploy AI solutions tailored to your specific business needs.",
+    "overview": {
+      "title": "Services we provide",
+      "text": "We help companies integrate artificial intelligence into daily operations — so teams spend less time on routine tasks and customers get faster responses. These are the five most in-demand areas:",
+      "list": {
+        "l1": "AI assistants and chatbots — for web, Telegram, WhatsApp, and internal team tasks",
+        "l2": "Process automation — requests, documents, reports, and deliveries without human intervention",
+        "l3": "CRM and tool integrations — amoCRM, Bitrix24, HubSpot, Google Sheets, Notion",
+        "l4": "Custom AI agent development — for sales, support, HR, analytics, and other roles",
+        "l5": "Turnkey implementation and support — from audit to launch and ongoing maintenance"
+      }
+    },
+    "items": {
+      "assistants": {
+        "title": "AI assistants & chatbots",
+        "description": "We build intelligent assistants that communicate with customers and employees in natural language. The bot knows your product, pricing, and protocols — and responds instantly, without queues or business hours.",
+        "features": {
+          "f1": "Chatbot on web, Telegram, and WhatsApp",
+          "f2": "Answers based on your documents, FAQ, and knowledge base",
+          "f3": "Handoff of complex cases to a manager with full conversation history"
+        }
+      },
+      "automation": {
+        "title": "Business process automation",
+        "description": "We configure action chains that run on their own: from receiving a request to generating a document and sending a customer reminder. Your team steps in only where a human is needed.",
+        "features": {
+          "f1": "Receiving, classifying, and routing incoming requests",
+          "f2": "Automatic generation of contracts, invoices, reports, and statements",
+          "f3": "Scheduled deliveries, reminders, and automated follow-up"
+        }
+      },
+      "crm": {
+        "title": "CRM & business system integrations",
+        "description": "We connect AI agents with the tools you already use. Leads, deals, and contacts update automatically — no manual data copying between systems.",
+        "features": {
+          "f1": "Integration with amoCRM, Bitrix24, HubSpot, Salesforce",
+          "f2": "Auto-fill of customer records, deals, and tasks",
+          "f3": "Connection with Google Sheets, Notion, Slack, email, and calendar"
+        }
+      },
+      "agents": {
+        "title": "Custom AI agent development",
+        "description": "We design agents for a specific role in your company: qualifying leads, managing customer correspondence, analyzing data, and preparing reports for leadership.",
+        "features": {
+          "f1": "Agents for sales, support, HR, analytics, and internal processes",
+          "f2": "Multi-agent systems — multiple AIs working in sequence",
+          "f3": "Monitoring dashboard: logs, metrics, and response quality"
+        }
+      },
+      "support": {
+        "title": "Turnkey implementation & support",
+        "description": "We handle the full project lifecycle: understand the task, design the architecture, develop, test, launch, and provide support after go-live.",
+        "features": {
+          "f1": "Free process audit and timeline estimate within 24 hours",
+          "f2": "Working solution launch in 2–4 weeks",
+          "f3": "Technical support, model updates, and team training"
+        }
+      }
+    },
+    "process": {
+      "title": "How we work",
+      "subtitle": "Transparent process from the first call to launch — typically 2–4 weeks",
+      "steps": {
+        "discovery": {
+          "title": "Discovery",
+          "description": "We study your business, processes, and pain points. We identify where AI will have the greatest impact."
+        },
+        "design": {
+          "title": "Design",
+          "description": "We create the architecture, agent scenarios, and integration plan. We align with you before building."
+        },
+        "build": {
+          "title": "Development",
+          "description": "We build the agent, connect integrations, and train it on your data. We share interim results along the way."
+        },
+        "launch": {
+          "title": "Launch",
+          "description": "We test in real conditions, train your team, and deploy to production."
+        },
+        "support": {
+          "title": "Support",
+          "description": "We monitor, optimize, and scale. The agent grows alongside your business."
+        }
+      }
+    },
+    "cta": {
+      "title": "Need a solution for your case?",
+      "subtitle": "Tell us the process you want to automate — we'll propose the architecture for free.",
+      "button": "Discuss your project"
+    }
+  },
+  "solutions": {
+    "title": "Solutions",
+    "subtitle": "How AI saves your business time and money",
+    "description": "Real-world AI agent implementation scenarios — with measurable results for businesses of any scale.",
+    "intro": "Each case is a typical challenge we solve for our clients. Figures are based on averages after implementing AI agents in similar projects.",
+    "cases": {
+      "support": {
+        "title": "Customer support automation",
+        "industry": "E-commerce / SaaS",
+        "problem": "A team of 5 agents couldn't keep up with 200+ daily inquiries. Average response time: 4 hours — customers went to competitors.",
+        "solution": "We deployed a first-line AI agent: resolves 80% of typical inquiries instantly and hands off complex cases to a human agent with full context.",
+        "results": {
+          "metric1": { "value": "-75%", "label": "response time" },
+          "metric2": { "value": "80%", "label": "automated resolution" },
+          "metric3": { "value": "+32%", "label": "satisfaction" }
+        }
+      },
+      "leads": {
+        "title": "Lead qualification in CRM",
+        "industry": "B2B / Sales",
+        "problem": "Sales reps spent 3 hours daily processing inquiries: clarifying needs, filling CRM, and scheduling meetings.",
+        "solution": "The AI agent receives inquiries from all channels, asks qualifying questions, scores the lead, and creates a CRM record with priority.",
+        "results": {
+          "metric1": { "value": "×10", "label": "processing speed" },
+          "metric2": { "value": "-60%", "label": "sales rep workload" },
+          "metric3": { "value": "+45%", "label": "conversion to sale" }
+        }
+      },
+      "documents": {
+        "title": "Document processing",
+        "industry": "Finance / Legal",
+        "problem": "Employees manually extracted data from 500+ documents per month: invoices, contracts, statements. Errors in 12% of cases.",
+        "solution": "The AI agent recognizes, classifies, and extracts key fields from documents, loading data into the accounting system.",
+        "results": {
+          "metric1": { "value": "×15", "label": "processing speed" },
+          "metric2": { "value": "-95%", "label": "errors" },
+          "metric3": { "value": "-70%", "label": "routine costs" }
+        }
+      },
+      "ecommerce": {
+        "title": "Online store consultant",
+        "industry": "Retail / E-commerce",
+        "problem": "Shoppers couldn't find the right product in a catalog of 3,000 items. 40% left without purchasing.",
+        "solution": "AI consultant on the website: helps choose products, compares features, and enables one-click ordering.",
+        "results": {
+          "metric1": { "value": "+28%", "label": "conversion" },
+          "metric2": { "value": "+18%", "label": "average order value" },
+          "metric3": { "value": "24/7", "label": "availability" }
+        }
+      },
+      "scheduling": {
+        "title": "Booking & scheduling",
+        "industry": "Services / Healthcare",
+        "problem": "Administrators spent 4 hours daily on calls for appointments, rescheduling, and reminders.",
+        "solution": "The AI agent manages appointments via messaging and web, syncs with the calendar, and sends reminders.",
+        "results": {
+          "metric1": { "value": "-90%", "label": "manual calls" },
+          "metric2": { "value": "-35%", "label": "no-shows" },
+          "metric3": { "value": "×5", "label": "appointments per day" }
+        }
+      }
+    },
+    "impact": {
+      "title": "Average impact after implementation",
+      "subtitle": "Metrics our clients achieve within the first 3 months",
+      "items": {
+        "time": { "value": "×10", "label": "faster processes" },
+        "cost": { "value": "-60%", "label": "cost reduction" },
+        "quality": { "value": "-95%", "label": "fewer errors" },
+        "scale": { "value": "24/7", "label": "no downtime" }
+      }
+    },
+    "cta": {
+      "title": "Does this sound like your case?",
+      "subtitle": "Tell us about your process — we'll show you how an AI agent can solve it for your business.",
+      "button": "Discuss your case"
+    }
+  },
+  "portfolio": {
+    "title": "Work Examples",
+    "subtitle": "Real AI implementation case studies",
+    "description": "Publicly documented AI agent implementations across industries. AI-Agentes designs and deploys similar solutions.",
+    "intro": "Below are real cases from global practice: railways, industry, fintech, e-commerce, and B2B. We study the best implementations and adapt proven architectures to our clients' needs.",
+    "labels": {
+      "challenge": "Challenge",
+      "solution": "Solution",
+      "results": "Results",
+      "stack": "Technologies"
+    },
+    "disclaimer": "Cases are based on public reports from companies and their technology partners (AWS, OpenAI, Enterprise Bot, ChatSignals, etc.).",
+    "cases": {
+      "cp": {
+        "company": "Comboios de Portugal",
+        "industry": "Transportation",
+        "year": "2021–2025",
+        "title": "AI chatbot on web and WhatsApp for 200M passengers",
+        "challenge": "Portugal's state railway operator serves ~200 million passengers per year. Support was overwhelmed: inquiries about schedules, delays, refunds, and ticket sales required human agents and created long queues.",
+        "solution": "They implemented an AI chatbot on web and WhatsApp integrated with ticket sales systems and delay APIs. The bot responds in 130+ languages (web) and in Portuguese (WhatsApp).",
+        "results": {
+          "m1": { "value": "−90%", "label": "support costs" },
+          "m2": { "value": "98.5%", "label": "answer accuracy" },
+          "m3": { "value": "8%", "label": "escalation to human" }
+        },
+        "stack": {
+          "s1": "Microsoft Azure",
+          "s2": "WhatsApp API",
+          "s3": "NLP + API integrations"
+        }
+      },
+      "siemens": {
+        "company": "Siemens",
+        "industry": "Industry",
+        "year": "2024–2025",
+        "title": "AI agent for contact center with CRM integration",
+        "challenge": "Global corporation with enormous call volume managed by an outdated IVR. Customers waited too long and routing often sent them to the wrong specialist.",
+        "solution": "They deployed an AI agent on Amazon Connect with access to CRM, employee directory, and knowledge base via Lambda. It personalizes dialogue based on purchase history and transfers to a human with full context.",
+        "results": {
+          "m1": { "value": "90%", "label": "calls without agent" },
+          "m2": { "value": "↑", "label": "first-contact resolution" },
+          "m3": { "value": "CRM", "label": "automatic logging" }
+        },
+        "stack": {
+          "s1": "Amazon Connect",
+          "s2": "AWS Lambda + Bedrock",
+          "s3": "CRM MCP Gateway"
+        }
+      },
+      "stannp": {
+        "company": "Stannp.com",
+        "industry": "B2B / Direct Mail",
+        "year": "2024",
+        "title": "Sales chat automation with HubSpot",
+        "challenge": "A team of 7 sales reps spent most of their time on routine chats instead of closing deals and expanding into new markets. Launching in Canada was impossible due to lack of resources.",
+        "solution": "They implemented AI chat integrated with HubSpot: the bot handles typical inquiries, qualifies leads, and transfers hot opportunities to sales reps. Freed-up reps focused on international expansion.",
+        "results": {
+          "m1": { "value": "−50%", "label": "sales chat workload" },
+          "m2": { "value": "+80%", "label": "chat volume" },
+          "m3": { "value": "13×", "label": "ROI in 1 month" }
+        },
+        "stack": {
+          "s1": "HubSpot CRM",
+          "s2": "AI Chat Automation",
+          "s3": "Live chat handoff"
+        }
+      },
+      "retailer": {
+        "company": "Global retailer",
+        "industry": "E-commerce / Retail",
+        "year": "2024",
+        "title": "AI chatbot + CRM workflow automation",
+        "challenge": "Slow responses, high support load, and manual CRM work: lead assignment, follow-up, and reporting. Teams spent hours on repetitive operations.",
+        "solution": "They deployed a multichannel chatbot (web, app, social) with NLP connected to Salesforce/Zoho CRM. Automated lead routing, reminders, and reporting dashboards.",
+        "results": {
+          "m1": { "value": "−70%", "label": "response time" },
+          "m2": { "value": "−50%", "label": "manual work" },
+          "m3": { "value": "↑", "label": "conversion to sale" }
+        },
+        "stack": {
+          "s1": "Salesforce / Zoho",
+          "s2": "NLP Chatbot",
+          "s3": "Workflow automation"
+        }
+      },
+      "klarna": {
+        "company": "Klarna",
+        "industry": "Fintech",
+        "year": "2024–2025",
+        "title": "AI support assistant in 35+ languages",
+        "challenge": "Fintech service with 150M users across 23 markets processed millions of inquiries: refunds, disputes, payments. Average resolution time: 11 minutes, call center load kept growing.",
+        "solution": "They launched an LLM-based AI assistant: multilingual 24/7 support, handling refunds and payments. Hybrid model: AI closes typical cases, humans step in for complex cases and premium customers.",
+        "results": {
+          "m1": { "value": "2/3", "label": "chats via AI" },
+          "m2": { "value": "2 min", "label": "resolution (was 11)" },
+          "m3": { "value": "$40M", "label": "annual savings" }
+        },
+        "stack": {
+          "s1": "OpenAI GPT",
+          "s2": "Multilingual NLP",
+          "s3": "Hybrid escalation"
+        }
+      },
+      "logistics": {
+        "company": "Shopify",
+        "industry": "E-commerce SaaS",
+        "year": "2024",
+        "title": "AI Sidekick — assistant for 2M+ merchants",
+        "challenge": "Millions of merchants manage catalogs, orders, and marketing daily. New users struggle with the tools and support doesn't scale linearly.",
+        "solution": "They implemented Sidekick — an AI assistant in the admin panel: answers questions about store setup, generates product descriptions, analyzes sales, and suggests actions in natural language.",
+        "results": {
+          "m1": { "value": "2M+", "label": "merchants" },
+          "m2": { "value": "24/7", "label": "availability" },
+          "m3": { "value": "↑", "label": "onboarding speed" }
+        },
+        "stack": {
+          "s1": "Shopify Magic",
+          "s2": "LLM + Commerce API",
+          "s3": "In-app assistant"
+        }
+      }
+    },
+    "cta": {
+      "title": "Want similar results?",
+      "subtitle": "Tell us your industry and use case — we'll design an AI agent with a proven architecture.",
+      "button": "Discuss your project"
+    }
+  },
+  "about": {
+    "title": "About",
+    "subtitle": "Agency philosophy",
+    "description": "AI-Agentes is a team of engineers and strategists who turn artificial intelligence into a real business tool.",
+    "story": {
+      "title": "Who we are",
+      "p1": "AI-Agentes is an AI agent development and business process automation agency. We build solutions that actually work: responding to customers, processing requests, integrating with CRM, and saving dozens of hours every week.",
+      "p2": "Our team works at the intersection of technology and business. We don't sell \"AI magic\" — we build concrete tools with measurable ROI. Every project starts with an analysis: where automation will deliver maximum impact at minimum cost."
+    },
+    "mission": {
+      "label": "Mission",
+      "text": "Make AI agents an accessible and understandable tool for businesses of any scale — from startups to corporations."
+    },
+    "vision": {
+      "label": "Vision",
+      "text": "A world where routine work is automated and people focus on what truly requires human intelligence and creativity."
+    },
+    "values": {
+      "title": "Our values",
+      "subtitle": "Principles that guide every project",
+      "items": {
+        "innovation": {
+          "title": "Innovation",
+          "description": "We use cutting-edge LLMs, agent frameworks, and industry best practices."
+        },
+        "transparency": {
+          "title": "Transparency",
+          "description": "We speak honestly about AI capabilities and limitations. No promises to \"replace all employees.\""
+        },
+        "results": {
+          "title": "Results",
+          "description": "We evaluate every project by metrics: time, money, quality. If AI doesn't pay off — we say so clearly."
+        },
+        "security": {
+          "title": "Security",
+          "description": "Client data is protected. We work with GDPR compliance, encryption, and isolated environments."
+        }
+      }
+    },
+    "tech": {
+      "title": "Technologies",
+      "subtitle": "Stack we use to build AI agents",
+      "items": {
+        "llm": {
+          "title": "Large language models",
+          "description": "GPT-4, Claude, Gemini, and open-source models — we choose the optimal one for each task."
+        },
+        "automation": {
+          "title": "Agent frameworks",
+          "description": "LangChain, CrewAI, AutoGen — for multi-agent systems and complex pipelines."
+        },
+        "integrations": {
+          "title": "Integrations",
+          "description": "APIs, webhooks, CRM, messaging, Google Workspace, Notion — we connect with your ecosystem."
+        },
+        "cloud": {
+          "title": "Cloud infrastructure",
+          "description": "Vercel, AWS, Google Cloud — scalable, reliable deployments with 24/7 monitoring."
+        }
+      }
+    },
+    "founder": {
+      "title": "Founder",
+      "name": "Mario Mares Galeev",
+      "role": "CEO & Lead AI Engineer",
+      "bio": "Over 10 years in software development and business process automation. Founded AI-Agentes to make artificial intelligence accessible to companies in Russia, Spain, and Latin America."
+    },
+    "cta": {
+      "title": "Want to work with us?",
+      "subtitle": "We're open to partnerships and new projects. Reach out — let's discuss your case.",
+      "button": "Contact"
+    }
+  },
+  "contact": {
+    "title": "Contact",
+    "subtitle": "Get in touch",
+    "description": "Tell us about your case — we'll respond within 24 hours with a proposed solution and timeline estimate.",
+    "person": "Mario Mares Galeev",
+    "role": "CEO & Lead AI Engineer",
+    "personBio": "Personally responds to all inquiries. Tell us about your business and use case — we'll propose the best AI solution.",
+    "channelsTitle": "Contact channels",
+    "channels": {
+      "whatsapp": "Message on WhatsApp"
+    },
+    "hours": {
+      "title": "Business hours",
+      "schedule": "Mon–Fri: 10:00 – 19:00 (MSK / CET)",
+      "note": "Our clients' AI agents work 24/7. We respond to inquiries during business hours."
+    },
+    "form": {
+      "title": "Contact form",
+      "name": "Your name",
+      "email": "Email",
+      "company": "Company (optional)",
+      "message": "Tell us about your case",
+      "submit": "Send inquiry",
+      "emailSubject": "Inquiry from website",
+      "emailBody": {
+        "name": "Name",
+        "email": "Email",
+        "company": "Company"
+      },
+      "success": {
+        "title": "Thank you for reaching out!",
+        "message": "Your email client will open to send the message. We'll respond within 24 hours."
+      }
+    },
+    "cta": {
+      "title": "Prefer messaging?",
+      "subtitle": "Write to us on Telegram — we respond faster.",
+      "button": "Message on Telegram"
+    }
+  }
+}

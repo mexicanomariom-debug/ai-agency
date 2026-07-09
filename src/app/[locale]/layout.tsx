@@ -74,6 +74,7 @@ export async function generateMetadata({
       languages: {
         ru: "/ru",
         es: "/es",
+        en: "/en",
         "x-default": "/ru",
       },
     },
@@ -83,8 +84,14 @@ export async function generateMetadata({
       title: t("defaultTitle"),
       description: t("description"),
       siteName: SITE_NAME,
-      locale: locale === "ru" ? "ru_RU" : "es_ES",
-      alternateLocale: locale === "ru" ? ["es_ES"] : ["ru_RU"],
+      locale:
+        locale === "ru" ? "ru_RU" : locale === "es" ? "es_ES" : "en_US",
+      alternateLocale:
+        locale === "ru"
+          ? ["es_ES", "en_US"]
+          : locale === "es"
+            ? ["ru_RU", "en_US"]
+            : ["ru_RU", "es_ES"],
     },
     twitter: {
       card: "summary_large_image",

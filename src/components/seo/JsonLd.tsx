@@ -19,7 +19,7 @@ export default async function JsonLd({ locale }: Props) {
     description: t("description"),
     email: "hello@ai-agentes.com",
     areaServed: ["RU", "ES", "MX", "EU"],
-    knowsLanguage: ["ru", "es"],
+    knowsLanguage: ["ru", "es", "en"],
     contactPoint: {
       "@type": "ContactPoint",
       contactType: "sales",
@@ -39,7 +39,7 @@ export default async function JsonLd({ locale }: Props) {
     name: SITE_NAME,
     url: SITE_URL,
     description: t("description"),
-    inLanguage: ["ru-RU", "es-ES"],
+    inLanguage: ["ru-RU", "es-ES", "en-US"],
     publisher: { "@id": `${SITE_URL}/#organization` },
   };
 
