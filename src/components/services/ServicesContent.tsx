@@ -21,12 +21,43 @@ const SERVICES: { key: string; icon: LucideIcon }[] = [
 
 const STEPS = ["discovery", "design", "build", "launch", "support"] as const;
 
+const OVERVIEW_KEYS = ["l1", "l2", "l3", "l4", "l5"] as const;
+
 export default function ServicesContent() {
   const t = useTranslations("services");
 
   return (
     <>
-      <section className="mx-auto max-w-6xl px-4 py-16 sm:px-6 sm:py-20">
+      <section className="mx-auto max-w-6xl px-4 pt-16 sm:px-6 sm:pt-20">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          className="max-w-3xl"
+        >
+          <h2 className="text-2xl font-bold tracking-tight sm:text-3xl">
+            {t("overview.title")}
+          </h2>
+          <p className="mt-4 leading-relaxed text-muted">{t("overview.text")}</p>
+          <ul className="mt-6 space-y-3">
+            {OVERVIEW_KEYS.map((key, i) => (
+              <motion.li
+                key={key}
+                initial={{ opacity: 0, x: -12 }}
+                whileInView={{ opacity: 1, x: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: i * 0.06 }}
+                className="flex items-start gap-3 text-sm leading-relaxed text-foreground sm:text-base"
+              >
+                <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-accent-bright" />
+                {t(`overview.list.${key}`)}
+              </motion.li>
+            ))}
+          </ul>
+        </motion.div>
+      </section>
+
+      <section className="mx-auto max-w-6xl px-4 pb-16 pt-12 sm:px-6 sm:pb-20 sm:pt-16">
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {SERVICES.map(({ key, icon: Icon }, i) => (
             <motion.div

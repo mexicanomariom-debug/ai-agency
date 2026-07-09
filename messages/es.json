@@ -11,9 +11,9 @@
         "keywords": "agentes de IA, automatización de negocios, asistentes de IA, desarrollo de chatbots, integración CRM, ai-agentes.com, agencia de inteligencia artificial"
       },
       "services": {
-        "title": "Servicios — desarrollo de agentes de IA y automatización",
-        "description": "Servicios de AI-Agentes: desarrollo de asistentes de IA, automatización de tareas rutinarias, integraciones con CRM y mensajería. Implementación llave en mano.",
-        "keywords": "servicios de agentes IA, desarrollo de asistentes IA, automatización de tareas, integración CRM, implementación de inteligencia artificial"
+        "title": "Servicios AI-Agentes — desarrollo de agentes de IA y automatización",
+        "description": "AI-Agentes ofrece 5 servicios clave: asistentes de IA y chatbots, automatización de procesos, integraciones CRM, desarrollo de agentes a medida e implementación llave en mano.",
+        "keywords": "servicios de agentes IA, desarrollo de chatbots, automatización de procesos, integración CRM, implementación de inteligencia artificial, IA llave en mano"
       },
       "solutions": {
         "title": "Soluciones y casos — cómo la IA ahorra tiempo y dinero",
@@ -96,73 +96,84 @@
       "button": "Contáctanos"
     },
     "servicesPreview": {
-      "title": "Qué hacemos",
-      "subtitle": "Ciclo completo: de la idea al agente de IA funcionando en tu negocio",
-      "link": "Todos los servicios",
+      "title": "Nuestros servicios",
+      "subtitle": "Implementamos IA en tu negocio llave en mano — de la consulta al agente funcionando",
+      "link": "Más sobre servicios",
       "items": {
         "assistants": {
-          "title": "Asistentes de IA",
-          "description": "Asistentes inteligentes para equipo y clientes — responden, asesoran y resuelven tareas 24/7."
+          "title": "Asistentes de IA y chatbots",
+          "description": "Bots inteligentes en web, Telegram y WhatsApp — atienden clientes y ayudan al equipo 24/7."
         },
         "automation": {
-          "title": "Automatización",
-          "description": "Eliminamos la rutina: solicitudes, informes, envíos, recordatorios — sin intervención humana."
+          "title": "Automatización de procesos",
+          "description": "Solicitudes, documentos, informes y recordatorios — se ejecutan solos, sin trabajo manual."
         },
         "crm": {
           "title": "Integraciones CRM",
-          "description": "Conectamos IA con HubSpot, Bitrix24, amoCRM — sincronización automática de datos."
+          "description": "Conectamos IA con amoCRM, Bitrix24, HubSpot — los datos se sincronizan automáticamente."
         }
       }
     }
   },
   "services": {
     "title": "Servicios",
-    "subtitle": "Qué hacemos",
-    "description": "AI-Agentes diseña, desarrolla e implementa soluciones de IA llave en mano: desde asistentes inteligentes hasta la automatización completa de procesos de negocio.",
+    "subtitle": "Qué ofrecemos",
+    "description": "AI-Agentes es una agencia de ciclo completo. No vendemos software empaquetado: diseñamos, desarrollamos e implementamos soluciones de IA para la tarea concreta de tu negocio.",
+    "overview": {
+      "title": "Qué servicios ofrecemos",
+      "text": "Ayudamos a las empresas a integrar la inteligencia artificial en el trabajo diario — para que el equipo dedique menos tiempo a tareas rutinarias y los clientes reciban respuestas más rápido. Estas son las cinco áreas más demandadas:",
+      "list": {
+        "l1": "Asistentes de IA y chatbots — para web, Telegram, WhatsApp y tareas internas del equipo",
+        "l2": "Automatización de procesos — solicitudes, documentos, informes y envíos sin intervención humana",
+        "l3": "Integraciones con CRM y herramientas — amoCRM, Bitrix24, HubSpot, Google Sheets, Notion",
+        "l4": "Desarrollo de agentes de IA a medida — para ventas, soporte, RRHH, analítica y otros roles",
+        "l5": "Implementación llave en mano y soporte — de la auditoría al lanzamiento y mantenimiento posterior"
+      }
+    },
     "items": {
       "assistants": {
-        "title": "Asistentes de IA",
-        "description": "Asistentes inteligentes para tu equipo y clientes: responden preguntas, asesoran y ayudan a tomar decisiones basadas en los datos de la empresa.",
+        "title": "Asistentes de IA y chatbots",
+        "description": "Creamos asistentes inteligentes que hablan con clientes y empleados en lenguaje natural. El bot conoce tu producto, precios y protocolos — y responde al instante, sin colas ni horarios.",
         "features": {
-          "f1": "Entrenamiento con documentos y base de conocimiento",
-          "f2": "Funciona en Telegram, WhatsApp, web y CRM",
-          "f3": "Soporte en ruso y español"
+          "f1": "Chatbot en web, Telegram y WhatsApp",
+          "f2": "Respuestas basadas en tus documentos, FAQ y base de conocimiento",
+          "f3": "Transferencia de casos complejos al gestor con historial completo del diálogo"
         }
       },
       "automation": {
-        "title": "Automatización de tareas",
-        "description": "Eliminamos tareas repetitivas: procesamiento de solicitudes, envíos, informes, recordatorios — todo lo que consume tiempo del equipo.",
+        "title": "Automatización de procesos de negocio",
+        "description": "Configuramos cadenas de acciones que se ejecutan solas: desde recibir una solicitud hasta generar un documento y enviar un recordatorio al cliente. El equipo interviene solo donde hace falta una persona.",
         "features": {
-          "f1": "Pipelines y triggers automáticos",
-          "f2": "Generación de documentos e informes",
-          "f3": "Integración con herramientas existentes"
+          "f1": "Recepción, clasificación y enrutado de solicitudes entrantes",
+          "f2": "Generación automática de contratos, facturas, actas e informes",
+          "f3": "Envíos programados, recordatorios y seguimiento automático"
         }
       },
       "crm": {
-        "title": "Integraciones CRM",
-        "description": "Conectamos agentes de IA con tu CRM: HubSpot, Bitrix24, amoCRM, Salesforce y otros — sincronización automática de datos.",
+        "title": "Integraciones con CRM y sistemas de negocio",
+        "description": "Conectamos agentes de IA con las herramientas que ya usas. Leads, oportunidades y contactos se actualizan solos — sin copiar datos manualmente entre sistemas.",
         "features": {
-          "f1": "Autocompletado de fichas de clientes",
-          "f2": "Calificación de leads y scoring",
-          "f3": "Sincronización bidireccional de datos"
+          "f1": "Integración con amoCRM, Bitrix24, HubSpot, Salesforce",
+          "f2": "Autocompletado de fichas de clientes, oportunidades y tareas",
+          "f3": "Conexión con Google Sheets, Notion, Slack, correo y calendario"
         }
       },
       "agents": {
-        "title": "Agentes de IA a medida",
-        "description": "Desarrollamos agentes para tu caso específico: ventas, soporte, RRHH, analítica — con lógica y escenarios únicos.",
+        "title": "Desarrollo de agentes de IA a medida",
+        "description": "Diseñamos agentes para un rol concreto en la empresa: califica leads, gestiona la correspondencia con clientes, analiza datos y prepara informes para la dirección.",
         "features": {
-          "f1": "Arquitectura personalizada para cada tarea",
-          "f2": "Sistemas multiagente para procesos complejos",
-          "f3": "Monitorización y analítica del agente"
+          "f1": "Agentes para ventas, soporte, RRHH, analítica y procesos internos",
+          "f2": "Sistemas multiagente — varios IA trabajando en cadena",
+          "f3": "Panel de monitorización: logs, métricas y calidad de respuestas"
         }
       },
       "support": {
-        "title": "Soporte y evolución",
-        "description": "No abandonamos tras el lanzamiento: monitorizamos agentes, actualizamos modelos y añadimos escenarios según crece tu negocio.",
+        "title": "Implementación llave en mano y soporte",
+        "description": "Nos encargamos de todo el ciclo del proyecto: entendemos la tarea, diseñamos la arquitectura, desarrollamos, probamos, lanzamos y damos soporte después del arranque.",
         "features": {
-          "f1": "Soporte técnico 24/7",
-          "f2": "Actualizaciones y mejoras regulares",
-          "f3": "Formación de tu equipo en IA"
+          "f1": "Auditoría gratuita de procesos y estimación de plazos en 24 horas",
+          "f2": "Lanzamiento de solución operativa en 2–4 semanas",
+          "f3": "Soporte técnico, actualizaciones de modelos y formación de tu equipo"
         }
       }
     },
