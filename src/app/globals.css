@@ -196,7 +196,7 @@ body {
 
 .falling-stars .shooting-star--rtl .shooting-star__streak {
   right: 0;
-  flex-direction: row-reverse;
+  flex-direction: row;
   transform: rotate(atan2(12vh, -124vw));
 }
 
@@ -225,19 +225,6 @@ body {
   );
   box-shadow: 0 0 6px rgba(255, 255, 255, 0.14);
   filter: blur(0.35px);
-}
-
-.falling-stars .shooting-star--rtl .shooting-star__tail {
-  margin-inline-end: 0;
-  margin-inline-start: -1px;
-  background: linear-gradient(
-    270deg,
-    transparent 0%,
-    rgba(255, 255, 255, 0.02) 12%,
-    rgba(255, 255, 255, 0.1) 38%,
-    rgba(255, 255, 255, 0.42) 72%,
-    rgba(255, 255, 255, 0.82) 100%
-  );
 }
 
 @media (prefers-reduced-motion: reduce) {
