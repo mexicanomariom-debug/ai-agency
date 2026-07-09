@@ -2,9 +2,10 @@ import type { Locale } from "@/i18n/routing";
 
 export type Market = "ru" | "es" | "latam";
 
-export type LatamCountry = "mx" | "co" | "ar" | "cl" | "pe";
+export type LatamCountry = "sp" | "mx" | "co" | "ar" | "cl" | "pe";
 
 export const LATAM_COUNTRIES: readonly LatamCountry[] = [
+  "sp",
   "mx",
   "co",
   "ar",
@@ -18,8 +19,12 @@ export const LATAM_COUNTRY_STORAGE_KEY = "ai-agentes-latam-country";
 
 export function getMarketForLocale(locale: Locale): Market {
   if (locale === "ru") return "ru";
-  if (locale === "es") return "es";
   return "latam";
+}
+
+/** Country picker is shown for the Spanish locale (LATAM + España). */
+export function hasCountryPicker(locale: Locale): boolean {
+  return locale === "es";
 }
 
 export const COMPETITORS_BY_MARKET: Record<Market, readonly string[]> = {

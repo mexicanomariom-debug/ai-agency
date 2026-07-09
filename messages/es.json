@@ -309,7 +309,7 @@
     },
     "industries": {
       "title": "Soluciones por sector",
-      "subtitle": "Odontología, belleza y medicina — precios para el mercado español. 30–50% por debajo del mercado.",
+      "subtitle": "Odontología, belleza y medicina — elige tu país para ver precios en moneda local. 30–50% por debajo del mercado.",
       "items": {
         "dental": {
           "title": "Clínicas dentales",
@@ -349,10 +349,139 @@
         }
       }
     },
+    "latamCountries": {
+      "label": "Elige tu país para ver precios locales",
+      "sp": {
+        "shortName": "España · EUR",
+        "name": "España",
+        "currency": "Euros (€), pago en EUR",
+        "packages": {
+          "starter": { "price": "desde 490 €", "support": "+ desde 69 €/mes" },
+          "business": { "price": "desde 1 290 €", "support": "+ desde 79 €/mes" },
+          "pro": { "price": "desde 2 490 €", "support": "+ desde 149 €/mes" },
+          "enterprise": { "price": "desde 4 900 €", "support": "contrato SLA" }
+        },
+        "industries": {
+          "dental": { "price": "desde 990 €", "priceNote": "implementación llave en mano · soporte desde 79 €/mes" },
+          "beauty": { "price": "desde 790 €", "priceNote": "implementación llave en mano · soporte desde 69 €/mes" },
+          "medical": { "price": "desde 1 490 €", "priceNote": "depende del número de médicos e integraciones" }
+        },
+        "competitors": {
+          "c7": { "company": "Consultor IA", "theirPrice": "800–2 500 € + 100–200 €/mes", "ourPrice": "desde 990 € + 79 €/mes" },
+          "c8": { "company": "Automatizator.es", "theirPrice": "1 800–2 500 € setup + 290 €/mes", "ourPrice": "desde 990 € + 79 €/mes" },
+          "c9": { "company": "Freelance / Upwork", "theirPrice": "1 500–5 000 € sin soporte", "ourPrice": "desde 490 € con soporte" }
+        }
+      },
+      "mx": {
+        "shortName": "México · MXN",
+        "name": "México",
+        "currency": "Pesos mexicanos (MXN)",
+        "packages": {
+          "starter": { "price": "desde $5 490 MXN", "support": "+ desde $720 MXN/mes" },
+          "business": { "price": "desde $12 900 MXN", "support": "+ desde $870 MXN/mes" },
+          "pro": { "price": "desde $27 700 MXN", "support": "+ desde $1 640 MXN/mes" },
+          "enterprise": { "price": "desde $55 400 MXN", "support": "contrato SLA" }
+        },
+        "industries": {
+          "dental": { "price": "desde $10 990 MXN", "priceNote": "implementación llave en mano · soporte desde $870 MXN/mes" },
+          "beauty": { "price": "desde $8 290 MXN", "priceNote": "implementación llave en mano · soporte desde $720 MXN/mes" },
+          "medical": { "price": "desde $16 590 MXN", "priceNote": "depende del número de médicos e integraciones" }
+        },
+        "competitors": {
+          "c7": { "company": "Consultor IA", "theirPrice": "$8 450 MXN setup + $1 650 MXN/mes", "ourPrice": "$5 490 MXN setup + $870 MXN/mes" },
+          "c8": { "company": "Automatizator.es", "theirPrice": "~$34 000 MXN setup + $5 950 MXN/mes", "ourPrice": "desde $10 990 MXN + $870 MXN/mes" },
+          "c9": { "company": "Freelance / Upwork", "theirPrice": "$25 500–85 000 MXN sin soporte", "ourPrice": "desde $5 490 MXN con soporte" }
+        }
+      },
+      "co": {
+        "shortName": "Colombia · COP",
+        "name": "Colombia",
+        "currency": "Pesos colombianos (COP)",
+        "packages": {
+          "starter": { "price": "desde $1 190 000 COP", "support": "+ desde $159 000 COP/mes" },
+          "business": { "price": "desde $2 790 000 COP", "support": "+ desde $189 000 COP/mes" },
+          "pro": { "price": "desde $5 990 000 COP", "support": "+ desde $389 000 COP/mes" },
+          "enterprise": { "price": "desde $11 990 000 COP", "support": "contrato SLA" }
+        },
+        "industries": {
+          "dental": { "price": "desde $2 390 000 COP", "priceNote": "implementación llave en mano · soporte desde $189 000 COP/mes" },
+          "beauty": { "price": "desde $1 790 000 COP", "priceNote": "implementación llave en mano · soporte desde $159 000 COP/mes" },
+          "medical": { "price": "desde $3 590 000 COP", "priceNote": "depende del número de médicos e integraciones" }
+        },
+        "competitors": {
+          "c7": { "company": "Consultor IA", "theirPrice": "$1 990 000 COP setup + $389 000 COP/mes", "ourPrice": "$1 190 000 COP setup + $189 000 COP/mes" },
+          "c8": { "company": "Automatizator LATAM", "theirPrice": "~$8 000 000 COP setup + $1 400 000 COP/mes", "ourPrice": "desde $2 390 000 COP + $189 000 COP/mes" },
+          "c9": { "company": "Freelance / Upwork", "theirPrice": "$6 000 000–20 000 000 COP sin soporte", "ourPrice": "desde $1 190 000 COP con soporte" }
+        }
+      },
+      "ar": {
+        "shortName": "Argentina · ARS",
+        "name": "Argentina",
+        "currency": "Pesos argentinos (ARS)",
+        "packages": {
+          "starter": { "price": "desde $349 000 ARS", "support": "+ desde $46 000 ARS/mes" },
+          "business": { "price": "desde $819 000 ARS", "support": "+ desde $55 000 ARS/mes" },
+          "pro": { "price": "desde $1 759 000 ARS", "support": "+ desde $114 000 ARS/mes" },
+          "enterprise": { "price": "desde $3 519 000 ARS", "support": "contrato SLA" }
+        },
+        "industries": {
+          "dental": { "price": "desde $699 000 ARS", "priceNote": "implementación llave en mano · soporte desde $55 000 ARS/mes" },
+          "beauty": { "price": "desde $524 000 ARS", "priceNote": "implementación llave en mano · soporte desde $46 000 ARS/mes" },
+          "medical": { "price": "desde $1 049 000 ARS", "priceNote": "depende del número de médicos e integraciones" }
+        },
+        "competitors": {
+          "c7": { "company": "Consultor IA", "theirPrice": "$583 000 ARS setup + $114 000 ARS/mes", "ourPrice": "$349 000 ARS setup + $55 000 ARS/mes" },
+          "c8": { "company": "Automatizator LATAM", "theirPrice": "~$2 340 000 ARS setup + $409 000 ARS/mes", "ourPrice": "desde $699 000 ARS + $55 000 ARS/mes" },
+          "c9": { "company": "Freelance / Upwork", "theirPrice": "$1 755 000–5 850 000 ARS sin soporte", "ourPrice": "desde $349 000 ARS con soporte" }
+        }
+      },
+      "cl": {
+        "shortName": "Chile · CLP",
+        "name": "Chile",
+        "currency": "Pesos chilenos (CLP)",
+        "packages": {
+          "starter": { "price": "desde $279 000 CLP", "support": "+ desde $37 000 CLP/mes" },
+          "business": { "price": "desde $659 000 CLP", "support": "+ desde $44 000 CLP/mes" },
+          "pro": { "price": "desde $1 419 000 CLP", "support": "+ desde $92 000 CLP/mes" },
+          "enterprise": { "price": "desde $2 839 000 CLP", "support": "contrato SLA" }
+        },
+        "industries": {
+          "dental": { "price": "desde $569 000 CLP", "priceNote": "implementación llave en mano · soporte desde $44 000 CLP/mes" },
+          "beauty": { "price": "desde $424 000 CLP", "priceNote": "implementación llave en mano · soporte desde $37 000 CLP/mes" },
+          "medical": { "price": "desde $849 000 CLP", "priceNote": "depende del número de médicos e integraciones" }
+        },
+        "competitors": {
+          "c7": { "company": "Consultor IA", "theirPrice": "$469 000 CLP setup + $92 000 CLP/mes", "ourPrice": "$279 000 CLP setup + $44 000 CLP/mes" },
+          "c8": { "company": "Automatizator LATAM", "theirPrice": "~$1 880 000 CLP setup + $329 000 CLP/mes", "ourPrice": "desde $569 000 CLP + $44 000 CLP/mes" },
+          "c9": { "company": "Freelance / Upwork", "theirPrice": "$1 410 000–4 700 000 CLP sin soporte", "ourPrice": "desde $279 000 CLP con soporte" }
+        }
+      },
+      "pe": {
+        "shortName": "Perú · PEN",
+        "name": "Perú",
+        "currency": "Soles peruanos (PEN)",
+        "packages": {
+          "starter": { "price": "desde S/ 1 090", "support": "+ desde S/ 145/mes" },
+          "business": { "price": "desde S/ 2 580", "support": "+ desde S/ 175/mes" },
+          "pro": { "price": "desde S/ 5 540", "support": "+ desde S/ 360/mes" },
+          "enterprise": { "price": "desde S/ 11 090", "support": "contrato SLA" }
+        },
+        "industries": {
+          "dental": { "price": "desde S/ 2 210", "priceNote": "implementación llave en mano · soporte desde S/ 175/mes" },
+          "beauty": { "price": "desde S/ 1 650", "priceNote": "implementación llave en mano · soporte desde S/ 145/mes" },
+          "medical": { "price": "desde S/ 3 320", "priceNote": "depende del número de médicos e integraciones" }
+        },
+        "competitors": {
+          "c7": { "company": "Consultor IA", "theirPrice": "S/ 1 830 setup + S/ 360/mes", "ourPrice": "S/ 1 090 setup + S/ 175/mes" },
+          "c8": { "company": "Automatizator LATAM", "theirPrice": "~S/ 7 350 setup + S/ 1 290/mes", "ourPrice": "desde S/ 2 210 + S/ 175/mes" },
+          "c9": { "company": "Freelance / Upwork", "theirPrice": "S/ 5 510–18 350 sin soporte", "ourPrice": "desde S/ 1 090 con soporte" }
+        }
+      }
+    },
     "pricing": {
       "title": "Precios",
-      "subtitle": "Tarifas para el mercado español. Por debajo de la competencia con el mismo alcance — comparación en la tabla.",
-      "note": "Precios en euros (€), orientativos. El presupuesto final se fija tras la auditoría gratuita.",
+      "subtitle": "Tarifas para España y Latinoamérica — elige tu país. Por debajo de la competencia.",
+      "note": "Precios en moneda local, orientativos. El presupuesto final se fija tras la auditoría gratuita.",
       "popular": "Popular",
       "packages": {
         "starter": { "name": "Inicio" },
@@ -394,7 +523,7 @@
       },
       "competitors": {
         "title": "Comparación con la competencia",
-        "subtitle": "Analizamos precios de agencias y plataformas SaaS en España. AI-Agentes ofrece implementación a medida un 30–50% más barata con funcionalidad comparable.",
+        "subtitle": "Analizamos precios de agencias y plataformas SaaS en tu mercado. AI-Agentes ofrece implementación a medida un 30–50% más barata con funcionalidad comparable.",
         "headers": {
           "company": "Competidor",
           "market": "Mercado",

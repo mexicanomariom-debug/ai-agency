@@ -5,6 +5,7 @@ import { useCallback, useEffect, useState } from "react";
 import type { Locale } from "@/i18n/routing";
 import {
   DEFAULT_LATAM_COUNTRY,
+  hasCountryPicker,
   isLatamCountry,
   LATAM_COUNTRY_STORAGE_KEY,
   type LatamCountry,
@@ -14,7 +15,7 @@ const LATAM_COUNTRY_EVENT = "latam-country-change";
 
 export function useLatamCountry() {
   const locale = useLocale() as Locale;
-  const isLatam = locale === "en";
+  const isLatam = hasCountryPicker(locale);
   const [country, setCountryState] = useState<LatamCountry>(DEFAULT_LATAM_COUNTRY);
 
   useEffect(() => {
