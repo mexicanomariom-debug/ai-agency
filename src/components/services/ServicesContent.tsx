@@ -10,7 +10,9 @@ import {
   Workflow,
   type LucideIcon,
 } from "lucide-react";
+import { useLatamCountry } from "@/hooks/useLatamCountry";
 import MarketPricing from "./MarketPricing";
+import LatamCountryPicker from "./LatamCountryPicker";
 
 const SERVICES: { key: string; icon: LucideIcon }[] = [
   { key: "assistants", icon: Bot },
@@ -26,6 +28,18 @@ const INDUSTRY_FOCUS = ["dental", "beauty", "medical"] as const;
 
 export default function ServicesContent() {
   const t = useTranslations("services");
+  const tLatam = useTranslations("services.latamCountries");
+  const { country, setCountry, isLatam } = useLatamCountry();
+
+  const industryPrice = (key: (typeof INDUSTRY_FOCUS)[number]) =>
+    isLatam
+      ? tLatam(`${country}.industries.${key}.price`)
+      : t(`industries.items.${key}.price`);
+
+  const industryPriceNote = (key: (typeof INDUSTRY_FOCUS)[number]) =>
+    isLatam
+      ? tLatam(`${country}.industries.${key}.priceNote`)
+      : t(`industries.items.${key}.priceNote`);
 
   return (
     <>
@@ -66,6 +80,11 @@ export default function ServicesContent() {
             {t("industries.title")}
           </h2>
           <p className="mt-3 max-w-3xl text-muted">{t("industries.subtitle")}</p>
+          {isLatam && (
+            <div className="mt-6">
+              <LatamCountryPicker country={country} onChange={setCountry} />
+            </div>
+          )}
           <div className="mt-10 grid items-stretch gap-6 lg:grid-cols-3">
             {INDUSTRY_FOCUS.map((key, i) => (
               <motion.div
@@ -95,10 +114,10 @@ export default function ServicesContent() {
                 </ul>
                 <div className="mt-6 rounded-xl border border-accent/20 bg-accent/5 p-4">
                   <p className="text-xl font-bold leading-tight text-accent-bright">
-                    {t(`industries.items.${key}.price`)}
+                    {industryPrice(key)}
                   </p>
                   <p className="mt-1 min-h-[2rem] text-xs leading-relaxed text-muted">
-                    {t(`industries.items.${key}.priceNote`)}
+                    {industryPriceNote(key)}
                   </p>
                 </div>
               </motion.div>

@@ -3,18 +3,40 @@
 import { useLocale, useTranslations } from "next-intl";
 import { motion } from "framer-motion";
 import type { Locale } from "@/i18n/routing";
+import { useLatamCountry } from "@/hooks/useLatamCountry";
 import {
   COMPETITORS_BY_MARKET,
   getMarketForLocale,
 } from "@/lib/market";
+import LatamCountryPicker from "./LatamCountryPicker";
 
 const PACKAGES = ["starter", "business", "pro", "enterprise"] as const;
 
 export default function MarketPricing() {
   const locale = useLocale() as Locale;
   const market = getMarketForLocale(locale);
+  const { country, setCountry, isLatam } = useLatamCountry();
   const competitors = COMPETITORS_BY_MARKET[market];
   const t = useTranslations("services.pricing");
+  const tLatam = useTranslations("services.latamCountries");
+
+  const marketName = isLatam
+    ? tLatam(`${country}.name`)
+    : t(`markets.${market}.name`);
+
+  const marketCurrency = isLatam
+    ? tLatam(`${country}.currency`)
+    : t(`markets.${market}.currency`);
+
+  const packagePrice = (pkg: (typeof PACKAGES)[number]) =>
+    isLatam
+      ? tLatam(`${country}.packages.${pkg}.price`)
+      : t(`markets.${market}.packages.${pkg}.price`);
+
+  const packageSupport = (pkg: (typeof PACKAGES)[number]) =>
+    isLatam
+      ? tLatam(`${country}.packages.${pkg}.support`)
+      : t(`markets.${market}.packages.${pkg}.support`);
 
   return (
     <section className="mx-auto max-w-6xl px-4 py-16 sm:px-6 sm:py-20">
@@ -30,13 +52,13 @@ export default function MarketPricing() {
         viewport={{ once: true }}
         className="mx-auto mt-10 max-w-5xl rounded-2xl border border-border bg-surface p-6 sm:p-8"
       >
+        {isLatam && (
+          <LatamCountryPicker country={country} onChange={setCountry} />
+        )}
+
         <div className="mb-6 border-b border-border pb-4 text-center">
-          <h3 className="text-lg font-semibold">
-            {t(`markets.${market}.name`)}
-          </h3>
-          <p className="mt-1 text-xs text-muted">
-            {t(`markets.${market}.currency`)}
-          </p>
+          <h3 className="text-lg font-semibold">{marketName}</h3>
+          <p className="mt-1 text-xs text-muted">{marketCurrency}</p>
         </div>
 
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -63,10 +85,10 @@ export default function MarketPricing() {
               </div>
               <div className="mt-auto pt-4">
                 <p className="text-xl font-bold leading-tight text-accent-bright">
-                  {t(`markets.${market}.packages.${pkg}.price`)}
+                  {packagePrice(pkg)}
                 </p>
                 <p className="mt-1 min-h-[2rem] text-xs leading-relaxed text-muted">
-                  {t(`markets.${market}.packages.${pkg}.support`)}
+                  {packageSupport(pkg)}
                 </p>
               </div>
             </div>
@@ -100,13 +122,19 @@ export default function MarketPricing() {
               {competitors.map((key) => (
                 <tr key={key} className="border-b border-border last:border-0">
                   <td className="px-4 py-3 font-medium">
-                    {t(`competitors.items.${key}.company`)}
+                    {isLatam
+                      ? tLatam(`${country}.competitors.${key}.company`)
+                      : t(`competitors.items.${key}.company`)}
                   </td>
                   <td className="px-4 py-3 text-muted">
-                    {t(`competitors.items.${key}.theirPrice`)}
+                    {isLatam
+                      ? tLatam(`${country}.competitors.${key}.theirPrice`)
+                      : t(`competitors.items.${key}.theirPrice`)}
                   </td>
                   <td className="px-4 py-3 font-semibold text-accent-bright">
-                    {t(`competitors.items.${key}.ourPrice`)}
+                    {isLatam
+                      ? tLatam(`${country}.competitors.${key}.ourPrice`)
+                      : t(`competitors.items.${key}.ourPrice`)}
                   </td>
                 </tr>
               ))}

@@ -309,7 +309,7 @@
     },
     "industries": {
       "title": "Industry solutions",
-      "subtitle": "Dentistry, beauty, and healthcare — pricing for the LATAM market. 30–50% below market rates.",
+      "subtitle": "Dentistry, beauty, and healthcare — select your country for local pricing. 30–50% below market rates.",
       "items": {
         "dental": {
           "title": "Dental clinics",
@@ -349,10 +349,118 @@
         }
       }
     },
+    "latamCountries": {
+      "label": "Select your country for local pricing",
+      "mx": {
+        "shortName": "Mexico · MXN",
+        "name": "Mexico",
+        "currency": "Mexican Pesos (MXN)",
+        "packages": {
+          "starter": { "price": "from $5,490 MXN", "support": "+ from $720 MXN/month" },
+          "business": { "price": "from $12,900 MXN", "support": "+ from $870 MXN/month" },
+          "pro": { "price": "from $27,700 MXN", "support": "+ from $1,640 MXN/month" },
+          "enterprise": { "price": "from $55,400 MXN", "support": "SLA contract" }
+        },
+        "industries": {
+          "dental": { "price": "from $10,990 MXN", "priceNote": "turnkey implementation · support from $870 MXN/month" },
+          "beauty": { "price": "from $8,290 MXN", "priceNote": "turnkey implementation · support from $720 MXN/month" },
+          "medical": { "price": "from $16,590 MXN", "priceNote": "depends on number of doctors and integrations" }
+        },
+        "competitors": {
+          "c7": { "company": "Consultor IA", "theirPrice": "$8,450 MXN setup + $1,650 MXN/mo", "ourPrice": "$5,490 MXN setup + $870 MXN/mo" },
+          "c8": { "company": "Automatizator.es", "theirPrice": "~$34,000 MXN setup + $5,950 MXN/mo", "ourPrice": "from $10,990 MXN + $870 MXN/mo" },
+          "c9": { "company": "Freelance / Upwork", "theirPrice": "$25,500–85,000 MXN without support", "ourPrice": "from $5,490 MXN with support" }
+        }
+      },
+      "co": {
+        "shortName": "Colombia · COP",
+        "name": "Colombia",
+        "currency": "Colombian Pesos (COP)",
+        "packages": {
+          "starter": { "price": "from $1,190,000 COP", "support": "+ from $159,000 COP/month" },
+          "business": { "price": "from $2,790,000 COP", "support": "+ from $189,000 COP/month" },
+          "pro": { "price": "from $5,990,000 COP", "support": "+ from $389,000 COP/month" },
+          "enterprise": { "price": "from $11,990,000 COP", "support": "SLA contract" }
+        },
+        "industries": {
+          "dental": { "price": "from $2,390,000 COP", "priceNote": "turnkey implementation · support from $189,000 COP/month" },
+          "beauty": { "price": "from $1,790,000 COP", "priceNote": "turnkey implementation · support from $159,000 COP/month" },
+          "medical": { "price": "from $3,590,000 COP", "priceNote": "depends on number of doctors and integrations" }
+        },
+        "competitors": {
+          "c7": { "company": "Consultor IA", "theirPrice": "$1,990,000 COP setup + $389,000 COP/mo", "ourPrice": "$1,190,000 COP setup + $189,000 COP/mo" },
+          "c8": { "company": "Automatizator LATAM", "theirPrice": "~$8,000,000 COP setup + $1,400,000 COP/mo", "ourPrice": "from $2,390,000 COP + $189,000 COP/mo" },
+          "c9": { "company": "Freelance / Upwork", "theirPrice": "$6,000,000–20,000,000 COP without support", "ourPrice": "from $1,190,000 COP with support" }
+        }
+      },
+      "ar": {
+        "shortName": "Argentina · ARS",
+        "name": "Argentina",
+        "currency": "Argentine Pesos (ARS)",
+        "packages": {
+          "starter": { "price": "from $349,000 ARS", "support": "+ from $46,000 ARS/month" },
+          "business": { "price": "from $819,000 ARS", "support": "+ from $55,000 ARS/month" },
+          "pro": { "price": "from $1,759,000 ARS", "support": "+ from $114,000 ARS/month" },
+          "enterprise": { "price": "from $3,519,000 ARS", "support": "SLA contract" }
+        },
+        "industries": {
+          "dental": { "price": "from $699,000 ARS", "priceNote": "turnkey implementation · support from $55,000 ARS/month" },
+          "beauty": { "price": "from $524,000 ARS", "priceNote": "turnkey implementation · support from $46,000 ARS/month" },
+          "medical": { "price": "from $1,049,000 ARS", "priceNote": "depends on number of doctors and integrations" }
+        },
+        "competitors": {
+          "c7": { "company": "Consultor IA", "theirPrice": "$583,000 ARS setup + $114,000 ARS/mo", "ourPrice": "$349,000 ARS setup + $55,000 ARS/mo" },
+          "c8": { "company": "Automatizator LATAM", "theirPrice": "~$2,340,000 ARS setup + $409,000 ARS/mo", "ourPrice": "from $699,000 ARS + $55,000 ARS/mo" },
+          "c9": { "company": "Freelance / Upwork", "theirPrice": "$1,755,000–5,850,000 ARS without support", "ourPrice": "from $349,000 ARS with support" }
+        }
+      },
+      "cl": {
+        "shortName": "Chile · CLP",
+        "name": "Chile",
+        "currency": "Chilean Pesos (CLP)",
+        "packages": {
+          "starter": { "price": "from $279,000 CLP", "support": "+ from $37,000 CLP/month" },
+          "business": { "price": "from $659,000 CLP", "support": "+ from $44,000 CLP/month" },
+          "pro": { "price": "from $1,419,000 CLP", "support": "+ from $92,000 CLP/month" },
+          "enterprise": { "price": "from $2,839,000 CLP", "support": "SLA contract" }
+        },
+        "industries": {
+          "dental": { "price": "from $569,000 CLP", "priceNote": "turnkey implementation · support from $44,000 CLP/month" },
+          "beauty": { "price": "from $424,000 CLP", "priceNote": "turnkey implementation · support from $37,000 CLP/month" },
+          "medical": { "price": "from $849,000 CLP", "priceNote": "depends on number of doctors and integrations" }
+        },
+        "competitors": {
+          "c7": { "company": "Consultor IA", "theirPrice": "$469,000 CLP setup + $92,000 CLP/mo", "ourPrice": "$279,000 CLP setup + $44,000 CLP/mo" },
+          "c8": { "company": "Automatizator LATAM", "theirPrice": "~$1,880,000 CLP setup + $329,000 CLP/mo", "ourPrice": "from $569,000 CLP + $44,000 CLP/mo" },
+          "c9": { "company": "Freelance / Upwork", "theirPrice": "$1,410,000–4,700,000 CLP without support", "ourPrice": "from $279,000 CLP with support" }
+        }
+      },
+      "pe": {
+        "shortName": "Peru · PEN",
+        "name": "Peru",
+        "currency": "Peruvian Soles (PEN)",
+        "packages": {
+          "starter": { "price": "from S/ 1,090", "support": "+ from S/ 145/month" },
+          "business": { "price": "from S/ 2,580", "support": "+ from S/ 175/month" },
+          "pro": { "price": "from S/ 5,540", "support": "+ from S/ 360/month" },
+          "enterprise": { "price": "from S/ 11,090", "support": "SLA contract" }
+        },
+        "industries": {
+          "dental": { "price": "from S/ 2,210", "priceNote": "turnkey implementation · support from S/ 175/month" },
+          "beauty": { "price": "from S/ 1,650", "priceNote": "turnkey implementation · support from S/ 145/month" },
+          "medical": { "price": "from S/ 3,320", "priceNote": "depends on number of doctors and integrations" }
+        },
+        "competitors": {
+          "c7": { "company": "Consultor IA", "theirPrice": "S/ 1,830 setup + S/ 360/mo", "ourPrice": "S/ 1,090 setup + S/ 175/mo" },
+          "c8": { "company": "Automatizator LATAM", "theirPrice": "~S/ 7,350 setup + S/ 1,290/mo", "ourPrice": "from S/ 2,210 + S/ 175/mo" },
+          "c9": { "company": "Freelance / Upwork", "theirPrice": "S/ 5,510–18,350 without support", "ourPrice": "from S/ 1,090 with support" }
+        }
+      }
+    },
     "pricing": {
       "title": "Pricing",
-      "subtitle": "Rates for the LATAM market. Below competitors for comparable scope — see comparison table.",
-      "note": "Prices in US dollars (USD), indicative. Final quote is fixed after a free audit.",
+      "subtitle": "Local rates for Latin America — select your country. 30–50% below market.",
+      "note": "Prices in local currency, indicative. Final quote is fixed after a free audit.",
       "popular": "Popular",
       "packages": {
         "starter": { "name": "Starter" },
