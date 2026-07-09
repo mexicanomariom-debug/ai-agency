@@ -1,0 +1,87 @@
+{
+  "meta": {
+    "title": "NeuroFlow — Agentes de IA y automatización de negocios",
+    "description": "Desarrollamos agentes de IA y automatizamos procesos de negocio: asistentes de IA, integraciones con CRM, automatización de tareas rutinarias."
+  },
+  "nav": {
+    "home": "Inicio",
+    "services": "Servicios",
+    "solutions": "Soluciones",
+    "about": "Nosotros",
+    "contact": "Contacto",
+    "cta": "Hablar del proyecto"
+  },
+  "footer": {
+    "tagline": "Agentes de IA y automatización que trabajan para tu negocio 24/7.",
+    "navTitle": "Navegación",
+    "contactTitle": "Contacto",
+    "rights": "Todos los derechos reservados."
+  },
+  "home": {
+    "hero": {
+      "badge": "Agencia de IA de nueva generación",
+      "title": "Agentes de IA que trabajan por ti",
+      "subtitle": "Automatizamos tareas rutinarias, implementamos asistentes inteligentes e integramos IA en tus procesos de negocio. Tu equipo se enfoca en la estrategia, la IA se encarga del resto.",
+      "ctaPrimary": "Hablar del proyecto",
+      "ctaSecondary": "Nuestros servicios"
+    },
+    "stats": {
+      "cost": {
+        "value": "-60%",
+        "label": "de costes operativos tras la automatización"
+      },
+      "uptime": {
+        "value": "24/7",
+        "label": "los agentes trabajan sin descansos ni vacaciones"
+      },
+      "speed": {
+        "value": "×10",
+        "label": "más rápido el procesamiento de solicitudes"
+      }
+    },
+    "benefits": {
+      "title": "Por qué agentes de IA",
+      "subtitle": "Tecnología que se amortiza desde el primer mes",
+      "items": {
+        "speed": {
+          "title": "Velocidad 24/7",
+          "description": "Los agentes de IA no duermen, no se cansan y procesan solicitudes al instante, a cualquier hora."
+        },
+        "cost": {
+          "title": "Reducción de costes",
+          "description": "La automatización de tareas rutinarias reduce los gastos operativos hasta un 60%."
+        },
+        "scale": {
+          "title": "Escalabilidad",
+          "description": "Un solo agente gestiona miles de solicitudes en paralelo, sin contratar más personal."
+        },
+        "accuracy": {
+          "title": "Precisión",
+          "description": "Mínimo de errores humanos: los agentes siguen los protocolos y aprenden de tus datos."
+        }
+      }
+    },
+    "cta": {
+      "title": "¿Listo para automatizar tu negocio?",
+      "subtitle": "Cuéntanos tu caso: te propondremos una solución y estimaremos plazos en 24 horas.",
+      "button": "Contáctanos"
+    }
+  },
+  "services": {
+    "title": "Servicios",
+    "subtitle": "Qué hacemos"
+  },
+  "solutions": {
+    "title": "Soluciones",
+    "subtitle": "Cómo la IA ahorra tiempo y dinero a tu negocio"
+  },
+  "about": {
+    "title": "Nosotros",
+    "subtitle": "Filosofía de la agencia"
+  },
+  "contact": {
+    "title": "Contacto",
+    "subtitle": "Ponte en contacto",
+    "person": "Mario Mares Galeev"
+  }
+}
