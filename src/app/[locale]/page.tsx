@@ -3,6 +3,7 @@ import { getTranslations, setRequestLocale } from "next-intl/server";
 import { use } from "react";
 import { buildPageMetadata } from "@/lib/seo";
 import Hero from "@/components/home/Hero";
+import MobileHomeContent from "@/components/home/MobileHomeContent";
 import TrustSection from "@/components/home/TrustSection";
 import IndustriesSection from "@/components/home/IndustriesSection";
 import Benefits from "@/components/home/Benefits";
@@ -33,11 +34,14 @@ export default function HomePage({ params }: Props) {
   return (
     <>
       <Hero />
-      <TrustSection />
-      <IndustriesSection />
-      <Benefits />
-      <ServicesPreview />
-      <CtaSection />
+      <MobileHomeContent />
+      <div className="hidden sm:contents">
+        <TrustSection />
+        <IndustriesSection />
+        <Benefits />
+        <ServicesPreview />
+        <CtaSection />
+      </div>
     </>
   );
 }
