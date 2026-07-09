@@ -42,19 +42,19 @@ body {
   color: #ffffff;
 }
 
-/* Hero falling stars — left & right night sky */
+/* Hero shooting stars — rare streaks across full width */
 .falling-stars-vignette {
   position: absolute;
   inset-block: 0;
-  width: 34%;
+  width: 28%;
 }
 
 .falling-stars-vignette-left {
   left: 0;
   background: linear-gradient(
     90deg,
-    rgba(0, 0, 0, 0.72) 0%,
-    rgba(0, 0, 0, 0.28) 55%,
+    rgba(0, 0, 0, 0.6) 0%,
+    rgba(0, 0, 0, 0.15) 70%,
     transparent 100%
   );
 }
@@ -63,184 +63,157 @@ body {
   right: 0;
   background: linear-gradient(
     270deg,
-    rgba(0, 0, 0, 0.72) 0%,
-    rgba(0, 0, 0, 0.28) 55%,
+    rgba(0, 0, 0, 0.6) 0%,
+    rgba(0, 0, 0, 0.15) 70%,
     transparent 100%
   );
 }
 
-.falling-stars-side {
-  position: absolute;
-  inset-block: 0;
-  width: 30%;
-  overflow: hidden;
-}
-
-.falling-stars-side-left {
-  left: 0;
-}
-
-.falling-stars-side-right {
-  right: 0;
-}
-
-/* Static twinkling stars in the sky */
 @keyframes sky-twinkle {
   0%,
   100% {
-    opacity: 0.3;
-    transform: scale(1);
-    filter: blur(0);
+    opacity: 0.2;
   }
   50% {
-    opacity: 1;
-    transform: scale(1.35);
-    filter: blur(0.2px);
+    opacity: 0.55;
   }
 }
 
 .falling-stars .sky-star {
   position: absolute;
+  width: 2px;
+  height: 2px;
   border-radius: 50%;
-  background: #f8fafc;
-  box-shadow:
-    0 0 2px 0 rgba(255, 255, 255, 0.9),
-    0 0 5px 1px rgba(199, 210, 254, 0.35);
-  animation: sky-twinkle 3.5s ease-in-out infinite;
+  background: #f1f5f9;
+  box-shadow: 0 0 4px 1px rgba(199, 210, 254, 0.25);
+  animation: sky-twinkle 5s ease-in-out infinite;
 }
 
-/* Gentle falling star particles */
-@keyframes star-particle-fall {
-  0% {
-    transform: translateY(-8vh) translateX(0);
+/* Left → right: flies diagonally down across the hero */
+@keyframes shoot-ltr {
+  0%,
+  72%,
+  100% {
+    transform: translate(-14vw, 0);
     opacity: 0;
   }
-  8% {
-    opacity: var(--particle-opacity, 0.6);
+  73% {
+    transform: translate(-14vw, 0);
+    opacity: 0;
+  }
+  74% {
+    transform: translate(-14vw, 0);
+    opacity: 1;
   }
   92% {
-    opacity: var(--particle-opacity, 0.6);
-  }
-  100% {
-    transform: translateY(108vh) translateX(var(--drift, 8px));
+    transform: translate(114vw, 18vh);
     opacity: 0;
   }
 }
 
-.falling-stars .falling-star-particle {
-  position: absolute;
-  top: -2%;
-  border-radius: 50%;
-  background: radial-gradient(circle, #ffffff 0%, rgba(255, 255, 255, 0.7) 55%, transparent 100%);
-  box-shadow: 0 0 4px 1px rgba(255, 255, 255, 0.45);
-  animation: star-particle-fall linear infinite;
-}
-
-/* Rare fast meteors with short soft tail */
-@keyframes meteor-left {
+/* Right → left */
+@keyframes shoot-rtl {
   0%,
-  82%,
+  72%,
   100% {
-    transform: translate(0, 0);
+    transform: translate(14vw, 0);
     opacity: 0;
   }
-  83% {
-    transform: translate(0, 0);
+  73% {
+    transform: translate(14vw, 0);
+    opacity: 0;
+  }
+  74% {
+    transform: translate(14vw, 0);
     opacity: 1;
   }
-  90% {
-    transform: translate(72px, 260px);
+  92% {
+    transform: translate(-114vw, 18vh);
     opacity: 0;
   }
 }
 
-@keyframes meteor-right {
-  0%,
-  82%,
-  100% {
-    transform: translate(0, 0);
-    opacity: 0;
-  }
-  83% {
-    transform: translate(0, 0);
-    opacity: 1;
-  }
-  90% {
-    transform: translate(-72px, 260px);
-    opacity: 0;
-  }
-}
-
-.falling-stars .meteor {
+.falling-stars .shooting-star {
   position: absolute;
-  animation-timing-function: ease-out;
+  left: 0;
+  width: 0;
+  height: 0;
+  animation-timing-function: linear;
   animation-iteration-count: infinite;
+  will-change: transform, opacity;
 }
 
-.falling-stars .meteor-left {
-  animation-name: meteor-left;
+.falling-stars .shooting-star--ltr {
+  animation-name: shoot-ltr;
 }
 
-.falling-stars .meteor-right {
-  animation-name: meteor-right;
+.falling-stars .shooting-star--rtl {
+  left: auto;
+  right: 0;
+  animation-name: shoot-rtl;
 }
 
-.falling-stars .meteor-head {
+.falling-stars .shooting-star__head {
   position: absolute;
   top: 0;
-  left: 0;
   width: 3px;
   height: 3px;
   border-radius: 50%;
   background: #ffffff;
   box-shadow:
-    0 0 3px 1px rgba(255, 255, 255, 0.95),
-    0 0 8px 2px rgba(199, 210, 254, 0.55);
+    0 0 4px 1px rgba(255, 255, 255, 0.9),
+    0 0 10px 2px rgba(199, 210, 254, 0.45);
 }
 
-.falling-stars .meteor-tail {
+.falling-stars .shooting-star__tail {
   position: absolute;
   top: 1px;
-  width: 16px;
+  width: 48px;
   height: 1px;
   border-radius: 1px;
-  opacity: 0.65;
-  filter: blur(0.5px);
+  filter: blur(0.6px);
+  opacity: 0.7;
 }
 
-.falling-stars .meteor-left .meteor-tail {
+.falling-stars .shooting-star--ltr .shooting-star__head {
+  left: 0;
+}
+
+.falling-stars .shooting-star--ltr .shooting-star__tail {
   right: 2px;
-  transform: translateX(-100%) rotate(-24deg);
+  transform: translateX(-100%) rotate(-12deg);
   transform-origin: right center;
   background: linear-gradient(
     90deg,
     transparent 0%,
-    rgba(255, 255, 255, 0.15) 30%,
-    rgba(255, 255, 255, 0.75) 100%
+    rgba(255, 255, 255, 0.1) 35%,
+    rgba(255, 255, 255, 0.7) 100%
   );
 }
 
-.falling-stars .meteor-right .meteor-tail {
+.falling-stars .shooting-star--rtl .shooting-star__head {
+  right: 0;
+}
+
+.falling-stars .shooting-star--rtl .shooting-star__tail {
   left: 2px;
-  transform: translateX(0) rotate(24deg);
+  transform: rotate(12deg);
   transform-origin: left center;
   background: linear-gradient(
     270deg,
     transparent 0%,
-    rgba(255, 255, 255, 0.15) 30%,
-    rgba(255, 255, 255, 0.75) 100%
+    rgba(255, 255, 255, 0.1) 35%,
+    rgba(255, 255, 255, 0.7) 100%
   );
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .falling-stars .falling-star-particle,
-  .falling-stars .meteor {
-    animation: none;
+  .falling-stars .shooting-star {
     display: none;
   }
 
   .falling-stars .sky-star {
     animation: none;
-    opacity: 0.45;
+    opacity: 0.3;
   }
 }
