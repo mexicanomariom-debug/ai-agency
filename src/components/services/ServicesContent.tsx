@@ -10,6 +10,7 @@ import {
   Workflow,
   type LucideIcon,
 } from "lucide-react";
+import MarketPricing from "./MarketPricing";
 
 const SERVICES: { key: string; icon: LucideIcon }[] = [
   { key: "assistants", icon: Bot },
@@ -20,16 +21,16 @@ const SERVICES: { key: string; icon: LucideIcon }[] = [
 ];
 
 const STEPS = ["discovery", "design", "build", "launch", "support"] as const;
-
 const OVERVIEW_KEYS = ["l1", "l2", "l3", "l4", "l5"] as const;
 const INDUSTRY_FOCUS = ["dental", "beauty", "medical"] as const;
-const PACKAGES = ["starter", "business", "pro", "enterprise"] as const;
+const MARKETS = ["ru", "es", "latam"] as const;
 
 export default function ServicesContent() {
   const t = useTranslations("services");
 
   return (
     <>
+      {/* Overview */}
       <section className="mx-auto max-w-6xl px-4 pt-16 sm:px-6 sm:pt-20">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -59,42 +60,7 @@ export default function ServicesContent() {
         </motion.div>
       </section>
 
-      <section className="mx-auto max-w-6xl px-4 pb-16 pt-12 sm:px-6 sm:pb-20 sm:pt-16">
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {SERVICES.map(({ key, icon: Icon }, i) => (
-            <motion.div
-              key={key}
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true, margin: "-40px" }}
-              transition={{ duration: 0.4, delay: i * 0.06 }}
-              className="group rounded-2xl border border-border bg-surface p-6 transition-colors hover:border-accent/40 hover:bg-surface-hover lg:last:col-span-1"
-            >
-              <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-accent/10 text-accent-bright transition-colors group-hover:bg-accent/20">
-                <Icon className="h-5 w-5" />
-              </div>
-              <h2 className="mt-5 text-xl font-semibold">
-                {t(`items.${key}.title`)}
-              </h2>
-              <p className="mt-3 text-sm leading-relaxed text-muted">
-                {t(`items.${key}.description`)}
-              </p>
-              <ul className="mt-4 space-y-2">
-                {(["f1", "f2", "f3"] as const).map((f) => (
-                  <li
-                    key={f}
-                    className="flex items-start gap-2 text-sm text-muted"
-                  >
-                    <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-accent-bright" />
-                    {t(`items.${key}.features.${f}`)}
-                  </li>
-                ))}
-              </ul>
-            </motion.div>
-          ))}
-        </div>
-      </section>
-
+      {/* Industry solutions — BEFORE 5 services */}
       <section className="border-t border-border bg-surface/30">
         <div className="mx-auto max-w-6xl px-4 py-16 sm:px-6 sm:py-20">
           <h2 className="text-2xl font-bold tracking-tight sm:text-3xl">
@@ -128,59 +94,62 @@ export default function ServicesContent() {
                     </li>
                   ))}
                 </ul>
-                <p className="mt-5 rounded-xl border border-accent/20 bg-accent/5 px-4 py-3 text-sm">
-                  <span className="font-semibold text-accent-bright">
-                    {t(`industries.items.${key}.price`)}
-                  </span>
-                  <span className="mt-1 block text-xs text-muted">
+                <div className="mt-5 space-y-2 rounded-xl border border-accent/20 bg-accent/5 p-4">
+                  {MARKETS.map((m) => (
+                    <div
+                      key={m}
+                      className="flex items-center justify-between gap-2 text-sm"
+                    >
+                      <span className="text-xs text-muted">
+                        {t(`industries.items.${key}.prices.${m}.label`)}
+                      </span>
+                      <span className="font-semibold text-accent-bright">
+                        {t(`industries.items.${key}.prices.${m}.price`)}
+                      </span>
+                    </div>
+                  ))}
+                  <p className="pt-1 text-xs text-muted">
                     {t(`industries.items.${key}.priceNote`)}
-                  </span>
-                </p>
+                  </p>
+                </div>
               </motion.div>
             ))}
           </div>
         </div>
       </section>
 
+      {/* 5 core services */}
       <section className="mx-auto max-w-6xl px-4 py-16 sm:px-6 sm:py-20">
-        <h2 className="text-2xl font-bold tracking-tight sm:text-3xl">
-          {t("pricing.title")}
+        <h2 className="mb-10 text-2xl font-bold tracking-tight sm:text-3xl">
+          {t("servicesGrid.title")}
         </h2>
-        <p className="mt-3 max-w-3xl text-muted">{t("pricing.subtitle")}</p>
-        <p className="mt-2 text-sm text-muted">{t("pricing.note")}</p>
-        <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {PACKAGES.map((key, i) => (
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {SERVICES.map(({ key, icon: Icon }, i) => (
             <motion.div
               key={key}
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ delay: i * 0.06 }}
-              className={`flex flex-col rounded-2xl border p-6 ${
-                key === "business"
-                  ? "border-accent/50 bg-accent/5"
-                  : "border-border bg-surface"
-              }`}
+              viewport={{ once: true, margin: "-40px" }}
+              transition={{ duration: 0.4, delay: i * 0.06 }}
+              className="group rounded-2xl border border-border bg-surface p-6 transition-colors hover:border-accent/40 hover:bg-surface-hover"
             >
-              {key === "business" && (
-                <span className="mb-3 w-fit rounded-full bg-accent px-3 py-0.5 text-xs font-semibold text-white">
-                  {t("pricing.popular")}
-                </span>
-              )}
-              <h3 className="font-semibold">{t(`pricing.packages.${key}.name`)}</h3>
-              <p className="mt-2 text-2xl font-bold text-accent-bright">
-                {t(`pricing.packages.${key}.price`)}
+              <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-accent/10 text-accent-bright transition-colors group-hover:bg-accent/20">
+                <Icon className="h-5 w-5" />
+              </div>
+              <h3 className="mt-5 text-xl font-semibold">
+                {t(`items.${key}.title`)}
+              </h3>
+              <p className="mt-3 text-sm leading-relaxed text-muted">
+                {t(`items.${key}.description`)}
               </p>
-              <p className="mt-1 text-xs text-muted">
-                {t(`pricing.packages.${key}.period`)}
-              </p>
-              <p className="mt-4 flex-1 text-sm leading-relaxed text-muted">
-                {t(`pricing.packages.${key}.description`)}
-              </p>
-              <ul className="mt-4 space-y-2 border-t border-border pt-4">
-                {(["i1", "i2", "i3"] as const).map((item) => (
-                  <li key={item} className="text-xs text-muted">
-                    ✓ {t(`pricing.packages.${key}.includes.${item}`)}
+              <ul className="mt-4 space-y-2">
+                {(["f1", "f2", "f3"] as const).map((f) => (
+                  <li
+                    key={f}
+                    className="flex items-start gap-2 text-sm text-muted"
+                  >
+                    <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-accent-bright" />
+                    {t(`items.${key}.features.${f}`)}
                   </li>
                 ))}
               </ul>
@@ -189,7 +158,13 @@ export default function ServicesContent() {
         </div>
       </section>
 
-      <section className="border-t border-border bg-surface/30">
+      {/* Market pricing + competitors */}
+      <div className="border-t border-border bg-surface/30">
+        <MarketPricing />
+      </div>
+
+      {/* Process */}
+      <section className="border-t border-border">
         <div className="mx-auto max-w-6xl px-4 py-16 sm:px-6 sm:py-20">
           <h2 className="text-2xl font-bold tracking-tight sm:text-3xl">
             {t("process.title")}
@@ -203,7 +178,6 @@ export default function ServicesContent() {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ duration: 0.4, delay: i * 0.08 }}
-                className="relative"
               >
                 <span className="text-4xl font-bold text-accent/30">
                   {String(i + 1).padStart(2, "0")}

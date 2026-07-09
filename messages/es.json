@@ -6,8 +6,8 @@
     "keywords": "agentes de IA, desarrollo de agentes IA, automatización de negocios, asistentes de IA, integración CRM, chatbots, inteligencia artificial para empresas, automatización de procesos, ai-agentes, ai-agentes.com",
     "pages": {
       "home": {
-        "title": "AI-Agentes — Agentes de IA y automatización de negocios",
-        "description": "Desarrollamos agentes de IA y automatizamos procesos de negocio. Asistentes de IA, integraciones CRM, automatización de tareas — ahorro de hasta un 60%. Consulta gratuita en 24 horas.",
+        "title": "AI-Agentes — IA para clínicas dentales, centros médicos y delivery",
+        "description": "Administradores de IA para odontología, centros médicos y delivery de comida: citas, respuestas en WhatsApp, pedidos 24/7. Implementación llave en mano en 2–4 semanas.",
         "keywords": "agentes de IA, automatización de negocios, asistentes de IA, desarrollo de chatbots, integración CRM, ai-agentes.com, agencia de inteligencia artificial"
       },
       "services": {
@@ -54,11 +54,42 @@
   },
   "home": {
     "hero": {
-      "badge": "AI-Agentes — agencia con implementaciones reales",
-      "title": "Agentes de IA para clínicas, salones y negocios de servicios",
-      "subtitle": "Citas de pacientes, respuestas a clientes en WhatsApp, sustitución de operadores de primera línea, automatización de entregas de comida — implementación llave en mano en 2–4 semanas. Auditoría gratuita y presupuesto fijo antes de comenzar.",
+      "badge": "Administradores de IA llave en mano · 2–4 semanas",
+      "slidesAria": "Sectores de implementación",
       "ctaPrimary": "Consulta gratuita",
-      "ctaSecondary": "Ver precios"
+      "ctaSecondary": "Ver precios",
+      "slides": {
+        "dental": {
+          "label": "Odontología",
+          "title": "«¿Cuánto cuesta el implante?» — La IA responde y agenda la cita",
+          "subtitle": "Citas 24/7, precios de servicios, recordatorios de visita — WhatsApp, Telegram y web. Menos ausencias, menos carga para recepción."
+        },
+        "medical": {
+          "label": "Centros médicos",
+          "title": "«Cita con el cardiólogo el viernes» — La IA enruta y agenda",
+          "subtitle": "Citas con 5–50 médicos, anamnesis previa, avisos de análisis. Integración con HIS, CRM y telefonía."
+        },
+        "beauty": {
+          "label": "Belleza y cosmetología",
+          "title": "«¿Hay hueco con el estilista mañana?» — La IA elige hora y servicio",
+          "subtitle": "Reserva con profesional concreto, consultas sobre tratamientos y promos, reactivación de clientes inactivos."
+        },
+        "food": {
+          "label": "Delivery de comida",
+          "title": "«¿Dónde está mi pedido?» — La IA toma el pedido y rastrea la entrega",
+          "subtitle": "Pedidos desde el menú en mensajería, estado en tiempo real, quejas y venta adicional — sin cola en la línea."
+        },
+        "logistics": {
+          "label": "Logística y mensajería",
+          "title": "«Cambien la entrega a mañana» — La IA cambia dirección y horario",
+          "subtitle": "Seguimiento de paquetes, cambio de dirección, reprogramación. El 80% de consultas sin operador; casos complejos al gestor."
+        },
+        "realestate": {
+          "label": "Inmobiliaria y alquiler",
+          "title": "«Muéstrenme un piso de 2 hab. hasta 80K» — La IA cualifica y agenda visita",
+          "subtitle": "Selección por presupuesto, cita para visita, FAQ sobre hipoteca y documentos. Leads no se pierden de noche ni en fin de semana."
+        }
+      }
     },
     "stats": {
       "cost": {
@@ -273,9 +304,12 @@
         }
       }
     },
+    "servicesGrid": {
+      "title": "Servicios base"
+    },
     "industries": {
       "title": "Soluciones por sector",
-      "subtitle": "Más detalles sobre implementación en odontología, belleza y centros médicos — con precios orientativos",
+      "subtitle": "Odontología, belleza y medicina — precios adaptados a Rusia, España y Latinoamérica. 30–50% por debajo del mercado.",
       "items": {
         "dental": {
           "title": "Clínicas dentales",
@@ -286,8 +320,12 @@
             "f3": "Recordatorios de visita → reducción de ausencias del 25–35%",
             "f4": "Integración con amoCRM, Bitrix24, YClients, Google Calendar"
           },
-          "price": "desde $2,500",
-          "priceNote": "implementación llave en mano + desde $150/mes de soporte"
+          "prices": {
+            "ru": { "label": "Rusia", "price": "desde 79 000 ₽" },
+            "es": { "label": "España", "price": "desde 990 €" },
+            "latam": { "label": "LATAM", "price": "desde $597" }
+          },
+          "priceNote": "soporte: desde 4 900 ₽ / 79 € / $47 al mes"
         },
         "beauty": {
           "title": "Salones de belleza y cosmetología",
@@ -298,8 +336,12 @@
             "f3": "Reactivación de clientes que no visitan desde hace 30+ días",
             "f4": "Integración con YClients, Dikidi, amoCRM, Instagram DM"
           },
-          "price": "desde $1,800",
-          "priceNote": "implementación llave en mano + desde $120/mes de soporte"
+          "prices": {
+            "ru": { "label": "Rusia", "price": "desde 59 000 ₽" },
+            "es": { "label": "España", "price": "desde 790 €" },
+            "latam": { "label": "LATAM", "price": "desde $447" }
+          },
+          "priceNote": "soporte: desde 3 900 ₽ / 69 € / $39 al mes"
         },
         "medical": {
           "title": "Centros médicos y policlínicas",
@@ -310,61 +352,124 @@
             "f3": "Notificaciones sobre análisis listos y visitas de seguimiento",
             "f4": "Integración con HIS, CRM y telefonía"
           },
-          "price": "desde $3,500",
+          "prices": {
+            "ru": { "label": "Rusia", "price": "desde 119 000 ₽" },
+            "es": { "label": "España", "price": "desde 1 490 €" },
+            "latam": { "label": "LATAM", "price": "desde $897" }
+          },
           "priceNote": "depende del número de médicos e integraciones"
         }
       }
     },
     "pricing": {
-      "title": "Precios orientativos",
-      "subtitle": "Paquetes transparentes — el presupuesto final se fija tras la auditoría gratuita. Sin pagos ocultos.",
-      "note": "Precios en USD. Pago en EUR o RUB posible. IVA/impuestos según jurisdicción del cliente.",
+      "title": "Precios por mercado",
+      "subtitle": "Tarifas adaptadas a Rusia, España y LATAM. Por debajo de la competencia con el mismo alcance — comparación en la tabla.",
+      "note": "Precios orientativos. El presupuesto final se fija tras la auditoría gratuita. IVA/impuestos según jurisdicción.",
       "popular": "Popular",
       "packages": {
-        "starter": {
-          "name": "Inicio",
-          "price": "desde $990",
-          "period": "implementación única",
-          "description": "Chatbot sencillo para pequeños negocios: FAQ, citas, respuestas en mensajería.",
-          "includes": {
-            "i1": "Bot de WhatsApp o Telegram",
-            "i2": "Hasta 50 escenarios de respuesta",
-            "i3": "Lanzamiento en 1–2 semanas"
+        "starter": { "name": "Inicio" },
+        "business": { "name": "Negocio" },
+        "pro": { "name": "Pro" },
+        "enterprise": { "name": "Empresarial" }
+      },
+      "markets": {
+        "ru": {
+          "name": "Rusia",
+          "currency": "Rublos (₽), pago en RUB",
+          "packages": {
+            "starter": { "price": "desde 35 000 ₽", "support": "+ desde 3 900 ₽/mes" },
+            "business": { "price": "desde 89 000 ₽", "support": "+ desde 4 900 ₽/mes" },
+            "pro": { "price": "desde 179 000 ₽", "support": "+ desde 9 900 ₽/mes" },
+            "enterprise": { "price": "desde 350 000 ₽", "support": "contrato SLA" }
           }
         },
-        "business": {
-          "name": "Negocio",
-          "price": "desde $2,500",
-          "period": "implementación única",
-          "description": "Para clínicas, salones y delivery: citas, CRM, recordatorios, sustitución de 1 operador.",
-          "includes": {
-            "i1": "Bot multicanal (web + mensajería)",
-            "i2": "Integración CRM / calendario",
-            "i3": "Soporte desde $150/mes"
+        "es": {
+          "name": "España",
+          "currency": "Euros (€), pago en EUR",
+          "packages": {
+            "starter": { "price": "desde 490 €", "support": "+ desde 69 €/mes" },
+            "business": { "price": "desde 1 290 €", "support": "+ desde 79 €/mes" },
+            "pro": { "price": "desde 2 490 €", "support": "+ desde 149 €/mes" },
+            "enterprise": { "price": "desde 4 900 €", "support": "contrato SLA" }
           }
         },
-        "pro": {
-          "name": "Pro",
-          "price": "desde $5,000",
-          "period": "implementación única",
-          "description": "Agente de IA a medida: calificación de leads, multiagente, analítica, varias integraciones.",
-          "includes": {
-            "i1": "Arquitectura personalizada",
-            "i2": "Panel y monitorización",
-            "i3": "Soporte desde $300/mes"
-          }
-        },
-        "enterprise": {
-          "name": "Empresarial",
-          "price": "desde $10,000",
-          "period": "evaluación por proyecto",
-          "description": "Implementaciones complejas: call center, varios departamentos, APIs personalizadas, SLA.",
-          "includes": {
-            "i1": "Integraciones ilimitadas",
-            "i2": "Soporte dedicado",
-            "i3": "Contrato SLA"
+        "latam": {
+          "name": "LATAM",
+          "currency": "Dólares (USD), México · Colombia · Argentina",
+          "packages": {
+            "starter": { "price": "desde $297", "support": "+ desde $39/mes" },
+            "business": { "price": "desde $697", "support": "+ desde $47/mes" },
+            "pro": { "price": "desde $1 497", "support": "+ desde $97/mes" },
+            "enterprise": { "price": "desde $2 997", "support": "contrato SLA" }
           }
         }
+      },
+      "competitors": {
+        "title": "Comparación con la competencia",
+        "subtitle": "Analizamos precios de agencias y plataformas SaaS en cada mercado. AI-Agentes ofrece implementación a medida un 30–50% más barata con funcionalidad comparable.",
+        "headers": {
+          "company": "Competidor",
+          "market": "Mercado",
+          "theirPrice": "Su precio",
+          "ourPrice": "AI-Agentes"
+        },
+        "items": {
+          "c1": {
+            "company": "Voxys",
+            "market": "Rusia",
+            "theirPrice": "desde 230 000 ₽ (hasta 50 ramas)",
+            "ourPrice": "desde 89 000 ₽ (Negocio)"
+          },
+          "c2": {
+            "company": "March Code",
+            "market": "Rusia",
+            "theirPrice": "desde 65 000 ₽ FAQ / desde 200 000 ₽ IA",
+            "ourPrice": "desde 35 000 ₽ / desde 89 000 ₽"
+          },
+          "c3": {
+            "company": "automate-ai.ru",
+            "market": "Rusia",
+            "theirPrice": "desde 120 000 ₽ llave en mano",
+            "ourPrice": "desde 89 000 ₽"
+          },
+          "c4": {
+            "company": "Automatizator.es",
+            "market": "España",
+            "theirPrice": "1 800–2 500 € setup + 290 €/mes",
+            "ourPrice": "desde 990 € + 79 €/mes"
+          },
+          "c5": {
+            "company": "SAPIENSDATAAI",
+            "market": "España",
+            "theirPrice": "800–2 500 € + 100–200 €/mes",
+            "ourPrice": "desde 990 € + 79 €/mes"
+          },
+          "c6": {
+            "company": "Dentiqa (SaaS)",
+            "market": "España / LATAM",
+            "theirPrice": "desde $89/mes (sin personalización)",
+            "ourPrice": "desde 790 € a medida"
+          },
+          "c7": {
+            "company": "Consultor IA",
+            "market": "Colombia / LATAM",
+            "theirPrice": "$497 setup + $97/mes",
+            "ourPrice": "$297 setup + $47/mes"
+          },
+          "c8": {
+            "company": "Automatizator.es",
+            "market": "México / LATAM",
+            "theirPrice": "~$2 000 setup + $350/mes",
+            "ourPrice": "desde $597 + $47/mes"
+          },
+          "c9": {
+            "company": "Freelance / Upwork",
+            "market": "Global",
+            "theirPrice": "$1 500–5 000 sin soporte",
+            "ourPrice": "desde $297 con soporte"
+          }
+        },
+        "disclaimer": "Datos de competidores de precios públicos, marzo 2026. Comparación orientativa según volumen de integraciones."
       }
     },
     "process": {

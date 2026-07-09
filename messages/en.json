@@ -6,8 +6,8 @@
     "keywords": "AI agents, AI agent development, business automation, AI assistants, CRM integration, chatbots, artificial intelligence for business, process automation, ai-agentes, ai-agentes.com",
     "pages": {
       "home": {
-        "title": "AI-Agentes — AI Agents & Business Automation",
-        "description": "We build AI agents and automate business processes. AI assistants, CRM integrations, task automation — save up to 60%. Free consultation within 24 hours.",
+        "title": "AI-Agentes — AI for dental clinics, medical centers & food delivery",
+        "description": "AI administrators for dental clinics, medical centers, and food delivery: booking, WhatsApp replies, order intake 24/7. Turnkey implementation in 2–4 weeks.",
         "keywords": "AI agents, business automation, AI assistants, chatbot development, CRM integration, ai-agentes.com, artificial intelligence agency"
       },
       "services": {
@@ -54,11 +54,42 @@
   },
   "home": {
     "hero": {
-      "badge": "AI-Agentes — agency with real deployments",
-      "title": "AI agents for clinics, salons, and service businesses",
-      "subtitle": "Patient booking, WhatsApp customer replies, first-line operator replacement, food delivery automation — turnkey implementation in 2–4 weeks. Free audit and fixed quote before work begins.",
+      "badge": "Turnkey AI administrators · 2–4 weeks",
+      "slidesAria": "Industries we serve",
       "ctaPrimary": "Free consultation",
-      "ctaSecondary": "View pricing"
+      "ctaSecondary": "View pricing",
+      "slides": {
+        "dental": {
+          "label": "Dentistry",
+          "title": "«How much for an implant?» — AI answers and books the appointment",
+          "subtitle": "24/7 booking, service pricing, visit reminders — WhatsApp, Telegram, website. Fewer no-shows, less front-desk load."
+        },
+        "medical": {
+          "label": "Medical centers",
+          "title": "«Book me a cardiologist on Friday» — AI routes and schedules",
+          "subtitle": "Booking across 5–50 doctors, pre-visit intake, lab result notifications. HIS, CRM, and telephony integration."
+        },
+        "beauty": {
+          "label": "Beauty & cosmetology",
+          "title": "«Any slots with my stylist tomorrow?» — AI picks time and service",
+          "subtitle": "Booking with a specific stylist, treatment and promo consultations, reactivation of dormant clients."
+        },
+        "food": {
+          "label": "Food delivery",
+          "title": "«Where's my order?» — AI takes orders and tracks delivery",
+          "subtitle": "Menu orders in messaging apps, real-time status, complaints and upsells — no queue on the line."
+        },
+        "logistics": {
+          "label": "Logistics & couriers",
+          "title": "«Move delivery to tomorrow» — AI changes address and time",
+          "subtitle": "Parcel tracking, address changes, rescheduling. 80% of routine inquiries without an operator; complex cases to a manager."
+        },
+        "realestate": {
+          "label": "Real estate & rentals",
+          "title": "«Show me a 2-bed under $80K» — AI qualifies leads and books viewings",
+          "subtitle": "Property matching by budget, viewing appointments, mortgage and paperwork FAQ. Leads aren't lost at night or on weekends."
+        }
+      }
     },
     "stats": {
       "cost": {
@@ -273,9 +304,12 @@
         }
       }
     },
+    "servicesGrid": {
+      "title": "Core services"
+    },
     "industries": {
       "title": "Industry solutions",
-      "subtitle": "More on implementation in dentistry, beauty, and medical centers — with indicative pricing",
+      "subtitle": "Dentistry, beauty, and healthcare — pricing adapted for Russia, Spain, and Latin America. 30–50% below market rates.",
       "items": {
         "dental": {
           "title": "Dental clinics",
@@ -286,8 +320,12 @@
             "f3": "Visit reminders → 25–35% reduction in no-shows",
             "f4": "Integration with amoCRM, Bitrix24, YClients, Google Calendar"
           },
-          "price": "from $2,500",
-          "priceNote": "turnkey implementation + from $150/month support"
+          "prices": {
+            "ru": { "label": "Russia", "price": "from 79,000 ₽" },
+            "es": { "label": "Spain", "price": "from €990" },
+            "latam": { "label": "LATAM", "price": "from $597" }
+          },
+          "priceNote": "support: from 4,900 ₽ / €79 / $47 per month"
         },
         "beauty": {
           "title": "Beauty salons and cosmetology",
@@ -298,8 +336,12 @@
             "f3": "Reactivation of clients who haven't visited in 30+ days",
             "f4": "Integration with YClients, Dikidi, amoCRM, Instagram DM"
           },
-          "price": "from $1,800",
-          "priceNote": "turnkey implementation + from $120/month support"
+          "prices": {
+            "ru": { "label": "Russia", "price": "from 59,000 ₽" },
+            "es": { "label": "Spain", "price": "from €790" },
+            "latam": { "label": "LATAM", "price": "from $447" }
+          },
+          "priceNote": "support: from 3,900 ₽ / €69 / $39 per month"
         },
         "medical": {
           "title": "Medical centers and clinics",
@@ -310,61 +352,124 @@
             "f3": "Notifications for ready test results and follow-up visits",
             "f4": "Integration with HIS, CRM, and telephony"
           },
-          "price": "from $3,500",
+          "prices": {
+            "ru": { "label": "Russia", "price": "from 119,000 ₽" },
+            "es": { "label": "Spain", "price": "from €1,490" },
+            "latam": { "label": "LATAM", "price": "from $897" }
+          },
           "priceNote": "depends on number of doctors and integrations"
         }
       }
     },
     "pricing": {
-      "title": "Indicative pricing",
-      "subtitle": "Transparent packages — final quote is fixed after a free audit. No hidden fees.",
-      "note": "Prices in USD. Payment in EUR or RUB available. VAT/taxes per client jurisdiction.",
+      "title": "Pricing by market",
+      "subtitle": "Adapted rates for Russia, Spain, and LATAM. Below competitors for comparable scope — see comparison table.",
+      "note": "Indicative pricing. Final quote is fixed after a free audit. VAT/taxes per client jurisdiction.",
       "popular": "Popular",
       "packages": {
-        "starter": {
-          "name": "Starter",
-          "price": "from $990",
-          "period": "one-time implementation",
-          "description": "Simple chatbot for small business: FAQ, booking, messaging replies.",
-          "includes": {
-            "i1": "WhatsApp or Telegram bot",
-            "i2": "Up to 50 response scenarios",
-            "i3": "Launch in 1–2 weeks"
+        "starter": { "name": "Starter" },
+        "business": { "name": "Business" },
+        "pro": { "name": "Pro" },
+        "enterprise": { "name": "Enterprise" }
+      },
+      "markets": {
+        "ru": {
+          "name": "Russia",
+          "currency": "Rubles (₽), payment in RUB",
+          "packages": {
+            "starter": { "price": "from 35,000 ₽", "support": "+ from 3,900 ₽/month" },
+            "business": { "price": "from 89,000 ₽", "support": "+ from 4,900 ₽/month" },
+            "pro": { "price": "from 179,000 ₽", "support": "+ from 9,900 ₽/month" },
+            "enterprise": { "price": "from 350,000 ₽", "support": "SLA contract" }
           }
         },
-        "business": {
-          "name": "Business",
-          "price": "from $2,500",
-          "period": "one-time implementation",
-          "description": "For clinics, salons, delivery: booking, CRM, reminders, replacement of 1 operator.",
-          "includes": {
-            "i1": "Multichannel bot (website + messaging)",
-            "i2": "CRM / calendar integration",
-            "i3": "Support from $150/month"
+        "es": {
+          "name": "Spain",
+          "currency": "Euros (€), payment in EUR",
+          "packages": {
+            "starter": { "price": "from €490", "support": "+ from €69/month" },
+            "business": { "price": "from €1,290", "support": "+ from €79/month" },
+            "pro": { "price": "from €2,490", "support": "+ from €149/month" },
+            "enterprise": { "price": "from €4,900", "support": "SLA contract" }
           }
         },
-        "pro": {
-          "name": "Pro",
-          "price": "from $5,000",
-          "period": "one-time implementation",
-          "description": "Custom AI agent: lead qualification, multi-agent, analytics, multiple integrations.",
-          "includes": {
-            "i1": "Custom architecture",
-            "i2": "Dashboard and monitoring",
-            "i3": "Support from $300/month"
-          }
-        },
-        "enterprise": {
-          "name": "Enterprise",
-          "price": "from $10,000",
-          "period": "project-based estimate",
-          "description": "Complex deployments: call center, multiple departments, custom APIs, SLA.",
-          "includes": {
-            "i1": "Unlimited integrations",
-            "i2": "Dedicated support",
-            "i3": "SLA agreement"
+        "latam": {
+          "name": "LATAM",
+          "currency": "US Dollars (USD), Mexico · Colombia · Argentina",
+          "packages": {
+            "starter": { "price": "from $297", "support": "+ from $39/month" },
+            "business": { "price": "from $697", "support": "+ from $47/month" },
+            "pro": { "price": "from $1,497", "support": "+ from $97/month" },
+            "enterprise": { "price": "from $2,997", "support": "SLA contract" }
           }
         }
+      },
+      "competitors": {
+        "title": "Competitor comparison",
+        "subtitle": "We analyzed agency and SaaS pricing on each market. AI-Agentes delivers custom implementation 30–50% cheaper with comparable functionality.",
+        "headers": {
+          "company": "Competitor",
+          "market": "Market",
+          "theirPrice": "Their price",
+          "ourPrice": "AI-Agentes"
+        },
+        "items": {
+          "c1": {
+            "company": "Voxys",
+            "market": "Russia",
+            "theirPrice": "from 230,000 ₽ (up to 50 branches)",
+            "ourPrice": "from 89,000 ₽ (Business)"
+          },
+          "c2": {
+            "company": "March Code",
+            "market": "Russia",
+            "theirPrice": "from 65,000 ₽ FAQ / from 200,000 ₽ AI",
+            "ourPrice": "from 35,000 ₽ / from 89,000 ₽"
+          },
+          "c3": {
+            "company": "automate-ai.ru",
+            "market": "Russia",
+            "theirPrice": "from 120,000 ₽ turnkey",
+            "ourPrice": "from 89,000 ₽"
+          },
+          "c4": {
+            "company": "Automatizator.es",
+            "market": "Spain",
+            "theirPrice": "€1,800–2,500 setup + €290/month",
+            "ourPrice": "from €990 + €79/month"
+          },
+          "c5": {
+            "company": "SAPIENSDATAAI",
+            "market": "Spain",
+            "theirPrice": "€800–2,500 + €100–200/month",
+            "ourPrice": "from €990 + €79/month"
+          },
+          "c6": {
+            "company": "Dentiqa (SaaS)",
+            "market": "Spain / LATAM",
+            "theirPrice": "from $89/month (no customization)",
+            "ourPrice": "from €790 custom turnkey"
+          },
+          "c7": {
+            "company": "Consultor IA",
+            "market": "Colombia / LATAM",
+            "theirPrice": "$497 setup + $97/month",
+            "ourPrice": "$297 setup + $47/month"
+          },
+          "c8": {
+            "company": "Automatizator.es",
+            "market": "Mexico / LATAM",
+            "theirPrice": "~$2,000 setup + $350/month",
+            "ourPrice": "from $597 + $47/month"
+          },
+          "c9": {
+            "company": "Freelance / Upwork",
+            "market": "Global",
+            "theirPrice": "$1,500–5,000 without support",
+            "ourPrice": "from $297 with support"
+          }
+        },
+        "disclaimer": "Competitor data from public pricing, March 2026. Comparison is indicative and depends on integration scope."
       }
     },
     "process": {
