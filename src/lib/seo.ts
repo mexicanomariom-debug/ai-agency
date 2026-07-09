@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 export const SITE_URL = "https://ai-agentes.com";
 export const SITE_NAME = "AI-Agentes";
 
-const ROUTES = ["", "/services", "/solutions", "/about", "/contact"] as const;
+const ROUTES = ["", "/services", "/solutions", "/portfolio", "/about", "/contact"] as const;
 
 type BuildPageMetadataOptions = {
   locale: string;

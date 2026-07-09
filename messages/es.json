@@ -20,6 +20,11 @@
         "description": "Casos de AI-Agentes: cómo los agentes de IA reducen costes hasta un 60%, aceleran solicitudes 10 veces y trabajan 24/7 sin descanso.",
         "keywords": "casos de IA, ejemplos de automatización, ROI inteligencia artificial, ahorro en automatización, IA para pequeñas empresas"
       },
+      "portfolio": {
+        "title": "Ejemplos de trabajo — casos reales de implementación de IA",
+        "description": "Casos públicos de implementación de agentes de IA: Comboios de Portugal, Siemens, Klarna, Stannp y más. Cifras y resultados reales de la industria.",
+        "keywords": "ejemplos de trabajo IA, casos de chatbots, portfolio agencia IA, proyectos reales de automatización, casos integración CRM"
+      },
       "about": {
         "title": "Nosotros — agencia AI-Agentes",
         "description": "AI-Agentes — agencia de nueva generación. Enfoque en tecnologías modernas, procesos transparentes y resultados medibles para cada cliente.",
@@ -36,6 +41,7 @@
     "home": "Inicio",
     "services": "Servicios",
     "solutions": "Soluciones",
+    "portfolio": "Ejemplos",
     "about": "Nosotros",
     "contact": "Contacto",
     "cta": "Hablar del proyecto"
@@ -285,6 +291,134 @@
       "title": "¿Reconoces tu caso?",
       "subtitle": "Cuéntanos tu proceso — te mostraremos cómo un agente de IA lo resolverá para tu negocio.",
       "button": "Hablar del caso"
+    }
+  },
+  "portfolio": {
+    "title": "Ejemplos de trabajo",
+    "subtitle": "Casos reales de implementación de IA",
+    "description": "Implementaciones de agentes de IA documentadas públicamente en distintos sectores. AI-Agentes diseña e implementa soluciones similares.",
+    "intro": "A continuación, casos reales de la práctica mundial: ferrocarriles, industria, fintech, e-commerce y B2B. Estudiamos las mejores implementaciones y adaptamos arquitecturas probadas a las necesidades de nuestros clientes.",
+    "labels": {
+      "challenge": "Desafío",
+      "solution": "Solución",
+      "results": "Resultados",
+      "stack": "Tecnologías"
+    },
+    "disclaimer": "Los casos se basan en informes públicos de empresas y sus socios tecnológicos (AWS, OpenAI, Enterprise Bot, ChatSignals, etc.).",
+    "cases": {
+      "cp": {
+        "company": "Comboios de Portugal",
+        "industry": "Transporte",
+        "year": "2021–2025",
+        "title": "Chatbot de IA en web y WhatsApp para 200M pasajeros",
+        "challenge": "El operador ferroviario estatal de Portugal atiende ~200 millones de pasajeros al año. El soporte estaba saturado: consultas sobre horarios, retrasos, devoluciones y ventas requerían operadores humanos y generaban colas.",
+        "solution": "Implementaron un chatbot de IA en web y WhatsApp integrado con sistemas de venta de billetes y API de retrasos. El bot responde en 130+ idiomas (web) y en portugués (WhatsApp).",
+        "results": {
+          "m1": { "value": "−90%", "label": "costes de soporte" },
+          "m2": { "value": "98.5%", "label": "precisión de respuestas" },
+          "m3": { "value": "8%", "label": "escalación a humano" }
+        },
+        "stack": {
+          "s1": "Microsoft Azure",
+          "s2": "WhatsApp API",
+          "s3": "NLP + integraciones API"
+        }
+      },
+      "siemens": {
+        "company": "Siemens",
+        "industry": "Industria",
+        "year": "2024–2025",
+        "title": "Agente de IA para contact center con integración CRM",
+        "challenge": "Corporación global con enorme volumen de llamadas gestionadas por un IVR obsoleto. Los clientes esperaban mucho y la derivación a menudo los enviaba al especialista equivocado.",
+        "solution": "Desplegaron un agente de IA en Amazon Connect con acceso a CRM, directorio de empleados y base de conocimiento vía Lambda. Personaliza el diálogo según historial de compras y transfiere a humano con contexto completo.",
+        "results": {
+          "m1": { "value": "90%", "label": "llamadas sin operador" },
+          "m2": { "value": "↑", "label": "resolución primer contacto" },
+          "m3": { "value": "CRM", "label": "registro automático" }
+        },
+        "stack": {
+          "s1": "Amazon Connect",
+          "s2": "AWS Lambda + Bedrock",
+          "s3": "CRM MCP Gateway"
+        }
+      },
+      "stannp": {
+        "company": "Stannp.com",
+        "industry": "B2B / Direct Mail",
+        "year": "2024",
+        "title": "Automatización de chat de ventas con HubSpot",
+        "challenge": "Un equipo de 7 comerciales dedicaba la mayor parte del tiempo a chats rutinarios en lugar de cerrar ventas y expandirse a nuevos mercados. El lanzamiento en Canadá era imposible por falta de recursos.",
+        "solution": "Implementaron chat de IA integrado con HubSpot: el bot gestiona consultas típicas, califica leads y transfiere oportunidades calientes a los comerciales. Los liberados se enfocaron en expansión internacional.",
+        "results": {
+          "m1": { "value": "−50%", "label": "carga en chat de ventas" },
+          "m2": { "value": "+80%", "label": "volumen de chats" },
+          "m3": { "value": "13×", "label": "ROI en 1 mes" }
+        },
+        "stack": {
+          "s1": "HubSpot CRM",
+          "s2": "AI Chat Automation",
+          "s3": "Live chat handoff"
+        }
+      },
+      "retailer": {
+        "company": "Retailer global",
+        "industry": "E-commerce / Retail",
+        "year": "2024",
+        "title": "Chatbot de IA + automatización de flujos CRM",
+        "challenge": "Respuestas lentas, alta carga de soporte y trabajo manual en CRM: asignación de leads, seguimiento e informes. Los equipos dedicaban horas a operaciones repetitivas.",
+        "solution": "Desplegaron chatbot multicanal (web, app, redes) con NLP conectado a Salesforce/Zoho CRM. Automatizaron enrutado de leads, recordatorios y dashboards de reporting.",
+        "results": {
+          "m1": { "value": "−70%", "label": "tiempo de respuesta" },
+          "m2": { "value": "−50%", "label": "trabajo manual" },
+          "m3": { "value": "↑", "label": "conversión a venta" }
+        },
+        "stack": {
+          "s1": "Salesforce / Zoho",
+          "s2": "NLP Chatbot",
+          "s3": "Workflow automation"
+        }
+      },
+      "klarna": {
+        "company": "Klarna",
+        "industry": "Fintech",
+        "year": "2024–2025",
+        "title": "Asistente de IA de soporte en 35+ idiomas",
+        "challenge": "Servicio fintech con 150M usuarios en 23 mercados procesaba millones de consultas: devoluciones, disputas, pagos. Tiempo medio de resolución: 11 minutos, la carga del call center crecía.",
+        "solution": "Lanzaron asistente de IA basado en LLM: soporte multilingüe 24/7, gestión de devoluciones y pagos. Modelo híbrido: IA cierra casos típicos, humano interviene en casos complejos y clientes premium.",
+        "results": {
+          "m1": { "value": "2/3", "label": "chats vía IA" },
+          "m2": { "value": "2 min", "label": "resolución (antes 11)" },
+          "m3": { "value": "$40M", "label": "ahorro anual" }
+        },
+        "stack": {
+          "s1": "OpenAI GPT",
+          "s2": "NLP multilingüe",
+          "s3": "Escalación híbrida"
+        }
+      },
+      "logistics": {
+        "company": "Shopify",
+        "industry": "E-commerce SaaS",
+        "year": "2024",
+        "title": "AI Sidekick — asistente para 2M+ vendedores",
+        "challenge": "Millones de comerciantes gestionan catálogos, pedidos y marketing diariamente. Los nuevos usuarios tienen dificultad con las herramientas y el soporte no escala linealmente.",
+        "solution": "Implementaron Sidekick — asistente de IA en el panel de administración: responde sobre configuración de tienda, genera descripciones de productos, analiza ventas y sugiere acciones en lenguaje natural.",
+        "results": {
+          "m1": { "value": "2M+", "label": "comerciantes" },
+          "m2": { "value": "24/7", "label": "disponibilidad" },
+          "m3": { "value": "↑", "label": "velocidad de onboarding" }
+        },
+        "stack": {
+          "s1": "Shopify Magic",
+          "s2": "LLM + Commerce API",
+          "s3": "Asistente in-app"
+        }
+      }
+    },
+    "cta": {
+      "title": "¿Quieres un resultado similar?",
+      "subtitle": "Cuéntanos tu sector y tu caso — diseñaremos un agente de IA con arquitectura probada.",
+      "button": "Hablar del proyecto"
     }
   },
   "about": {
