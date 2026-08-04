@@ -1,5 +1,7 @@
 # Language Tutor — Deployment Guide
 
+Auto-deploy: push to `cursor/language-tutor-recreate-a360` triggers GitHub Actions (Oracle + Vercel).
+
 ## Architecture
 
 - **Telegram Bot** — onboarding (language → level → chat), no persona selection
