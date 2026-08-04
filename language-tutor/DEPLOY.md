@@ -9,6 +9,35 @@ Auto-deploy: push to `cursor/language-tutor-recreate-a360` triggers GitHub Actio
 - **Next.js Web App** — landing, pricing, Telegram Web App (TWA) with personas
 - **PostgreSQL + pgvector** — user data and RAG embeddings
 
+## Oracle Server (140.84.183.154)
+
+### Windows (PowerShell)
+
+```powershell
+# 1. Clone repo (if not yet)
+cd C:\Users\DavidPC\Projects
+git clone https://github.com/mexicanomariom-debug/ai-agency.git
+cd ai-agency\language-tutor
+
+# 2. Checkout branch with language-tutor
+git checkout cursor/language-tutor-recreate-a360
+
+# 3. Create .env with BOT_TOKEN and OPENAI_API_KEY (copy from .env.example)
+
+# 4. Deploy (with SSH key if needed)
+.\deploy-to-oracle.ps1
+# or with explicit key:
+.\deploy-to-oracle.ps1 -KeyPath "C:\Users\DavidPC\.ssh\oracle_key"
+```
+
+### Linux / macOS / Git Bash
+
+```bash
+cd language-tutor
+chmod +x deploy-to-oracle.sh
+./deploy-to-oracle.sh ubuntu@140.84.183.154
+```
+
 ## Local Development
 
 ```bash
