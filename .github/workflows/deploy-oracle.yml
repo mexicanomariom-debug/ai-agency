@@ -15,45 +15,82 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Setup SSH
+        env:
+          ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
         run: |
           mkdir -p ~/.ssh
-          echo "${{ secrets.ORACLE_SSH_KEY }}" > ~/.ssh/oracle_key
+          chmod 700 ~/.ssh
+
+          # Support raw PEM, base64-encoded PEM, or escaped newlines
+          if printf '%s' "$ORACLE_SSH_KEY" | grep -q 'BEGIN.*PRIVATE KEY'; then
+            printf '%b\n' "$ORACLE_SSH_KEY" | tr -d '\r' > ~/.ssh/oracle_key
+          else
+            printf '%s' "$ORACLE_SSH_KEY" | tr -d '\r' | base64 -d > ~/.ssh/oracle_key 2>/dev/null || \
+              printf '%b\n' "$ORACLE_SSH_KEY" | tr -d '\r' > ~/.ssh/oracle_key
+          fi
           chmod 600 ~/.ssh/oracle_key
-          ssh-keyscan -H ${{ secrets.ORACLE_HOST || '140.84.183.154' }} >> ~/.ssh/known_hosts 2>/dev/null || true
+
+          if ! ssh-keygen -y -f ~/.ssh/oracle_key > ~/.ssh/oracle_key.pub 2>/dev/null; then
+            echo "::error::Invalid ORACLE_SSH_KEY secret — must be a valid private key (PEM or base64 PEM)"
+            exit 1
+          fi
+
+          HOST="${{ secrets.ORACLE_HOST || '140.84.183.154' }}"
+          ssh-keyscan -H "$HOST" >> ~/.ssh/known_hosts 2>/dev/null || true
 
       - name: Create production .env
+        env:
+          BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD || 'opus5_prod_secret_2026' }}
+          API_SECRET_KEY: ${{ secrets.API_SECRET_KEY || 'opus5-api-secret-2026' }}
         run: |
-          cat > language-tutor/.env << EOF
-          BOT_TOKEN=${{ secrets.BOT_TOKEN }}
+          cat > language-tutor/.env <<EOF
+          BOT_TOKEN=${BOT_TOKEN}
           BOT_USERNAME=All_languages_bot
-          OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}
+          OPENAI_API_KEY=${OPENAI_API_KEY}
           OPENAI_MODEL=gpt-4o-mini
           POSTGRES_USER=language_tutor
-          POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD || 'opus5_prod_secret_2026' }}
+          POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
           POSTGRES_DB=language_tutor
-          DATABASE_URL=postgresql+asyncpg://language_tutor:${{ secrets.POSTGRES_PASSWORD || 'opus5_prod_secret_2026' }}@db:5432/language_tutor
+          DATABASE_URL=postgresql+asyncpg://language_tutor:${POSTGRES_PASSWORD}@db:5432/language_tutor
           TWA_URL=https://webapp-bay-three-75.vercel.app
           WEBAPP_URL=https://webapp-bay-three-75.vercel.app
           CORS_ORIGINS=https://webapp-bay-three-75.vercel.app
           API_HOST=0.0.0.0
           API_PORT=8000
-          API_SECRET_KEY=${{ secrets.API_SECRET_KEY || 'opus5-api-secret-2026' }}
+          API_SECRET_KEY=${API_SECRET_KEY}
           DEMO_MODE=true
           ENVIRONMENT=production
           EOF
+          sed -i 's/^          //' language-tutor/.env
 
       - name: Deploy to Oracle
         run: |
-          SERVER="${{ secrets.ORACLE_SSH_USER || 'ubuntu' }}@${{ secrets.ORACLE_HOST || '140.84.183.154' }}"
+          HOST="${{ secrets.ORACLE_HOST || '140.84.183.154' }}"
+          USER="${{ secrets.ORACLE_SSH_USER || 'ubuntu' }}"
           REMOTE_DIR="/opt/opus5"
-          rsync -avz --delete \
-            -e "ssh -i ~/.ssh/oracle_key -o StrictHostKeyChecking=no" \
-            --exclude node_modules --exclude .next --exclude __pycache__ --exclude .venv \
-            language-tutor/ "$SERVER:$REMOTE_DIR/"
-          scp -i ~/.ssh/oracle_key -o StrictHostKeyChecking=no \
-            language-tutor/.env "$SERVER:$REMOTE_DIR/.env"
-          ssh -i ~/.ssh/oracle_key -o StrictHostKeyChecking=no "$SERVER" \
-            "chmod +x $REMOTE_DIR/oracle-setup.sh && cd $REMOTE_DIR && ./oracle-setup.sh"
+
+          deploy_to() {
+            local server="$1"
+            rsync -avz --delete \
+              -e "ssh -i ~/.ssh/oracle_key -o StrictHostKeyChecking=no -o BatchMode=yes" \
+              --exclude node_modules --exclude .next --exclude __pycache__ --exclude .venv \
+              language-tutor/ "$server:$REMOTE_DIR/" && \
+            scp -i ~/.ssh/oracle_key -o StrictHostKeyChecking=no \
+              language-tutor/.env "$server:$REMOTE_DIR/.env" && \
+            ssh -i ~/.ssh/oracle_key -o StrictHostKeyChecking=no "$server" \
+              "chmod +x $REMOTE_DIR/oracle-setup.sh && cd $REMOTE_DIR && ./oracle-setup.sh"
+          }
+
+          if deploy_to "${USER}@${HOST}"; then
+            echo "Deployed as ${USER}@${HOST}"
+          elif [ "$USER" = "ubuntu" ]; then
+            echo "ubuntu failed, trying opc..."
+            deploy_to "opc@${HOST}"
+          else
+            exit 1
+          fi
 
       - name: Health check
         run: |

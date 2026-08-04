@@ -4,7 +4,8 @@ on:
   push:
     branches: [cursor/language-tutor-recreate-a360, main]
     paths:
-      - 'language-tutor/webapp/**'
+      - 'language-tutor/**'
+      - '.github/workflows/deploy-vercel.yml'
   workflow_dispatch:
 
 jobs:
