@@ -1,0 +1,49 @@
+services:
+  - type: web
+    name: language-tutor-api
+    runtime: docker
+    dockerfilePath: ./backend/Dockerfile
+    dockerCommand: python -m api.run
+    plan: starter
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: language-tutor-db
+          property: connectionString
+      - key: BOT_TOKEN
+        sync: false
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: API_SECRET_KEY
+        generateValue: true
+      - key: TWA_URL
+        value: https://webapp-bay-three-75.vercel.app
+      - key: DEMO_MODE
+        value: "false"
+      - key: ENVIRONMENT
+        value: production
+
+  - type: worker
+    name: language-tutor-bot
+    runtime: docker
+    dockerfilePath: ./backend/Dockerfile
+    dockerCommand: python -m bot.main
+    plan: starter
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: language-tutor-db
+          property: connectionString
+      - key: BOT_TOKEN
+        sync: false
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: TWA_URL
+        value: https://webapp-bay-three-75.vercel.app
+      - key: ENVIRONMENT
+        value: production
+
+databases:
+  - name: language-tutor-db
+    plan: starter
+    postgresMajorVersion: "16"
