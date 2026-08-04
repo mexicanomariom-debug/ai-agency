@@ -25,6 +25,7 @@ jobs:
           npm run build
 
       - name: Deploy to Vercel
+        if: ${{ env.VERCEL_TOKEN != '' }}
         working-directory: language-tutor/webapp
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
@@ -34,3 +35,9 @@ jobs:
           npx vercel pull --yes --environment=production --token="$VERCEL_TOKEN"
           npx vercel build --prod --token="$VERCEL_TOKEN"
           npx vercel deploy --prebuilt --prod --token="$VERCEL_TOKEN"
+
+      - name: Skip Vercel CLI deploy
+        if: ${{ env.VERCEL_TOKEN == '' }}
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+        run: echo "VERCEL_TOKEN not set — relying on Vercel Git integration for deploy"

@@ -14,27 +14,13 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Setup SSH
-        env:
-          ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+      - name: Setup SSH agent
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.ORACLE_SSH_KEY }}
+
+      - name: Add Oracle host key
         run: |
-          mkdir -p ~/.ssh
-          chmod 700 ~/.ssh
-
-          # Support raw PEM, base64-encoded PEM, or escaped newlines
-          if printf '%s' "$ORACLE_SSH_KEY" | grep -q 'BEGIN.*PRIVATE KEY'; then
-            printf '%b\n' "$ORACLE_SSH_KEY" | tr -d '\r' > ~/.ssh/oracle_key
-          else
-            printf '%s' "$ORACLE_SSH_KEY" | tr -d '\r' | base64 -d > ~/.ssh/oracle_key 2>/dev/null || \
-              printf '%b\n' "$ORACLE_SSH_KEY" | tr -d '\r' > ~/.ssh/oracle_key
-          fi
-          chmod 600 ~/.ssh/oracle_key
-
-          if ! ssh-keygen -y -f ~/.ssh/oracle_key > ~/.ssh/oracle_key.pub 2>/dev/null; then
-            echo "::error::Invalid ORACLE_SSH_KEY secret — must be a valid private key (PEM or base64 PEM)"
-            exit 1
-          fi
-
           HOST="${{ secrets.ORACLE_HOST || '140.84.183.154' }}"
           ssh-keyscan -H "$HOST" >> ~/.ssh/known_hosts 2>/dev/null || true
 
@@ -74,12 +60,12 @@ jobs:
           deploy_to() {
             local server="$1"
             rsync -avz --delete \
-              -e "ssh -i ~/.ssh/oracle_key -o StrictHostKeyChecking=no -o BatchMode=yes" \
+              -e "ssh -o StrictHostKeyChecking=no -o BatchMode=yes" \
               --exclude node_modules --exclude .next --exclude __pycache__ --exclude .venv \
               language-tutor/ "$server:$REMOTE_DIR/" && \
-            scp -i ~/.ssh/oracle_key -o StrictHostKeyChecking=no \
+            scp -o StrictHostKeyChecking=no \
               language-tutor/.env "$server:$REMOTE_DIR/.env" && \
-            ssh -i ~/.ssh/oracle_key -o StrictHostKeyChecking=no "$server" \
+            ssh -o StrictHostKeyChecking=no "$server" \
               "chmod +x $REMOTE_DIR/oracle-setup.sh && cd $REMOTE_DIR && ./oracle-setup.sh"
           }
 
