@@ -1,0 +1,60 @@
+name: Deploy to Oracle
+
+on:
+  push:
+    branches: [cursor/language-tutor-recreate-a360, main]
+    paths:
+      - 'language-tutor/**'
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.ORACLE_SSH_KEY }}" > ~/.ssh/oracle_key
+          chmod 600 ~/.ssh/oracle_key
+          ssh-keyscan -H ${{ secrets.ORACLE_HOST || '140.84.183.154' }} >> ~/.ssh/known_hosts 2>/dev/null || true
+
+      - name: Create production .env
+        run: |
+          cat > language-tutor/.env << EOF
+          BOT_TOKEN=${{ secrets.BOT_TOKEN }}
+          BOT_USERNAME=All_languages_bot
+          OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}
+          OPENAI_MODEL=gpt-4o-mini
+          POSTGRES_USER=language_tutor
+          POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD || 'opus5_prod_secret_2026' }}
+          POSTGRES_DB=language_tutor
+          DATABASE_URL=postgresql+asyncpg://language_tutor:${{ secrets.POSTGRES_PASSWORD || 'opus5_prod_secret_2026' }}@db:5432/language_tutor
+          TWA_URL=https://webapp-bay-three-75.vercel.app
+          WEBAPP_URL=https://webapp-bay-three-75.vercel.app
+          CORS_ORIGINS=https://webapp-bay-three-75.vercel.app
+          API_HOST=0.0.0.0
+          API_PORT=8000
+          API_SECRET_KEY=${{ secrets.API_SECRET_KEY || 'opus5-api-secret-2026' }}
+          DEMO_MODE=true
+          ENVIRONMENT=production
+          EOF
+
+      - name: Deploy to Oracle
+        run: |
+          SERVER="${{ secrets.ORACLE_SSH_USER || 'ubuntu' }}@${{ secrets.ORACLE_HOST || '140.84.183.154' }}"
+          REMOTE_DIR="/opt/opus5"
+          rsync -avz --delete \
+            -e "ssh -i ~/.ssh/oracle_key -o StrictHostKeyChecking=no" \
+            --exclude node_modules --exclude .next --exclude __pycache__ --exclude .venv \
+            language-tutor/ "$SERVER:$REMOTE_DIR/"
+          scp -i ~/.ssh/oracle_key -o StrictHostKeyChecking=no \
+            language-tutor/.env "$SERVER:$REMOTE_DIR/.env"
+          ssh -i ~/.ssh/oracle_key -o StrictHostKeyChecking=no "$SERVER" \
+            "chmod +x $REMOTE_DIR/oracle-setup.sh && cd $REMOTE_DIR && ./oracle-setup.sh"
+
+      - name: Health check
+        run: |
+          sleep 15
+          curl -sf "http://${{ secrets.ORACLE_HOST || '140.84.183.154' }}:8000/health" || echo "Health check failed (firewall may block GitHub Actions IP)"

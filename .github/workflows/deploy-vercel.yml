@@ -1,0 +1,35 @@
+name: Deploy Webapp to Vercel
+
+on:
+  push:
+    branches: [cursor/language-tutor-recreate-a360, main]
+    paths:
+      - 'language-tutor/webapp/**'
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install and build
+        working-directory: language-tutor/webapp
+        run: |
+          npm ci
+          npm run build
+
+      - name: Deploy to Vercel
+        working-directory: language-tutor/webapp
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+        run: |
+          npx vercel pull --yes --environment=production --token="$VERCEL_TOKEN"
+          npx vercel build --prod --token="$VERCEL_TOKEN"
+          npx vercel deploy --prebuilt --prod --token="$VERCEL_TOKEN"
