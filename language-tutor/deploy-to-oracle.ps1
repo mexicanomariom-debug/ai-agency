@@ -1,4 +1,4 @@
-# Deploy Opus 5 to Oracle from Windows PowerShell
+# Deploy Opus 5 to Oracle from Windows PowerShell 5.1+
 # Usage:
 #   cd C:\Users\DavidPC\Projects\ai-agency\language-tutor
 #   .\deploy-to-oracle.ps1
@@ -25,8 +25,10 @@ if ($KeyPath -ne "") {
     $scpArgs = @("-i", $KeyPath)
 }
 
-# Create remote directory
-ssh @sshArgs $Server "sudo mkdir -p $RemoteDir && sudo chown -R `$(whoami):`$(whoami) $RemoteDir"
+# Create remote directory (use ';' not '&&' - bash on remote server)
+$mkdirCmd = "sudo mkdir -p $RemoteDir; sudo chown -R `$(whoami):`$(whoami) $RemoteDir"
+& ssh @sshArgs $Server $mkdirCmd
+if ($LASTEXITCODE -ne 0) { throw "SSH mkdir failed with exit code $LASTEXITCODE" }
 
 # Copy project files (exclude heavy folders)
 $exclude = @("node_modules", ".next", "__pycache__", ".venv", ".git")
@@ -36,7 +38,8 @@ $items = Get-ChildItem -Path $ScriptDir -Force | Where-Object {
 
 foreach ($item in $items) {
     Write-Host "   copying $($item.Name)..." -ForegroundColor DarkGray
-    scp @scpArgs -r $item.FullName "${Server}:${RemoteDir}/"
+    & scp @scpArgs -r $item.FullName "${Server}:${RemoteDir}/"
+    if ($LASTEXITCODE -ne 0) { throw "SCP failed for $($item.Name)" }
 }
 
 # Copy .env
@@ -45,14 +48,17 @@ if (-not (Test-Path $envFile)) {
     $envFile = Join-Path $ScriptDir ".env"
 }
 if (Test-Path $envFile) {
-    scp @scpArgs $envFile "${Server}:${RemoteDir}/.env"
+    & scp @scpArgs $envFile "${Server}:${RemoteDir}/.env"
+    if ($LASTEXITCODE -ne 0) { throw "SCP failed for .env" }
     Write-Host "   .env copied" -ForegroundColor DarkGray
 } else {
-    Write-Warning "No .env or .env.production found — create on server manually"
+    Write-Warning "No .env or .env.production found - create on server manually"
 }
 
 Write-Host "-> Running setup on server..." -ForegroundColor Cyan
-ssh @sshArgs $Server "chmod +x $RemoteDir/oracle-setup.sh && cd $RemoteDir && ./oracle-setup.sh"
+$setupCmd = "chmod +x $RemoteDir/oracle-setup.sh; cd $RemoteDir; ./oracle-setup.sh"
+& ssh @sshArgs $Server $setupCmd
+if ($LASTEXITCODE -ne 0) { throw "Remote setup failed with exit code $LASTEXITCODE" }
 
 Write-Host ""
 Write-Host "Deploy complete!" -ForegroundColor Green
