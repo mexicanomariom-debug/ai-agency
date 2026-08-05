@@ -37,7 +37,7 @@ export default function VoiceTeacher() {
         if (!cancelled) {
           setError(e instanceof Error ? e.message : "Ошибка загрузки");
           setTutor({
-            name: "Елена",
+            name: "Илья",
             slug: "voice-teacher",
             description: "Голосовой AI-учитель",
             language: null,
@@ -155,9 +155,9 @@ export default function VoiceTeacher() {
   }
 
   return (
-    <div className="flex min-h-screen flex-col bg-gradient-to-b from-[#0a0a12] to-[#12121f] px-4 py-6">
+    <div className="flex min-h-screen flex-col bg-gradient-to-b from-[#0a0a0c] via-[#141210] to-[#0c0c0e] px-4 py-6">
       <header className="mb-4 text-center">
-        <p className="text-xs uppercase tracking-widest text-indigo-400">AI Учитель · Репетитор</p>
+        <p className="text-xs uppercase tracking-[0.2em] text-amber-400/80">AI Учитель · Репетитор</p>
         <h1 className="text-xl font-bold text-white">Голосовое общение</h1>
         {user && (
           <p className="mt-1 text-sm text-zinc-400">
@@ -206,15 +206,15 @@ export default function VoiceTeacher() {
           className={`flex h-20 w-20 items-center justify-center rounded-full transition-all ${
             status === "recording"
               ? "scale-110 bg-red-500 shadow-lg shadow-red-500/40"
-              : "bg-indigo-600 shadow-lg shadow-indigo-500/30 hover:bg-indigo-500"
+              : "bg-gradient-to-b from-amber-400 to-amber-600 shadow-lg shadow-amber-500/25 hover:from-amber-300 hover:to-amber-500"
           } disabled:opacity-50`}
         >
           {status === "processing" ? (
-            <Loader2 className="h-8 w-8 animate-spin text-white" />
+            <Loader2 className="h-8 w-8 animate-spin text-black" />
           ) : status === "recording" ? (
             <MicOff className="h-8 w-8 text-white" />
           ) : (
-            <Mic className="h-8 w-8 text-white" />
+            <Mic className="h-8 w-8 text-black" />
           )}
         </button>
         <p className="text-xs text-zinc-500">

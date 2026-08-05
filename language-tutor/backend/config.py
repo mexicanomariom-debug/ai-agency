@@ -8,7 +8,7 @@ class Settings(BaseSettings):
     bot_username: str = "All_languages_bot"
     openai_api_key: str = ""
     openai_model: str = "gpt-4o-mini"
-    openai_tts_voice: str = "nova"
+    openai_tts_voice: str = "onyx"
     anthropic_api_key: str = ""
     anthropic_model: str = "claude-sonnet-4-20250514"
     database_url: str = "postgresql+asyncpg://language_tutor:language_tutor@localhost:5432/language_tutor"

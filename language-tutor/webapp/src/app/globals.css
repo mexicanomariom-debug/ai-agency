@@ -28,3 +28,86 @@ body {
   scrollbar-width: thin;
   scrollbar-color: var(--card-border) transparent;
 }
+
+/* Virtual teacher avatar motion */
+.avatar-stage {
+  position: relative;
+  transform-origin: 50% 80%;
+}
+
+.avatar-halo {
+  position: absolute;
+  inset: 8% 12% 18%;
+  border-radius: 9999px;
+  background: radial-gradient(circle, rgba(240, 213, 106, 0.22), transparent 68%);
+  filter: blur(18px);
+  opacity: 0.55;
+  pointer-events: none;
+}
+
+.avatar-idle {
+  animation: avatar-breathe 3.6s ease-in-out infinite;
+}
+
+.avatar-listening {
+  animation: avatar-listen 1.4s ease-in-out infinite;
+}
+
+.avatar-speaking {
+  animation: avatar-speak 0.9s ease-in-out infinite;
+}
+
+.avatar-speaking .avatar-halo {
+  opacity: 0.95;
+  animation: halo-pulse 0.9s ease-in-out infinite;
+}
+
+.avatar-mouth {
+  transition: d 40ms linear;
+}
+
+.avatar-eyes-closed ellipse {
+  opacity: 0;
+}
+
+@keyframes avatar-breathe {
+  0%,
+  100% {
+    transform: translateY(0) scale(1);
+  }
+  50% {
+    transform: translateY(-3px) scale(1.012);
+  }
+}
+
+@keyframes avatar-listen {
+  0%,
+  100% {
+    transform: translateY(0) scale(1.02);
+  }
+  50% {
+    transform: translateY(-2px) scale(1.035);
+  }
+}
+
+@keyframes avatar-speak {
+  0%,
+  100% {
+    transform: translateY(0) rotate(-0.4deg);
+  }
+  50% {
+    transform: translateY(-2px) rotate(0.4deg);
+  }
+}
+
+@keyframes halo-pulse {
+  0%,
+  100% {
+    opacity: 0.7;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.06);
+  }
+}

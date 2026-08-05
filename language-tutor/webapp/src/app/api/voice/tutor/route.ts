@@ -17,12 +17,12 @@ function fallbackTutor(req: NextRequest) {
   }
 
   return {
-    name: "Елена",
+    name: "Илья",
     slug: "voice-teacher",
     description: "Голосовой AI-учитель",
     language: null,
     level: null,
-    greeting: `Привет, ${firstName}! Я Елена, ваш учитель. Нажмите на микрофон и говорите — я отвечу голосом.`,
+    greeting: `Привет, ${firstName}! Я Илья, ваш учитель. Жми микрофон и говори — отвечу голосом.`,
   };
 }
 

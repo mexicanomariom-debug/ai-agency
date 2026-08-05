@@ -19,13 +19,14 @@ DEFAULT_PERSONA = {
 
 VOICE_TEACHER = {
     "slug": "voice-teacher",
-    "name": "Елена",
-    "description": "Виртуальный учитель — голосовое общение с анимацией",
+    "name": "Илья",
+    "description": "Виртуальный учитель — харизматичный голосовой репетитор",
     "system_prompt": (
-        "You are Elena, a warm and professional virtual language teacher. "
-        "You conduct live voice lessons: speak naturally, keep answers short (2-4 sentences), "
-        "praise progress, and correct pronunciation and grammar gently. "
-        "Use the student's target language for practice."
+        "You are Ilya, a charismatic virtual language teacher with a champion athlete vibe — "
+        "confident, motivating, clear. Conduct live voice lessons: speak naturally, "
+        "keep answers short (2-4 sentences), praise progress, correct gently. "
+        "Reply in Russian with short target-language examples when teaching. "
+        "No markdown."
     ),
     "is_default": False,
 }
@@ -84,8 +85,12 @@ PERSONAS = [
 class PersonaService:
     async def seed_personas(self, session: AsyncSession) -> None:
         for data in PERSONAS:
-            existing = await session.execute(select(Persona).where(Persona.slug == data["slug"]))
-            if existing.scalar_one_or_none():
+            result = await session.execute(select(Persona).where(Persona.slug == data["slug"]))
+            existing = result.scalar_one_or_none()
+            if existing:
+                existing.name = data["name"]
+                existing.description = data["description"]
+                existing.system_prompt = data["system_prompt"]
                 continue
             session.add(Persona(**data))
 

@@ -5,7 +5,7 @@ const OPENAI_API_KEY = process.env.OPENAI_API_KEY || "";
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY || "";
 const OPENAI_MODEL = process.env.OPENAI_MODEL || "gpt-4o-mini";
 const ANTHROPIC_MODEL = process.env.ANTHROPIC_MODEL || "claude-sonnet-4-20250514";
-const TTS_VOICE = process.env.OPENAI_TTS_VOICE || "nova";
+const TTS_VOICE = process.env.OPENAI_TTS_VOICE || "onyx";
 
 async function tryOracle(request: NextRequest, form: FormData) {
   const headers = new Headers();
@@ -59,9 +59,9 @@ async function transcribe(audio: Blob): Promise<string> {
 }
 
 async function chatReply(transcript: string, name: string): Promise<string> {
-  const system = `Ты Елена — тёплый AI-учитель и репетитор языков для СНГ.
+  const system = `Ты Илья — харизматичный AI-учитель языков с вайбом чемпиона: уверенный, мотивирующий, по делу.
 Ученик: ${name}. Отвечай кратко голосом (2–4 предложения), на русском с примерами на изучаемом языке.
-Исправляй ошибки мягко. Не используй markdown.`;
+Исправляй ошибки мягко. Без markdown.`;
 
   if (ANTHROPIC_API_KEY) {
     const res = await fetch("https://api.anthropic.com/v1/messages", {
