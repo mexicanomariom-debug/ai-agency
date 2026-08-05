@@ -8,9 +8,7 @@ import {
   useState,
 } from "react";
 
-/** Male photoreal AvatarSDK model (TalkingHead-compatible, Mixamo + visemes). */
-const AVATAR_URL =
-  "https://cdn.jsdelivr.net/gh/met4citizen/TalkingHead@main/avatars/avatarsdk.glb";
+import { getAvatarPreset, STUDIO_LIGHTING } from "@/lib/avatarPresets";
 
 export type TalkingAvatarHandle = {
   speakAudioBase64: (base64: string, text: string, mime?: string) => Promise<void>;
@@ -112,9 +110,9 @@ const TalkingAvatar3D = forwardRef<TalkingAvatarHandle, Props>(function TalkingA
           cameraView: "upper",
           cameraDistance: -0.15,
           modelFPS: 30,
-          modelPixelRatio: Math.min(window.devicePixelRatio || 1, 1.5),
-          lightAmbientIntensity: 1.2,
-          lightDirectIntensity: 1.05,
+          // Library multiplies by devicePixelRatio — keep 1 for crisp retina without overdraw
+          modelPixelRatio: 1,
+          ...STUDIO_LIGHTING,
           avatarIdleHeadMove: 0.45,
           avatarSpeakingHeadMove: 0.55,
           avatarSpeakingEyeContact: 0.65,
@@ -123,26 +121,16 @@ const TalkingAvatar3D = forwardRef<TalkingAvatarHandle, Props>(function TalkingA
         head.lipsync.en = new LipsyncEn();
         head.lipsync.de = new LipsyncDe();
 
+        const preset = getAvatarPreset(audience);
+
         await head.showAvatar(
           {
-            url: AVATAR_URL,
-            body: "M",
-            avatarMood: audience === "child" ? "happy" : "neutral",
-            lipsyncLang: "en",
-            retarget: {
-              Neck: { z: -0.01, rx: -0.15 },
-              Neck1: { z: -0.01, rx: -0.15 },
-              Neck2: { z: -0.01, rx: -0.15 },
-              LeftShoulder: { rz: -0.3 },
-              RightShoulder: { rz: 0.3 },
-              scaleToEyesLevel: 1.0,
-              origin: { y: -0.1 },
-            },
-            baseline: {
-              headRotateX: -0.04,
-              eyeBlinkLeft: 0.05,
-              eyeBlinkRight: 0.05,
-            },
+            url: preset.url,
+            body: preset.body,
+            avatarMood: preset.avatarMood,
+            lipsyncLang: preset.lipsyncLang,
+            retarget: preset.retarget,
+            baseline: preset.baseline,
           },
           (ev) => {
             if (ev.lengthComputable && ev.total > 0) {
@@ -182,9 +170,8 @@ const TalkingAvatar3D = forwardRef<TalkingAvatarHandle, Props>(function TalkingA
       headRef.current = null;
       if (mountRef.current) mountRef.current.innerHTML = "";
     };
-    // Re-init only if audience theme changes mood defaults at load time
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    // Re-init when audience changes (child vs adult avatar)
+  }, [audience]);
 
   useEffect(() => {
     const head = headRef.current;
