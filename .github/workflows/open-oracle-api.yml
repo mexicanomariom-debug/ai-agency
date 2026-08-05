@@ -31,7 +31,21 @@ jobs:
             echo "=== containers ==="
             sudo docker compose -f docker-compose.prod.yml ps
             echo "=== local health ==="
-            curl -sf http://127.0.0.1:8000/health && echo OK || (sudo docker compose -f docker-compose.prod.yml logs api --tail 40; exit 1)
+            ok=0
+            for i in 1 2 3 4 5 6 7 8 9 10; do
+              if curl -sf http://127.0.0.1:8000/health; then
+                echo " OK"
+                ok=1
+                break
+              fi
+              echo "waiting for api ($i)..."
+              sleep 3
+            done
+            if [ "$ok" != 1 ]; then
+              sudo docker compose -f docker-compose.prod.yml ps
+              sudo docker compose -f docker-compose.prod.yml logs api --tail 40
+              exit 1
+            fi
             if command -v ufw >/dev/null; then
               sudo ufw allow 8000/tcp || true
               sudo ufw status || true
