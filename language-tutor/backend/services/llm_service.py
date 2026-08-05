@@ -29,6 +29,23 @@ class LLMService:
             return "anthropic"
         return "openai"
 
+    @staticmethod
+    def _extract_anthropic_text(response: object) -> str:
+        """Claude 5+ may return thinking/tool blocks before text."""
+        parts: list[str] = []
+        for block in getattr(response, "content", None) or []:
+            btype = getattr(block, "type", None)
+            text = getattr(block, "text", None)
+            if btype == "text" and text:
+                parts.append(str(text))
+            elif text and btype not in {"thinking", "redacted_thinking", "tool_use"}:
+                parts.append(str(text))
+        joined = "\n".join(parts).strip()
+        if not joined:
+            types = [getattr(b, "type", type(b).__name__) for b in (getattr(response, "content", None) or [])]
+            raise RuntimeError(f"Empty Anthropic text (blocks={types})")
+        return joined
+
     async def chat_completion(
         self,
         messages: list[dict[str, str]],
@@ -52,17 +69,25 @@ class LLMService:
                     continue
                 seen.add(model)
                 try:
-                    response = await self._anthropic.messages.create(
-                        model=model,
-                        max_tokens=1024,
-                        system=system_prompt or "",
-                        messages=[
+                    kwargs: dict = {
+                        "model": model,
+                        "max_tokens": 1024,
+                        "system": system_prompt or "",
+                        "messages": [
                             {"role": m["role"], "content": m["content"]}
                             for m in messages
                             if m["role"] != "system"
                         ],
-                    )
-                    return response.content[0].text
+                    }
+                    # Prefer plain text replies for voice (disable adaptive thinking if supported)
+                    try:
+                        response = await self._anthropic.messages.create(
+                            **kwargs,
+                            thinking={"type": "disabled"},
+                        )
+                    except Exception:
+                        response = await self._anthropic.messages.create(**kwargs)
+                    return self._extract_anthropic_text(response)
                 except Exception as exc:
                     last_exc = exc
                     continue

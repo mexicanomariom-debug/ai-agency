@@ -94,6 +94,8 @@ async def _generate_voice_reply(
 
     try:
         reply = await llm_service.chat_completion(messages, system_prompt)
+        if not (reply or "").strip():
+            raise RuntimeError("Empty LLM reply")
     except Exception as exc:
         return VoiceTalkResponse(
             transcript=transcript,
@@ -102,6 +104,7 @@ async def _generate_voice_reply(
             error=str(exc),
         )
 
+    reply = reply.strip()
     await chat_history_service.add_message(session, user, MessageRole.USER, transcript, persona)
     await chat_history_service.add_message(session, user, MessageRole.ASSISTANT, reply, persona)
     await cognitive_profiler.update_from_conversation(session, user, transcript, reply)
