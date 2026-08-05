@@ -10,7 +10,9 @@ from database.enums import Language, ProficiencyLevel
 from database.grade_mapping import GRADE_TO_LEVEL
 
 MANIFEST_PATH = Path(__file__).resolve().parent.parent / "data" / "textbooks" / "manifest.yaml"
+MANIFEST_ADULTS_PATH = Path(__file__).resolve().parent.parent / "data" / "textbooks" / "manifest_adults.yaml"
 RAW_DIR = Path(__file__).resolve().parent.parent / "data" / "textbooks" / "raw"
+ALL_MANIFESTS = (MANIFEST_PATH, MANIFEST_ADULTS_PATH)
 
 CHUNK_SIZE = 1800
 CHUNK_OVERLAP = 200
@@ -25,7 +27,7 @@ GRADE_HEADER_RE = re.compile(
 class TextChunk:
     language: Language
     level: ProficiencyLevel
-    grade: int
+    grade: int | None
     topic: str
     content: str
     source_id: str

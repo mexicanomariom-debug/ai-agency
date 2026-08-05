@@ -53,11 +53,11 @@ done
 echo "Running migrations..."
 $DOCKER compose -f docker-compose.prod.yml run --rm --no-deps api alembic upgrade head
 
-echo "Downloading FGOS materials for RAG (grades 1–11)..."
-$DOCKER compose -f docker-compose.prod.yml run --rm --no-deps api python scripts/download_textbooks.py || echo "Textbook download skipped"
+echo "Downloading FGOS + adult phrasebook materials for RAG..."
+$DOCKER compose -f docker-compose.prod.yml run --rm --no-deps api python scripts/download_textbooks.py --all || echo "Textbook download skipped"
 
-echo "Ingesting textbooks into knowledge_chunks..."
-$DOCKER compose -f docker-compose.prod.yml run --rm --no-deps api python scripts/ingest_textbooks.py --clear || echo "Textbook ingest skipped (needs OPENAI_API_KEY for embeddings)"
+echo "Ingesting materials into knowledge_chunks..."
+$DOCKER compose -f docker-compose.prod.yml run --rm --no-deps api python scripts/ingest_textbooks.py --all --clear || echo "Textbook ingest skipped (needs OPENAI_API_KEY for embeddings)"
 
 echo "Building and starting all containers..."
 $DOCKER compose -f docker-compose.prod.yml up -d --build

@@ -11,7 +11,7 @@ MENU_BUTTON_TEXT = "Учитель — общение голосом"
 
 
 async def setup_bot_ui(bot: Bot) -> None:
-    """Rename the blue menu button and register bot commands."""
+    """Rename the blue menu button (was «Опус 5») and register bot commands."""
     await bot.set_my_commands(
         [
             BotCommand(command="start", description="Начать / выбрать язык"),
@@ -19,11 +19,10 @@ async def setup_bot_ui(bot: Bot) -> None:
         ]
     )
 
-    # Rename the blue Mini App button (was «Опус 5» in BotFather).
     await bot.set_chat_menu_button(
         menu_button=MenuButtonWebApp(
             text=MENU_BUTTON_TEXT,
             web_app=WebAppInfo(url=f"{settings.twa_url}/voice"),
         )
     )
-    logger.info("Menu button set to: %s", MENU_BUTTON_TEXT)
+    logger.info("Blue menu button renamed to: %s", MENU_BUTTON_TEXT)

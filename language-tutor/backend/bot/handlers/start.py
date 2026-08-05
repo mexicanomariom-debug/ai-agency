@@ -1,11 +1,10 @@
 from aiogram import F, Router
 from aiogram.filters import Command, CommandStart
 from aiogram.fsm.context import FSMContext
-from aiogram.types import CallbackQuery, Message
+from aiogram.types import CallbackQuery, Message, ReplyKeyboardRemove
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from bot.keyboards.inline import language_keyboard, level_keyboard
-from bot.keyboards.reply import main_menu_keyboard
 from bot.states.onboarding import OnboardingStates
 from services.user_service import user_service
 
@@ -45,8 +44,8 @@ async def cmd_start(message: Message, state: FSMContext, session: AsyncSession) 
             f"С возвращением, {name}! 👋\n\n"
             f"🗣 Язык: {LANGUAGE_LABELS.get(user.language.value, user.language.value)}\n"
             f"📊 Уровень: {LEVEL_LABELS.get(user.level.value, user.level.value)}\n\n"
-            "Пиши сообщение или нажми «Учитель — общение голосом» для практики голосом.",
-            reply_markup=main_menu_keyboard(),
+            "Пиши сообщение или отправь голосовое — начнём практику!",
+            reply_markup=ReplyKeyboardRemove(),
         )
         return
 
@@ -93,11 +92,8 @@ async def choose_level(callback: CallbackQuery, state: FSMContext, session: Asyn
     await state.set_state(OnboardingStates.chatting)
     await callback.message.edit_text(
         f"Уровень: {LEVEL_LABELS.get(level_value, level_value)} ✅\n\n"
-        "Всё готово! Напиши первое сообщение на выбранном языке."
-    )
-    await callback.message.answer(
-        "Используй меню внизу: текстовый чат или голосовой режим.",
-        reply_markup=main_menu_keyboard(),
+        "Всё готово! Напиши первое сообщение на выбранном языке\n"
+        "или отправь голосовое сообщение."
     )
     await callback.answer()
 

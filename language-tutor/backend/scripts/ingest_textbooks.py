@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Extract FGOS PDFs and ingest chunks into knowledge_chunks for RAG."""
+"""Extract textbooks / phrasebooks and ingest chunks into knowledge_chunks for RAG."""
 
 from __future__ import annotations
 
@@ -14,10 +14,11 @@ from sqlalchemy import delete, select
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from database.enums import Language
+from database.enums import Language, ProficiencyLevel
 from database.models import KnowledgeChunk
 from database.session import async_session_factory
 from scripts.textbook_utils import (
+    ALL_MANIFESTS,
     MANIFEST_PATH,
     RAW_DIR,
     TextChunk,
@@ -28,34 +29,58 @@ from scripts.textbook_utils import (
 from services.openai_service import openai_service
 
 
+def _file_ext(source: dict) -> str:
+    return "txt" if source.get("format") == "txt" else "pdf"
+
+
 def extract_pdf_text(pdf_path: Path, pages: list[int] | None = None) -> str:
     reader = PdfReader(str(pdf_path))
     page_indices = pages or list(range(len(reader.pages)))
     parts: list[str] = []
     for idx in page_indices:
         if 0 <= idx < len(reader.pages):
-            text = reader.pages[idx].extract_text() or ""
-            parts.append(text)
+            parts.append(reader.pages[idx].extract_text() or "")
     return "\n".join(parts)
 
 
-def build_chunks_from_source(source: dict, raw_dir: Path) -> list[TextChunk]:
-    pdf_path = raw_dir / f"{source['id']}.pdf"
-    if not pdf_path.exists():
-        raise FileNotFoundError(f"Missing PDF: {pdf_path} — run download_textbooks.py first")
+def load_source_text(source: dict, raw_dir: Path) -> str:
+    ext = _file_ext(source)
+    path = raw_dir / f"{source['id']}.{ext}"
+    if not path.exists():
+        raise FileNotFoundError(f"Missing file: {path} — run download_textbooks.py --all first")
+
+    if ext == "txt":
+        return path.read_text(encoding="utf-8", errors="ignore")
 
     pages = source.get("pages")
-    # manifest pages are 1-based for humans; convert to 0-based
     page_range = [p - 1 for p in pages] if pages else None
-    text = extract_pdf_text(pdf_path, page_range)
+    return extract_pdf_text(path, page_range)
 
+
+def build_chunks_from_source(source: dict, raw_dir: Path) -> list[TextChunk]:
+    text = load_source_text(source, raw_dir)
     language = Language(source["language"])
-    grades: list[int] = source["grades"]
     source_id = source["id"]
     title = source["title"]
-
     result: list[TextChunk] = []
 
+    if source.get("audience") == "adult":
+        levels = [ProficiencyLevel(lvl) for lvl in source.get("levels", ["intermediate"])]
+        primary_level = levels[len(levels) // 2]
+        for i, piece in enumerate(chunk_text(text)):
+            result.append(
+                TextChunk(
+                    language=language,
+                    level=primary_level,
+                    grade=None,
+                    topic=f"{title} (часть {i + 1})",
+                    content=piece,
+                    source_id=source_id,
+                )
+            )
+        return result
+
+    grades: list[int] = source["grades"]
     if source.get("split_by_grade"):
         sections = split_by_grade_sections(text, grades)
         for grade, section_text in sections.items():
@@ -124,27 +149,30 @@ async def ingest(chunks: list[TextChunk], *, clear_existing: bool) -> None:
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Ingest FGOS materials into RAG database")
-    parser.add_argument("--manifest", type=Path, default=MANIFEST_PATH)
+    parser = argparse.ArgumentParser(description="Ingest FGOS and adult materials into RAG database")
+    parser.add_argument("--manifest", type=Path, action="append", dest="manifests")
     parser.add_argument("--raw-dir", type=Path, default=RAW_DIR)
     parser.add_argument("--clear", action="store_true", help="Clear knowledge_chunks before ingest")
-    parser.add_argument("--no-embed", action="store_true", help="Store chunks without embeddings")
+    parser.add_argument("--no-embed", action="store_true", help="Parse only, skip DB write")
+    parser.add_argument("--all", action="store_true", help="Ingest school + adult manifests")
     args = parser.parse_args()
 
-    with args.manifest.open(encoding="utf-8") as f:
-        data = yaml.safe_load(f)
+    manifests = args.manifests or ([*ALL_MANIFESTS] if args.all else [MANIFEST_PATH])
 
     all_chunks: list[TextChunk] = []
     seen_ids: set[str] = set()
-    for source in data["sources"]:
-        sid = source["id"]
-        if sid in seen_ids:
-            continue
-        seen_ids.add(sid)
-        print(f"Parsing {sid} …")
-        all_chunks.extend(build_chunks_from_source(source, args.raw_dir))
+    for manifest in manifests:
+        with manifest.open(encoding="utf-8") as f:
+            data = yaml.safe_load(f)
+        for source in data["sources"]:
+            sid = source["id"]
+            if sid in seen_ids:
+                continue
+            seen_ids.add(sid)
+            print(f"Parsing {sid} …")
+            all_chunks.extend(build_chunks_from_source(source, args.raw_dir))
 
-    print(f"Parsed {len(all_chunks)} chunks from {len(seen_ids)} PDF(s)")
+    print(f"Parsed {len(all_chunks)} chunks from {len(seen_ids)} source(s)")
 
     if args.no_embed:
         print("--no-embed: skipping database write")
