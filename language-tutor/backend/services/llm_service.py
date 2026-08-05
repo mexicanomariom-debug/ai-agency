@@ -90,14 +90,37 @@ class LLMService:
             return
 
         if self._provider() == "anthropic":
-            async with self._anthropic.messages.stream(
-                model=settings.anthropic_model,
-                max_tokens=1024,
-                system=system_prompt or "",
-                messages=[{"role": m["role"], "content": m["content"]} for m in messages if m["role"] != "system"],
-            ) as stream:
-                async for text in stream.text_stream:
-                    yield text
+            models = [
+                settings.anthropic_model,
+                "claude-sonnet-5",
+                "claude-sonnet-4-5-20250929",
+                "claude-sonnet-4-6",
+            ]
+            seen: set[str] = set()
+            last_exc: Exception | None = None
+            for model in models:
+                if model in seen:
+                    continue
+                seen.add(model)
+                try:
+                    async with self._anthropic.messages.stream(
+                        model=model,
+                        max_tokens=1024,
+                        system=system_prompt or "",
+                        messages=[
+                            {"role": m["role"], "content": m["content"]}
+                            for m in messages
+                            if m["role"] != "system"
+                        ],
+                    ) as stream:
+                        async for text in stream.text_stream:
+                            yield text
+                    return
+                except Exception as exc:
+                    last_exc = exc
+                    continue
+            if last_exc:
+                raise last_exc
             return
 
         full_messages: list[dict[str, str]] = []

@@ -1,0 +1,32 @@
+name: Diagnose Oracle API
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'language-tutor/.diagnose'
+      - '.github/workflows/diagnose-oracle.yml'
+
+jobs:
+  logs:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.ORACLE_SSH_KEY }}
+      - name: Fetch API logs and local voice test
+        run: |
+          HOST="${{ secrets.ORACLE_HOST || '140.84.183.154' }}"
+          USER="${{ secrets.ORACLE_SSH_USER || 'ubuntu' }}"
+          ssh-keyscan -H "$HOST" >> ~/.ssh/known_hosts 2>/dev/null || true
+          ssh -o StrictHostKeyChecking=no "${USER}@${HOST}" '
+            cd /opt/opus5
+            echo "=== env keys present ==="
+            grep -E "^(OPENAI_API_KEY|ANTHROPIC_API_KEY|ANTHROPIC_MODEL)=" .env | sed "s/=.*/=***/"
+            echo "=== api logs ==="
+            sudo docker compose -f docker-compose.prod.yml logs api --tail 80
+            echo "=== local chat ==="
+            curl -sS -m 60 -H "X-Demo-Mode: true" -H "Content-Type: application/json" \
+              -d "{\"message\":\"ping\"}" http://127.0.0.1:8000/api/voice/chat || true
+            echo
+          '
