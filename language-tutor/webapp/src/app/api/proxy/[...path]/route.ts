@@ -14,21 +14,29 @@ async function proxy(request: NextRequest, path: string[]) {
     method: request.method,
     headers,
     redirect: "manual",
+    signal: AbortSignal.timeout(25000),
   };
 
   if (request.method !== "GET" && request.method !== "HEAD") {
     init.body = await request.arrayBuffer();
   }
 
-  const response = await fetch(target, init);
-  const responseHeaders = new Headers(response.headers);
-  responseHeaders.delete("content-encoding");
-  responseHeaders.delete("transfer-encoding");
+  try {
+    const response = await fetch(target, init);
+    const responseHeaders = new Headers(response.headers);
+    responseHeaders.delete("content-encoding");
+    responseHeaders.delete("transfer-encoding");
 
-  return new NextResponse(response.body, {
-    status: response.status,
-    headers: responseHeaders,
-  });
+    return new NextResponse(response.body, {
+      status: response.status,
+      headers: responseHeaders,
+    });
+  } catch {
+    return NextResponse.json(
+      { error: "Oracle API unreachable (open TCP 8000 in Security List)" },
+      { status: 502 },
+    );
+  }
 }
 
 export async function GET(

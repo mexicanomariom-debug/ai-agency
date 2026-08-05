@@ -120,9 +120,13 @@ export async function* streamChat(
   }
 }
 
+/** Voice routes are Next.js handlers (with Oracle fallback), not the generic proxy. */
+const VOICE_API = "/api/voice";
+
 export async function fetchVoiceTutor(initData?: string): Promise<VoiceTutor> {
-  const res = await fetch(`${API_URL}/api/voice/tutor`, {
+  const res = await fetch(`${VOICE_API}/tutor`, {
     headers: getAuthHeaders(initData),
+    cache: "no-store",
   });
   if (!res.ok) throw new Error("Не удалось загрузить учителя");
   return res.json();
@@ -139,11 +143,14 @@ export async function voiceTalk(audio: Blob, initData?: string): Promise<VoiceTa
     headers["X-Demo-Mode"] = "true";
   }
 
-  const res = await fetch(`${API_URL}/api/voice/talk`, {
+  const res = await fetch(`${VOICE_API}/talk`, {
     method: "POST",
     headers,
     body: form,
   });
-  if (!res.ok) throw new Error(`Ошибка: ${res.status}`);
-  return res.json();
+  const data = (await res.json()) as VoiceTalkResult;
+  if (!res.ok && !data.reply) {
+    throw new Error(data.error || `Ошибка: ${res.status}`);
+  }
+  return data;
 }

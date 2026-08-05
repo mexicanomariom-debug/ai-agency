@@ -34,10 +34,15 @@ if [[ ! -f .env ]]; then
   fi
 fi
 
-if command -v ufw &>/dev/null && sudo ufw status 2>/dev/null | grep -q "Status: active"; then
+if command -v ufw &>/dev/null; then
   sudo ufw allow 8000/tcp || true
   sudo ufw allow 22/tcp || true
 fi
+# Accept API port even when INPUT policy is DROP (Oracle images often do this)
+sudo iptables -C INPUT -p tcp --dport 8000 -j ACCEPT 2>/dev/null || \
+  sudo iptables -I INPUT -p tcp --dport 8000 -j ACCEPT || true
+sudo iptables -C INPUT -p tcp --dport 22 -j ACCEPT 2>/dev/null || \
+  sudo iptables -I INPUT -p tcp --dport 22 -j ACCEPT || true
 
 echo "Starting database..."
 $DOCKER compose -f docker-compose.prod.yml up -d db

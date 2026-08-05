@@ -23,11 +23,35 @@ export default function VoiceTeacher() {
   const chunksRef = useRef<Blob[]>([]);
   const mouthOpen = useAudioLipSync(isPlaying, audioEl);
 
+  const [loading, setLoading] = useState(true);
+
   useEffect(() => {
     if (!isReady) return;
+    let cancelled = false;
+    setLoading(true);
     fetchVoiceTutor(initData || undefined)
-      .then(setTutor)
-      .catch((e) => setError(e.message));
+      .then((t) => {
+        if (!cancelled) setTutor(t);
+      })
+      .catch((e) => {
+        if (!cancelled) {
+          setError(e instanceof Error ? e.message : "Ошибка загрузки");
+          setTutor({
+            name: "Елена",
+            slug: "voice-teacher",
+            description: "Голосовой AI-учитель",
+            language: null,
+            level: null,
+            greeting: "Не удалось связаться с сервером. Проверьте API на Oracle (порт 8000).",
+          });
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
   }, [isReady, initData]);
 
   const playReply = useCallback(async (reply: string, audioBase64: string | null) => {
@@ -118,10 +142,14 @@ export default function VoiceTeacher() {
     }
   }, []);
 
-  if (!tutor) {
+  if (loading || !tutor) {
     return (
-      <div className="flex min-h-screen items-center justify-center">
+      <div className="flex min-h-screen flex-col items-center justify-center gap-3 px-4">
         <Loader2 className="h-8 w-8 animate-spin text-indigo-400" />
+        <p className="text-sm text-zinc-400">Загрузка учителя…</p>
+        {error && (
+          <p className="max-w-sm text-center text-sm text-red-300">{error}</p>
+        )}
       </div>
     );
   }

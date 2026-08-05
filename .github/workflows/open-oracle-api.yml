@@ -1,0 +1,44 @@
+name: Open Oracle API Port
+
+on:
+  workflow_dispatch:
+
+jobs:
+  open-port:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.ORACLE_SSH_KEY }}
+
+      - name: Add host key
+        run: |
+          HOST="${{ secrets.ORACLE_HOST || '140.84.183.154' }}"
+          ssh-keyscan -H "$HOST" >> ~/.ssh/known_hosts 2>/dev/null || true
+
+      - name: Open TCP 8000 and verify API
+        run: |
+          HOST="${{ secrets.ORACLE_HOST || '140.84.183.154' }}"
+          USER="${{ secrets.ORACLE_SSH_USER || 'ubuntu' }}"
+          ssh -o StrictHostKeyChecking=no "${USER}@${HOST}" '
+            set -e
+            cd /opt/opus5
+            echo "=== containers ==="
+            sudo docker compose -f docker-compose.prod.yml ps
+            echo "=== local health ==="
+            curl -sf http://127.0.0.1:8000/health && echo OK || (sudo docker compose -f docker-compose.prod.yml logs api --tail 40; exit 1)
+            if command -v ufw >/dev/null; then
+              sudo ufw allow 8000/tcp || true
+              sudo ufw status || true
+            fi
+            # Ensure Docker publishes 0.0.0.0:8000
+            sudo ss -tlnp | grep 8000 || true
+            # iptables ACCEPT for 8000 if INPUT is DROP
+            sudo iptables -C INPUT -p tcp --dport 8000 -j ACCEPT 2>/dev/null || \
+              sudo iptables -I INPUT -p tcp --dport 8000 -j ACCEPT
+            echo "=== iptables 8000 rules ==="
+            sudo iptables -L INPUT -n | grep 8000 || true
+          '
+          echo "=== external health from Actions ==="
+          sleep 2
+          curl -sf --max-time 10 "http://${HOST}:8000/health" && echo "EXTERNAL OK" || echo "EXTERNAL FAIL — open TCP 8000 in Oracle Cloud Security List (0.0.0.0/0)"
