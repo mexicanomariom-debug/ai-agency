@@ -2,6 +2,9 @@ name: Bot Status Check
 
 on:
   workflow_dispatch:
+  push:
+    branches: [cursor/language-tutor-recreate-a360]
+    paths: ['.github/workflows/bot-status.yml']
 
 jobs:
   check:
