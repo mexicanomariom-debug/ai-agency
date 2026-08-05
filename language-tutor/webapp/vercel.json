@@ -3,7 +3,6 @@
   "devCommand": "npm run dev",
   "installCommand": "npm install",
   "framework": "nextjs",
-  "ignoreCommand": "if [ \"$VERCEL_GIT_COMMIT_REF\" != \"main\" ]; then exit 0; fi; git rev-parse HEAD^ >/dev/null 2>&1 || exit 1; git diff HEAD^ HEAD --quiet -- language-tutor/webapp && exit 0 || exit 1",
   "env": {
     "BACKEND_URL": "http://140.84.183.154:8000"
   }
