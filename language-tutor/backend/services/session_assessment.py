@@ -1,6 +1,6 @@
 import json
 import re
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
 
 from sqlalchemy import select
@@ -41,9 +41,9 @@ class SessionAssessmentResult:
     speaking_cefr: str | None = None
     mapped_level: str | None = None
     confidence: str | None = None
-    strengths: list[str] = []
-    weaknesses: list[str] = []
-    grammar_focus: list[str] = []
+    strengths: list[str] = field(default_factory=list)
+    weaknesses: list[str] = field(default_factory=list)
+    grammar_focus: list[str] = field(default_factory=list)
     recommendation: str | None = None
     summary: str | None = None
     level_updated: bool = False
