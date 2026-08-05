@@ -55,6 +55,9 @@ for i in $(seq 1 30); do
   sleep 2
 done
 
+echo "Building API image (migrations need latest code)..."
+$DOCKER compose -f docker-compose.prod.yml build api
+
 echo "Running migrations..."
 $DOCKER compose -f docker-compose.prod.yml run --rm --no-deps api alembic upgrade head
 
