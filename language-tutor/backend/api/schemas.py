@@ -38,6 +38,18 @@ class VoiceTalkResponse(BaseModel):
     error: str | None = None
 
 
+class VoiceChatRequest(BaseModel):
+    message: str
+    persona_slug: str | None = None
+
+
+class VoiceCapabilitiesResponse(BaseModel):
+    llm: bool
+    stt: bool
+    tts: bool
+    provider: str | None = None
+
+
 class VoiceTutorResponse(BaseModel):
     name: str
     slug: str

@@ -32,9 +32,15 @@ jobs:
           POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD || 'opus5_prod_secret_2026' }}
           API_SECRET_KEY: ${{ secrets.API_SECRET_KEY || 'opus5-api-secret-2026' }}
         run: |
-          if [ -z "$OPENAI_API_KEY" ]; then
-            echo "::error::OPENAI_API_KEY secret is empty — voice STT/TTS will not work. Add it in GitHub → Settings → Secrets."
+          if [ -z "$OPENAI_API_KEY" ] && [ -z "$ANTHROPIC_API_KEY" ]; then
+            echo "::error::Need OPENAI_API_KEY and/or ANTHROPIC_API_KEY in GitHub Secrets."
             exit 1
+          fi
+          if [ -z "$OPENAI_API_KEY" ]; then
+            echo "::warning::OPENAI_API_KEY empty — Whisper STT/TTS disabled. Anthropic chat + browser speech will be used."
+          fi
+          if [ -z "$ANTHROPIC_API_KEY" ]; then
+            echo "::warning::ANTHROPIC_API_KEY empty — replies will use OpenAI chat if available."
           fi
           cat > language-tutor/.env <<EOF
           BOT_TOKEN=${BOT_TOKEN}
@@ -58,9 +64,8 @@ jobs:
           ENVIRONMENT=production
           EOF
           sed -i 's/^          //' language-tutor/.env
-          # mask check: key present
           echo "OPENAI_API_KEY length: ${#OPENAI_API_KEY}"
-          echo "ANTHROPIC_API_KEY set: $([ -n "$ANTHROPIC_API_KEY" ] && echo yes || echo no)"
+          echo "ANTHROPIC_API_KEY length: ${#ANTHROPIC_API_KEY}"
 
       - name: Deploy to Oracle
         run: |

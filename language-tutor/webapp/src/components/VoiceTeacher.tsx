@@ -5,9 +5,34 @@ import { Loader2, Mic, MicOff } from "lucide-react";
 import VirtualTeacherAvatar from "@/components/VirtualTeacherAvatar";
 import { useAudioLipSync } from "@/hooks/useAudioLipSync";
 import { useTelegram } from "@/hooks/useTelegram";
-import { fetchVoiceTutor, voiceTalk, type VoiceTutor } from "@/lib/api";
+import {
+  fetchVoiceCapabilities,
+  fetchVoiceTutor,
+  voiceChat,
+  voiceTalk,
+  type VoiceTutor,
+} from "@/lib/api";
 
 type Status = "idle" | "recording" | "processing" | "speaking";
+
+type SpeechRec = {
+  lang: string;
+  continuous: boolean;
+  interimResults: boolean;
+  start: () => void;
+  stop: () => void;
+  onresult: ((ev: { results: { [i: number]: { [j: number]: { transcript: string } } } }) => void) | null;
+  onerror: ((ev: { error: string }) => void) | null;
+  onend: (() => void) | null;
+};
+
+function getSpeechRecognition(): (new () => SpeechRec) | null {
+  const w = window as unknown as {
+    SpeechRecognition?: new () => SpeechRec;
+    webkitSpeechRecognition?: new () => SpeechRec;
+  };
+  return w.SpeechRecognition || w.webkitSpeechRecognition || null;
+}
 
 export default function VoiceTeacher() {
   const { initData, user, isReady, webApp } = useTelegram();
@@ -18,20 +43,34 @@ export default function VoiceTeacher() {
   const [lastReply, setLastReply] = useState("");
   const [isPlaying, setIsPlaying] = useState(false);
   const [audioEl, setAudioEl] = useState<HTMLAudioElement | null>(null);
+  const [useBrowserStt, setUseBrowserStt] = useState(true);
+  const [loading, setLoading] = useState(true);
 
   const mediaRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
+  const recognitionRef = useRef<SpeechRec | null>(null);
+  const transcriptRef = useRef("");
   const mouthOpen = useAudioLipSync(isPlaying, audioEl);
-
-  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (!isReady) return;
     let cancelled = false;
     setLoading(true);
-    fetchVoiceTutor(initData || undefined)
-      .then((t) => {
-        if (!cancelled) setTutor(t);
+
+    Promise.all([
+      fetchVoiceTutor(initData || undefined),
+      fetchVoiceCapabilities(initData || undefined),
+    ])
+      .then(([t, caps]) => {
+        if (cancelled) return;
+        setTutor(t);
+        // Prefer Whisper when OpenAI STT is available; otherwise browser speech
+        setUseBrowserStt(!caps.stt);
+        if (!caps.llm) {
+          setError("Нет LLM ключа (ANTHROPIC/OPENAI). Добавьте в GitHub Secrets и задеплойте Oracle.");
+        } else if (!caps.stt) {
+          setError(null);
+        }
       })
       .catch((e) => {
         if (!cancelled) {
@@ -42,13 +81,15 @@ export default function VoiceTeacher() {
             description: "Голосовой AI-учитель",
             language: null,
             level: null,
-            greeting: "Не удалось связаться с сервером. Проверьте API на Oracle (порт 8000).",
+            greeting: "Не удалось связаться с сервером.",
           });
+          setUseBrowserStt(true);
         }
       })
       .finally(() => {
         if (!cancelled) setLoading(false);
       });
+
     return () => {
       cancelled = true;
     };
@@ -75,21 +116,48 @@ export default function VoiceTeacher() {
       return;
     }
 
-    // Fallback: browser TTS
     if ("speechSynthesis" in window) {
+      window.speechSynthesis.cancel();
       const utter = new SpeechSynthesisUtterance(reply);
       utter.lang = "ru-RU";
+      utter.rate = 1.02;
+      const voices = window.speechSynthesis.getVoices();
+      const ru = voices.find((v) => v.lang.startsWith("ru"));
+      if (ru) utter.voice = ru;
       utter.onstart = () => setIsPlaying(true);
       utter.onend = () => {
         setIsPlaying(false);
         setStatus("idle");
       };
       window.speechSynthesis.speak(utter);
+      // Approximate lip-sync for browser TTS (no MediaElement source)
+      setIsPlaying(true);
       return;
     }
 
     setStatus("idle");
   }, []);
+
+  const handleTranscript = useCallback(
+    async (transcript: string) => {
+      setStatus("processing");
+      setError(null);
+      setLastUser(transcript);
+      try {
+        const result = await voiceChat(transcript, initData || undefined);
+        if (result.error && !result.reply) {
+          setError(result.error);
+          setStatus("idle");
+          return;
+        }
+        await playReply(result.reply, result.audio_base64);
+      } catch (e) {
+        setError(e instanceof Error ? e.message : "Ошибка связи");
+        setStatus("idle");
+      }
+    },
+    [initData, playReply],
+  );
 
   const sendAudio = useCallback(
     async (blob: Blob) => {
@@ -97,10 +165,14 @@ export default function VoiceTeacher() {
       setError(null);
       try {
         const result = await voiceTalk(blob, initData || undefined);
-        if (result.error) {
-          setError(result.error);
+        if (result.error?.includes("OPENAI_API_KEY")) {
+          setUseBrowserStt(true);
+          setError("Нет OpenAI для распознавания — используйте удержание микрофона (браузерный режим).");
+          setStatus("idle");
+          return;
         }
-        if (!result.reply && result.error) {
+        if (result.error && !result.reply) {
+          setError(result.error);
           setStatus("idle");
           return;
         }
@@ -122,6 +194,38 @@ export default function VoiceTeacher() {
   const startRecording = useCallback(async () => {
     if (status !== "idle") return;
     setError(null);
+    webApp?.MainButton?.hide();
+
+    if (useBrowserStt) {
+      const SR = getSpeechRecognition();
+      if (!SR) {
+        setError("Распознавание речи недоступно в этом клиенте. Добавьте OPENAI_API_KEY в GitHub Secrets.");
+        return;
+      }
+      const rec = new SR();
+      rec.lang = "ru-RU";
+      rec.continuous = true;
+      rec.interimResults = true;
+      transcriptRef.current = "";
+      rec.onresult = (ev) => {
+        const results = ev.results as unknown as ArrayLike<{ 0: { transcript: string } }>;
+        let text = "";
+        for (let i = 0; i < results.length; i++) {
+          text += results[i][0].transcript;
+        }
+        transcriptRef.current = text.trim();
+      };
+      rec.onerror = (ev) => {
+        if (ev.error !== "aborted" && ev.error !== "no-speech") {
+          setError(`Распознавание: ${ev.error}`);
+        }
+      };
+      recognitionRef.current = rec;
+      rec.start();
+      setStatus("recording");
+      return;
+    }
+
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       const recorder = new MediaRecorder(stream, { mimeType: "audio/webm" });
@@ -137,26 +241,41 @@ export default function VoiceTeacher() {
       mediaRef.current = recorder;
       recorder.start();
       setStatus("recording");
-      webApp?.MainButton?.hide();
     } catch {
       setError("Нужен доступ к микрофону");
     }
-  }, [status, sendAudio, webApp]);
+  }, [status, useBrowserStt, sendAudio, webApp]);
 
   const stopRecording = useCallback(() => {
+    if (useBrowserStt && recognitionRef.current) {
+      recognitionRef.current.onend = () => {
+        const text = transcriptRef.current.trim();
+        recognitionRef.current = null;
+        if (text) {
+          void handleTranscript(text);
+        } else {
+          setError("Не расслышал — попробуйте ещё раз, говорите чётче.");
+          setStatus("idle");
+        }
+      };
+      try {
+        recognitionRef.current.stop();
+      } catch {
+        setStatus("idle");
+      }
+      return;
+    }
     if (mediaRef.current?.state === "recording") {
       mediaRef.current.stop();
     }
-  }, []);
+  }, [useBrowserStt, handleTranscript]);
 
   if (loading || !tutor) {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center gap-3 px-4">
-        <Loader2 className="h-8 w-8 animate-spin text-indigo-400" />
+        <Loader2 className="h-8 w-8 animate-spin text-amber-400" />
         <p className="text-sm text-zinc-400">Загрузка учителя…</p>
-        {error && (
-          <p className="max-w-sm text-center text-sm text-red-300">{error}</p>
-        )}
+        {error && <p className="max-w-sm text-center text-sm text-red-300">{error}</p>}
       </div>
     );
   }

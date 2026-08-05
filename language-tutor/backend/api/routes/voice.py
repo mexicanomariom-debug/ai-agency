@@ -4,7 +4,13 @@ from fastapi import APIRouter, Depends, File, Form, UploadFile
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.deps import get_current_user, get_db
-from api.schemas import VoiceTalkResponse, VoiceTutorResponse
+from api.schemas import (
+    VoiceCapabilitiesResponse,
+    VoiceChatRequest,
+    VoiceTalkResponse,
+    VoiceTutorResponse,
+)
+from config import settings
 from database.enums import MessageRole
 from database.models import User
 from database.rag import rag_service
@@ -45,33 +51,25 @@ async def get_voice_tutor(
     )
 
 
-@router.post("/talk", response_model=VoiceTalkResponse)
-async def voice_talk(
-    audio: UploadFile = File(...),
-    persona_slug: str | None = Form(None),
-    session: AsyncSession = Depends(get_db),
-    user: User = Depends(get_current_user),
+@router.get("/capabilities", response_model=VoiceCapabilitiesResponse)
+async def voice_capabilities() -> VoiceCapabilitiesResponse:
+    has_openai = bool(settings.openai_api_key)
+    has_llm = bool(settings.anthropic_api_key or settings.openai_api_key)
+    provider = "anthropic" if settings.anthropic_api_key else ("openai" if has_openai else None)
+    return VoiceCapabilitiesResponse(
+        llm=has_llm,
+        stt=has_openai,
+        tts=has_openai,
+        provider=provider,
+    )
+
+
+async def _generate_voice_reply(
+    session: AsyncSession,
+    user: User,
+    transcript: str,
+    persona_slug: str | None,
 ) -> VoiceTalkResponse:
-    audio_bytes = await audio.read()
-    mime = audio.content_type or "audio/webm"
-
-    try:
-        transcript = await openai_service.transcribe_voice(audio_bytes, mime)
-    except Exception as exc:
-        return VoiceTalkResponse(
-            transcript="",
-            reply="Не удалось распознать речь. Попробуйте ещё раз.",
-            audio_base64=None,
-            error=str(exc),
-        )
-
-    if not transcript.strip():
-        return VoiceTalkResponse(
-            transcript="",
-            reply="Я вас не расслышала. Попробуйте говорить чуть громче.",
-            audio_base64=None,
-        )
-
     slug = persona_slug or VOICE_TUTOR_SLUG
     persona = await persona_service.get_by_slug(session, slug) or await persona_service.get_default(session)
 
@@ -118,3 +116,50 @@ async def voice_talk(
         audio_base64=audio_b64,
         audio_mime="audio/mpeg" if audio_b64 else None,
     )
+
+
+@router.post("/chat", response_model=VoiceTalkResponse)
+async def voice_chat(
+    body: VoiceChatRequest,
+    session: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
+) -> VoiceTalkResponse:
+    """Text in → teacher reply (works with Anthropic only; TTS optional via OpenAI)."""
+    text = body.message.strip()
+    if not text:
+        return VoiceTalkResponse(
+            transcript="",
+            reply="Я вас не расслышал. Попробуйте ещё раз.",
+            audio_base64=None,
+        )
+    return await _generate_voice_reply(session, user, text, body.persona_slug)
+
+
+@router.post("/talk", response_model=VoiceTalkResponse)
+async def voice_talk(
+    audio: UploadFile = File(...),
+    persona_slug: str | None = Form(None),
+    session: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
+) -> VoiceTalkResponse:
+    audio_bytes = await audio.read()
+    mime = audio.content_type or "audio/webm"
+
+    try:
+        transcript = await openai_service.transcribe_voice(audio_bytes, mime)
+    except Exception as exc:
+        return VoiceTalkResponse(
+            transcript="",
+            reply="",
+            audio_base64=None,
+            error=str(exc),
+        )
+
+    if not transcript.strip():
+        return VoiceTalkResponse(
+            transcript="",
+            reply="Я вас не расслышал. Попробуйте говорить чуть громче.",
+            audio_base64=None,
+        )
+
+    return await _generate_voice_reply(session, user, transcript, persona_slug)

@@ -123,6 +123,26 @@ export async function* streamChat(
 /** Voice routes are Next.js handlers (with Oracle fallback), not the generic proxy. */
 const VOICE_API = "/api/voice";
 
+export interface VoiceCapabilities {
+  llm: boolean;
+  stt: boolean;
+  tts: boolean;
+  provider: string | null;
+}
+
+export async function fetchVoiceCapabilities(initData?: string): Promise<VoiceCapabilities> {
+  try {
+    const res = await fetch(`${VOICE_API}/capabilities`, {
+      headers: getAuthHeaders(initData),
+      cache: "no-store",
+    });
+    if (!res.ok) throw new Error("capabilities failed");
+    return res.json();
+  } catch {
+    return { llm: true, stt: false, tts: false, provider: null };
+  }
+}
+
 export async function fetchVoiceTutor(initData?: string): Promise<VoiceTutor> {
   const res = await fetch(`${VOICE_API}/tutor`, {
     headers: getAuthHeaders(initData),
@@ -147,6 +167,19 @@ export async function voiceTalk(audio: Blob, initData?: string): Promise<VoiceTa
     method: "POST",
     headers,
     body: form,
+  });
+  const data = (await res.json()) as VoiceTalkResult;
+  if (!res.ok && !data.reply) {
+    throw new Error(data.error || `Ошибка: ${res.status}`);
+  }
+  return data;
+}
+
+export async function voiceChat(message: string, initData?: string): Promise<VoiceTalkResult> {
+  const res = await fetch(`${VOICE_API}/chat`, {
+    method: "POST",
+    headers: getAuthHeaders(initData),
+    body: JSON.stringify({ message }),
   });
   const data = (await res.json()) as VoiceTalkResult;
   if (!res.ok && !data.reply) {
