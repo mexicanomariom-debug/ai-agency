@@ -2,6 +2,11 @@ name: Open Oracle API Port
 
 on:
   workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'language-tutor/.open-port'
+      - '.github/workflows/open-oracle-api.yml'
 
 jobs:
   open-port:
@@ -31,11 +36,11 @@ jobs:
               sudo ufw allow 8000/tcp || true
               sudo ufw status || true
             fi
-            # Ensure Docker publishes 0.0.0.0:8000
             sudo ss -tlnp | grep 8000 || true
-            # iptables ACCEPT for 8000 if INPUT is DROP
             sudo iptables -C INPUT -p tcp --dport 8000 -j ACCEPT 2>/dev/null || \
               sudo iptables -I INPUT -p tcp --dport 8000 -j ACCEPT
+            sudo netfilter-persistent save 2>/dev/null || \
+              sudo iptables-save | sudo tee /etc/iptables/rules.v4 >/dev/null 2>/dev/null || true
             echo "=== iptables 8000 rules ==="
             sudo iptables -L INPUT -n | grep 8000 || true
           '
