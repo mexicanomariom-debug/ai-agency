@@ -86,3 +86,28 @@ class MessageResponse(BaseModel):
     created_at: str
 
     model_config = {"from_attributes": True}
+
+
+class SessionBriefResponse(BaseModel):
+    date: str
+    speaking_cefr: str | None = None
+    summary: str | None = None
+    recommendation: str | None = None
+
+
+class ProgressResponse(BaseModel):
+    profile_level: str | None = None
+    speaking_cefr: str | None = None
+    target_language: str | None = None
+    last_session_summary: str | None = None
+    last_assessed_at: str | None = None
+    vocab_total: int = 0
+    vocab_due: int = 0
+    vocab_mastered: int = 0
+    sessions_count: int = 0
+    messages_count: int = 0
+    streak_days: int = 0
+    strengths: list[str] = []
+    weaknesses: list[str] = []
+    recommendation: str | None = None
+    recent_sessions: list[SessionBriefResponse] = []

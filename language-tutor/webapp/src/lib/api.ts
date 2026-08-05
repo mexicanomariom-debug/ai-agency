@@ -64,6 +64,29 @@ export interface VoiceSessionAssessment {
   words_added?: number;
 }
 
+export interface ProgressSnapshot {
+  profile_level: string | null;
+  speaking_cefr: string | null;
+  target_language: string | null;
+  last_session_summary: string | null;
+  last_assessed_at: string | null;
+  vocab_total: number;
+  vocab_due: number;
+  vocab_mastered: number;
+  sessions_count: number;
+  messages_count: number;
+  streak_days: number;
+  strengths: string[];
+  weaknesses: string[];
+  recommendation: string | null;
+  recent_sessions: Array<{
+    date: string;
+    speaking_cefr: string | null;
+    summary: string | null;
+    recommendation: string | null;
+  }>;
+}
+
 export function getAuthHeaders(initData?: string): HeadersInit {
   const headers: HeadersInit = { "Content-Type": "application/json" };
   if (initData) {
@@ -87,6 +110,15 @@ export async function fetchUser(initData?: string): Promise<User> {
     headers: getAuthHeaders(initData),
   });
   if (!res.ok) throw new Error("Failed to fetch user");
+  return res.json();
+}
+
+export async function fetchProgress(initData?: string): Promise<ProgressSnapshot> {
+  const res = await fetch(`${API_URL}/api/users/me/progress`, {
+    headers: getAuthHeaders(initData),
+    cache: "no-store",
+  });
+  if (!res.ok) throw new Error("Не удалось загрузить прогресс");
   return res.json();
 }
 

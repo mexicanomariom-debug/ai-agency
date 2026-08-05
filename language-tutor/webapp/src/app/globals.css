@@ -91,6 +91,13 @@ body {
   color: var(--muted-fg);
 }
 
+.premium-progress-stats {
+  margin-top: 0.35rem;
+  font-size: 0.78rem;
+  color: var(--gold);
+  opacity: 0.9;
+}
+
 .premium-stage {
   position: relative;
   z-index: 1;
