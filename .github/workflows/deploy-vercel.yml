@@ -41,5 +41,5 @@ jobs:
             curl -fsS -X POST "$VERCEL_DEPLOY_HOOK"
           else
             echo "::warning::No VERCEL_TOKEN or VERCEL_DEPLOY_HOOK — webapp-bay will not redeploy"
-            echo "Add VERCEL_DEPLOY_HOOK from Vercel → webapp-bay → Settings → Git → Deploy Hooks"
+            echo "Add VERCEL_DEPLOY_HOOK from Vercel → project **webapp** → Settings → Git → Deploy Hooks"
           fi

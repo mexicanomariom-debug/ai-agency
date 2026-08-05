@@ -73,15 +73,37 @@ Required secrets in Render dashboard:
 
 Production URL: `https://webapp-bay-three-75.vercel.app`
 
-The blue Telegram button **«Учитель — общение»** opens `/voice`. If you see **404**, redeploy the **webapp-bay** project (see below).
+The blue Telegram button **«Учитель — общение»** opens `/voice`. If you see **404**, redeploy the **webapp** project (see below).
+
+### Где проект в Vercel
+
+На дашборде он называется **`webapp`** (не `webapp-bay-three-75` — это только URL).
+
+| Карточка в Vercel | URL | Для чего |
+|-------------------|-----|----------|
+| **ai-agency** | `ai-agency-drab.vercel.app` | Маркетинговый сайт — **не бот** |
+| **webapp** | `webapp-bay-three-75.vercel.app` | **Telegram Web App** (`/app`, `/voice`) |
+
+Если у **webapp** написано *Connect Git Repository* — репозиторий не подключён, поэтому `/voice` не обновляется.
+
+### Подключить Git (один раз)
+
+1. Vercel → кликнуть проект **webapp**
+2. **Settings → Git** → **Connect Git Repository**
+3. Репозиторий: `mexicanomariom-debug/ai-agency`
+4. **Root Directory:** `language-tutor/webapp` ← обязательно
+5. **Production Branch:** `main`
+6. **Deploy** (или Redeploy)
+
+После деплоя проверка: `https://webapp-bay-three-75.vercel.app/voice` → должен открываться учитель.
 
 ### Vercel projects in this repo
 
-| Project | Purpose | Root Directory |
-|---------|---------|----------------|
+| Project name in Vercel | Purpose | Root Directory |
+|------------------------|---------|----------------|
 | `ai-agency` | Marketing site (AI-Agentes) | `.` (repo root) |
 | `ai-agency-kbsp` | **Duplicate** — disconnect or ignore emails | `.` |
-| `webapp-bay-three-75` | Language tutor TWA (`/app`, `/voice`) | `language-tutor/webapp` |
+| **`webapp`** | Language tutor TWA (`/app`, `/voice`) | `language-tutor/webapp` |
 
 To stop duplicate error emails: Vercel → **ai-agency-kbsp** → Settings → disable Git integration or delete the project.
 
@@ -91,7 +113,7 @@ Builds on `main` only (preview branches are skipped via `scripts/vercel-ignore.s
 
 ### Option A — Deploy Hook (recommended, 2 minutes)
 
-1. Vercel → project **webapp-bay-three-75** → **Settings → Git → Deploy Hooks**
+1. Vercel → project **webapp** → **Settings → Git → Deploy Hooks**
 2. Create hook for branch `main` (Root Directory must be `language-tutor/webapp`)
 3. GitHub → repo **Secrets** → add `VERCEL_DEPLOY_HOOK` with the hook URL
 4. Re-run workflow **Deploy Webapp to Vercel** or push any change to `language-tutor/webapp/`
@@ -100,7 +122,7 @@ Builds on `main` only (preview branches are skipped via `scripts/vercel-ignore.s
 
 ```bash
 cd language-tutor/webapp
-vercel link   # select webapp-bay project
+vercel link   # select project **webapp**
 vercel --prod
 ```
 
