@@ -10,7 +10,7 @@ class Settings(BaseSettings):
     openai_model: str = "gpt-4o-mini"
     openai_tts_voice: str = "onyx"
     anthropic_api_key: str = ""
-    anthropic_model: str = "claude-sonnet-4-20250514"
+    anthropic_model: str = "claude-sonnet-5"
     database_url: str = "postgresql+asyncpg://language_tutor:language_tutor@localhost:5432/language_tutor"
     twa_url: str = "https://webapp-bay-three-75.vercel.app"
     api_url: str = "http://localhost:8000"

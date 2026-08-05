@@ -39,13 +39,34 @@ class LLMService:
             return f"{_DEMO_REPLY}\n\n(Вы: {user_text[:200]})"
 
         if self._provider() == "anthropic":
-            response = await self._anthropic.messages.create(
-                model=settings.anthropic_model,
-                max_tokens=1024,
-                system=system_prompt or "",
-                messages=[{"role": m["role"], "content": m["content"]} for m in messages if m["role"] != "system"],
-            )
-            return response.content[0].text
+            models = [
+                settings.anthropic_model,
+                "claude-sonnet-5",
+                "claude-sonnet-4-5-20250929",
+                "claude-sonnet-4-6",
+            ]
+            seen: set[str] = set()
+            last_exc: Exception | None = None
+            for model in models:
+                if model in seen:
+                    continue
+                seen.add(model)
+                try:
+                    response = await self._anthropic.messages.create(
+                        model=model,
+                        max_tokens=1024,
+                        system=system_prompt or "",
+                        messages=[
+                            {"role": m["role"], "content": m["content"]}
+                            for m in messages
+                            if m["role"] != "system"
+                        ],
+                    )
+                    return response.content[0].text
+                except Exception as exc:
+                    last_exc = exc
+                    continue
+            raise last_exc or RuntimeError("Anthropic chat failed")
 
         full_messages: list[dict[str, str]] = []
         if system_prompt:

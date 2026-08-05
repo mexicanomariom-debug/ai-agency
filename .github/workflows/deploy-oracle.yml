@@ -49,7 +49,7 @@ jobs:
           OPENAI_MODEL=gpt-4o-mini
           OPENAI_TTS_VOICE=onyx
           ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
-          ANTHROPIC_MODEL=claude-sonnet-4-20250514
+          ANTHROPIC_MODEL=claude-sonnet-5
           POSTGRES_USER=language_tutor
           POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
           POSTGRES_DB=language_tutor

@@ -26,7 +26,7 @@ async function localChat(message: string, name: string): Promise<Response> {
         "anthropic-version": "2023-06-01",
       },
       body: JSON.stringify({
-        model: process.env.ANTHROPIC_MODEL || "claude-sonnet-4-20250514",
+        model: process.env.ANTHROPIC_MODEL || "claude-sonnet-5",
         max_tokens: 300,
         system,
         messages: [{ role: "user", content: message }],
