@@ -183,9 +183,13 @@ export default function VoiceTeacher() {
       setError(null);
       try {
         const result = await voiceTalk(blob, initData || undefined);
-        if (result.error?.includes("OPENAI_API_KEY")) {
+        if (result.error?.includes("OPENAI_API_KEY") || result.error?.includes("Security List") || result.error?.includes("не ответил")) {
           setUseBrowserStt(true);
-          setError("Нет OpenAI для распознавания — используйте удержание микрофона (браузерный режим).");
+          setError(
+            result.error.includes("не ответил")
+              ? "Сервер думал слишком долго — переключаю на браузерное распознавание. Удерживайте микрофон и говорите."
+              : "Нет OpenAI для распознавания — используйте удержание микрофона (браузерный режим).",
+          );
           setStatus("idle");
           return;
         }

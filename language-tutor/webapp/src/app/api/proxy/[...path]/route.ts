@@ -33,7 +33,7 @@ async function proxy(request: NextRequest, path: string[]) {
     });
   } catch {
     return NextResponse.json(
-      { error: "Oracle API unreachable (open TCP 8000 in Security List)" },
+      { error: "Oracle API unreachable — check TCP 8000 (Security List) or use /api/voice/* routes" },
       { status: 502 },
     );
   }
