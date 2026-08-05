@@ -77,6 +77,7 @@ class VoiceSessionAssessmentResponse(BaseModel):
     recommendation: str | None = None
     summary: str | None = None
     level_updated: bool = False
+    words_added: int = 0
 
 
 class MessageResponse(BaseModel):

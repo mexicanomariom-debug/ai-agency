@@ -95,7 +95,8 @@ async def cmd_start(message: Message, state: FSMContext, session: AsyncSession) 
             f"Язык: {LANGUAGE_LABELS.get(user.language.value, user.language.value)}\n"
             f"Уровень: {LEVEL_LABELS.get(user.level.value, user.level.value)}\n\n"
             "• Чат — текст и голосовые\n"
-            "• Синяя кнопка «Учитель — общение» — 3D-учитель Илья",
+            "• Синяя кнопка «Учитель — общение» — 3D-учитель Илья\n"
+            "• /review — слова на сегодня (FSRS)",
             reply_markup=premium_menu_keyboard(),
         )
         return
@@ -113,7 +114,8 @@ async def cmd_help(message: Message) -> None:
         "✦ <b>Opus 5 · как заниматься</b>\n\n"
         "1. <b>Чат</b> — пишите или отправляйте голосовые\n"
         "2. <b>Учитель — общение</b> — синяя кнопка: 3D-учитель говорит губами в реальном времени\n"
-        "3. <b>/settings</b> — сменить аудиторию, язык или уровень\n\n"
+        "3. <b>/review</b> — повторить слова (FSRS, spaced repetition)\n"
+        "4. <b>/settings</b> — сменить аудиторию, язык или уровень\n\n"
         "Ребёнку — игры и сказки. Взрослому — точность и деловой тон."
     )
 

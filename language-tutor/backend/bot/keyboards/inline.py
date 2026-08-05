@@ -75,7 +75,23 @@ def premium_menu_keyboard() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(
         inline_keyboard=[
             [InlineKeyboardButton(text="🎙 Голосовой учитель Илья", callback_data="menu:voice_hint")],
+            [InlineKeyboardButton(text="📚 Слова на сегодня", callback_data="menu:review")],
             [InlineKeyboardButton(text="✍️ Написать в чат", callback_data="menu:chat_hint")],
             [InlineKeyboardButton(text="⚙️ Сменить профиль", callback_data="menu:settings")],
+        ]
+    )
+
+
+def vocab_rating_keyboard(card_id: int) -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [
+                InlineKeyboardButton(text="😕 Забыл", callback_data=f"vocab:rate:{card_id}:1"),
+                InlineKeyboardButton(text="😬 Сложно", callback_data=f"vocab:rate:{card_id}:2"),
+            ],
+            [
+                InlineKeyboardButton(text="👍 Норм", callback_data=f"vocab:rate:{card_id}:3"),
+                InlineKeyboardButton(text="🌟 Легко", callback_data=f"vocab:rate:{card_id}:4"),
+            ],
         ]
     )

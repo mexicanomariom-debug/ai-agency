@@ -212,4 +212,5 @@ async def close_voice_session(
         recommendation=result.recommendation,
         summary=result.summary,
         level_updated=result.level_updated,
+        words_added=result.words_added,
     )

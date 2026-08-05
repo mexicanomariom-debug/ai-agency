@@ -61,6 +61,7 @@ export interface VoiceSessionAssessment {
   recommendation?: string | null;
   summary?: string | null;
   level_updated?: boolean;
+  words_added?: number;
 }
 
 export function getAuthHeaders(initData?: string): HeadersInit {

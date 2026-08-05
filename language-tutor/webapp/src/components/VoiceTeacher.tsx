@@ -408,6 +408,11 @@ export default function VoiceTeacher() {
             {sessionSummary.recommendation && (
               <p className="premium-recap-next">Дальше: {sessionSummary.recommendation}</p>
             )}
+            {sessionSummary.words_added && sessionSummary.words_added > 0 && (
+              <p className="premium-recap-text">
+                В словарь добавлено {sessionSummary.words_added} слов — повтори в Telegram: /review
+              </p>
+            )}
             {sessionSummary.weaknesses && sessionSummary.weaknesses.length > 0 && (
               <p className="premium-recap-text">
                 Слабые места: {sessionSummary.weaknesses.join("; ")}

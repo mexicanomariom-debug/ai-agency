@@ -10,6 +10,7 @@ from database.enums import MessageRole, ProficiencyLevel
 from database.models import ChatMessage, Persona, SessionAssessment, User
 from services.cognitive_profiler import cognitive_profiler
 from services.llm_service import llm_service
+from services.vocabulary_service import vocabulary_service
 
 CEFR_TO_LEVEL: dict[str, ProficiencyLevel] = {
     "A1": ProficiencyLevel.BEGINNER,
@@ -47,6 +48,7 @@ class SessionAssessmentResult:
     recommendation: str | None = None
     summary: str | None = None
     level_updated: bool = False
+    words_added: int = 0
 
 
 def _parse_json_object(text: str) -> dict:
@@ -153,10 +155,14 @@ Return JSON with exactly these keys:
   "weaknesses": ["2-4 short bullets in Russian"],
   "grammar_focus": ["1-3 grammar points to practice next, Russian"],
   "recommendation_next": "one sentence in Russian — what to study next session",
-  "session_summary": "2-3 sentences in Russian — what happened and progress"
+  "session_summary": "2-3 sentences in Russian — what happened and progress",
+  "new_words": [
+    {{"word": "target language word", "translation": "Russian meaning", "example": "short example sentence"}}
+  ]
 }}
 
 Rules:
+- new_words: 2-5 useful words/phrases from the session the student should memorize (target language).
 - Base speaking_cefr on STUDENT utterances only (vocabulary range, grammar, fluency).
 - Be conservative: short sessions need lower confidence.
 - If student mostly spoke Russian, note that in weaknesses.
@@ -181,6 +187,12 @@ Rules:
         grammar_focus = [str(s).strip() for s in data.get("grammar_focus", []) if str(s).strip()][:3]
         recommendation = str(data.get("recommendation_next", "")).strip() or None
         summary = str(data.get("session_summary", "")).strip() or None
+        new_words_raw = data.get("new_words", [])
+        new_words: list[dict] = []
+        if isinstance(new_words_raw, list):
+            for item in new_words_raw:
+                if isinstance(item, dict):
+                    new_words.append(item)
 
         mapped = CEFR_TO_LEVEL.get(speaking_cefr) if speaking_cefr else None
 
@@ -213,6 +225,8 @@ Rules:
             summary=summary,
         )
 
+        words_added = await vocabulary_service.import_words(session, user, new_words)
+
         await session.flush()
 
         return SessionAssessmentResult(
@@ -226,6 +240,7 @@ Rules:
             recommendation=recommendation,
             summary=summary,
             level_updated=level_updated,
+            words_added=words_added,
         )
 
 
