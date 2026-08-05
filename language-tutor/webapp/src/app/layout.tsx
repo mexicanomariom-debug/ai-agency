@@ -2,13 +2,13 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Language Tutor — Learn Languages with AI",
-  description: "Practice languages through AI-powered conversations with personalized tutors.",
+  title: "Илья — премиальный AI-учитель",
+  description: "Живой 3D-репетитор для детей и взрослых. Голосовые уроки английского, испанского и немецкого.",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en">
+    <html lang="ru">
       <body className="min-h-screen antialiased">{children}</body>
     </html>
   );

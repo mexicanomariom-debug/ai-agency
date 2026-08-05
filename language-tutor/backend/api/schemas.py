@@ -24,6 +24,7 @@ class UserResponse(BaseModel):
     first_name: str | None
     language: str | None
     level: str | None
+    audience: str | None = None
     is_onboarded: bool
     subscription_tier: str
 
@@ -56,6 +57,7 @@ class VoiceTutorResponse(BaseModel):
     description: str
     language: str | None
     level: str | None
+    audience: str | None = None
     greeting: str
 
 

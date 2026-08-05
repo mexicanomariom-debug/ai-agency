@@ -1,0 +1,3 @@
+# Touch this file and push to main to re-open TCP 8000 on the Oracle VM firewall.
+# (Oracle Cloud Security List ingress must still allow 8000 separately.)
+2026-08-05T11:50 reopen after false-positive timeout errors

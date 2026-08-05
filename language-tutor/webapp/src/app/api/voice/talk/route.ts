@@ -8,20 +8,24 @@ const OPENAI_MODEL = process.env.OPENAI_MODEL || "gpt-4o-mini";
 const ANTHROPIC_MODEL = process.env.ANTHROPIC_MODEL || "claude-sonnet-5";
 const TTS_VOICE = process.env.OPENAI_TTS_VOICE || "onyx";
 
-async function tryOracle(request: NextRequest, form: FormData) {
+async function tryOracle(request: NextRequest, form: FormData): Promise<NextResponse | null> {
   const headers = new Headers();
   const initData = request.headers.get("x-telegram-init-data");
   const demo = request.headers.get("x-demo-mode");
   if (initData) headers.set("X-Telegram-Init-Data", initData);
   if (demo) headers.set("X-Demo-Mode", demo);
 
+  // Whisper + LLM + TTS on Oracle regularly exceeds 8s — do not treat timeout as "port closed"
   const res = await fetch(`${BACKEND_URL}/api/voice/talk`, {
     method: "POST",
     headers,
     body: form,
-    signal: AbortSignal.timeout(8000),
+    signal: AbortSignal.timeout(90000),
     cache: "no-store",
   });
+  if (!res.ok && res.status >= 500) {
+    return null;
+  }
   const text = await res.text();
   return new NextResponse(text, {
     status: res.status,
@@ -129,7 +133,7 @@ async function localVoicePipeline(request: NextRequest, audio: Blob) {
         reply: "",
         audio_base64: null,
         error:
-          "API учителя на Oracle недоступен (порт 8000 закрыт). Добавьте OPENAI_API_KEY в Vercel → webapp → Settings → Environment Variables, либо откройте TCP 8000 в Oracle Cloud Security List.",
+          "Сервер учителя временно не ответил, а на Vercel нет OPENAI_API_KEY для запасного распознавания. Удерживайте микрофон (браузерный режим) или добавьте OPENAI_API_KEY в Vercel → webapp → Environment Variables. Если не помогает — откройте TCP 8000 в Oracle Cloud Security List.",
       },
       { status: 503 },
     );
@@ -162,7 +166,8 @@ export async function POST(request: NextRequest) {
 
   // Prefer Oracle when reachable (full tutor context + DB)
   try {
-    return await tryOracle(request, form);
+    const oracleRes = await tryOracle(request, form);
+    if (oracleRes) return oracleRes;
   } catch {
     /* fall through to Vercel-local pipeline */
   }

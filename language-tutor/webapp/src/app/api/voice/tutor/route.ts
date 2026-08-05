@@ -19,9 +19,10 @@ function fallbackTutor(req: NextRequest) {
   return {
     name: "Илья",
     slug: "voice-teacher",
-    description: "Голосовой AI-учитель",
+    description: "Премиальный 3D-учитель",
     language: null,
     level: null,
+    audience: null,
     greeting: `Привет, ${firstName}! Я Илья, ваш учитель. Жми микрофон и говори — отвечу голосом.`,
   };
 }

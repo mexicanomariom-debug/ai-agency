@@ -37,6 +37,24 @@ async def get_voice_tutor(
 
     lang = user.language.value if user.language else None
     level = user.level.value if user.level else None
+    audience = user.audience.value if user.audience else None
+    first = user.first_name or "друг"
+
+    if audience == "child":
+        greeting = (
+            f"Привет, {first}! Я Илья — твой учитель. "
+            "Жми микрофон и говори — я отвечу голосом, как настоящий человек!"
+        )
+    elif audience == "teen":
+        greeting = (
+            f"Привет, {first}! Я Илья. Держи микрофон и говори — "
+            "разберём язык по-взрослому, без скуки."
+        )
+    else:
+        greeting = (
+            f"Добро пожаловать, {first}. Я Илья, ваш премиальный репетитор. "
+            "Удерживайте микрофон — отвечу голосом с живой мимикой."
+        )
 
     return VoiceTutorResponse(
         name=persona.name,
@@ -44,10 +62,8 @@ async def get_voice_tutor(
         description=persona.description,
         language=lang,
         level=level,
-        greeting=(
-            f"Привет, {user.first_name or 'друг'}! Я {persona.name}, ваш учитель. "
-            "Нажмите на микрофон и говорите — я отвечу голосом."
-        ),
+        audience=audience,
+        greeting=greeting,
     )
 
 

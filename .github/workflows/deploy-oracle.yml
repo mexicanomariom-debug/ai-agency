@@ -93,10 +93,39 @@ jobs:
             exit 1
           fi
 
+      - name: Open TCP 8000 on VM firewall
+        run: |
+          HOST="${{ secrets.ORACLE_HOST || '140.84.183.154' }}"
+          USER="${{ secrets.ORACLE_SSH_USER || 'ubuntu' }}"
+          ssh -o StrictHostKeyChecking=no "${USER}@${HOST}" '
+            set -e
+            if command -v ufw >/dev/null; then
+              sudo ufw allow 8000/tcp || true
+            fi
+            sudo iptables -C INPUT -p tcp --dport 8000 -j ACCEPT 2>/dev/null || \
+              sudo iptables -I INPUT -p tcp --dport 8000 -j ACCEPT
+            # Persist if iptables-persistent / netfilter-persistent exists
+            sudo netfilter-persistent save 2>/dev/null || \
+              sudo service netfilter-persistent save 2>/dev/null || \
+              sudo iptables-save | sudo tee /etc/iptables/rules.v4 >/dev/null 2>/dev/null || true
+            echo "=== listen ==="
+            sudo ss -tlnp | grep 8000 || true
+            echo "=== local health ==="
+            curl -sf http://127.0.0.1:8000/health
+            echo
+          '
+
       - name: Health check
         run: |
-          sleep 15
-          curl -sf "http://${{ secrets.ORACLE_HOST || '140.84.183.154' }}:8000/health" || echo "Health check failed (firewall may block GitHub Actions IP)"
+          sleep 8
+          HOST="${{ secrets.ORACLE_HOST || '140.84.183.154' }}"
+          if curl -sf --max-time 10 "http://${HOST}:8000/health"; then
+            echo
+            echo "EXTERNAL OK — TCP 8000 reachable"
+          else
+            echo "EXTERNAL FAIL — open Ingress TCP 8000 in Oracle Cloud Security List (0.0.0.0/0)"
+            echo "::warning::VM firewall may be open but Oracle Security List still blocks port 8000"
+          fi
 
       - name: Bot logs after deploy
         run: |

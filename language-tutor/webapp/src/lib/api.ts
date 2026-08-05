@@ -37,6 +37,7 @@ export interface VoiceTutor {
   description: string;
   language: string | null;
   level: string | null;
+  audience?: string | null;
   greeting: string;
 }
 

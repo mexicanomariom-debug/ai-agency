@@ -5,8 +5,14 @@ from sqlalchemy import BigInteger, Boolean, DateTime, ForeignKey, Integer, Strin
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from database.base import Base
-from database.enums import Language, MessageRole, ProficiencyLevel, SubscriptionTier
-from database.types import LanguageEnum, MessageRoleEnum, ProficiencyLevelEnum, SubscriptionTierEnum
+from database.enums import Audience, Language, MessageRole, ProficiencyLevel, SubscriptionTier
+from database.types import (
+    AudienceEnum,
+    LanguageEnum,
+    MessageRoleEnum,
+    ProficiencyLevelEnum,
+    SubscriptionTierEnum,
+)
 
 
 class User(Base):
@@ -19,6 +25,7 @@ class User(Base):
     last_name: Mapped[str | None] = mapped_column(String(255), nullable=True)
     language: Mapped[Language | None] = mapped_column(LanguageEnum, nullable=True)
     level: Mapped[ProficiencyLevel | None] = mapped_column(ProficiencyLevelEnum, nullable=True)
+    audience: Mapped[Audience | None] = mapped_column(AudienceEnum, nullable=True)
     is_onboarded: Mapped[bool] = mapped_column(Boolean, default=False, server_default="false")
     subscription_tier: Mapped[SubscriptionTier] = mapped_column(
         SubscriptionTierEnum, default=SubscriptionTier.FREE, server_default="free"

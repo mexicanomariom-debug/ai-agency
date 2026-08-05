@@ -2,6 +2,11 @@ name: Open Oracle API Port
 
 on:
   workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'language-tutor/.open-port'
+      - '.github/workflows/open-oracle-api.yml'
 
 jobs:
   open-port:
@@ -26,16 +31,30 @@ jobs:
             echo "=== containers ==="
             sudo docker compose -f docker-compose.prod.yml ps
             echo "=== local health ==="
-            curl -sf http://127.0.0.1:8000/health && echo OK || (sudo docker compose -f docker-compose.prod.yml logs api --tail 40; exit 1)
+            ok=0
+            for i in 1 2 3 4 5 6 7 8 9 10; do
+              if curl -sf http://127.0.0.1:8000/health; then
+                echo " OK"
+                ok=1
+                break
+              fi
+              echo "waiting for api ($i)..."
+              sleep 3
+            done
+            if [ "$ok" != 1 ]; then
+              sudo docker compose -f docker-compose.prod.yml ps
+              sudo docker compose -f docker-compose.prod.yml logs api --tail 40
+              exit 1
+            fi
             if command -v ufw >/dev/null; then
               sudo ufw allow 8000/tcp || true
               sudo ufw status || true
             fi
-            # Ensure Docker publishes 0.0.0.0:8000
             sudo ss -tlnp | grep 8000 || true
-            # iptables ACCEPT for 8000 if INPUT is DROP
             sudo iptables -C INPUT -p tcp --dport 8000 -j ACCEPT 2>/dev/null || \
               sudo iptables -I INPUT -p tcp --dport 8000 -j ACCEPT
+            sudo netfilter-persistent save 2>/dev/null || \
+              sudo iptables-save | sudo tee /etc/iptables/rules.v4 >/dev/null 2>/dev/null || true
             echo "=== iptables 8000 rules ==="
             sudo iptables -L INPUT -n | grep 8000 || true
           '
