@@ -73,7 +73,21 @@ Required secrets in Render dashboard:
 
 Production URL: `https://webapp-bay-three-75.vercel.app`
 
-The blue Telegram button **«Учитель — общение»** opens `/voice`. If you see **404**, the Vercel project was not redeployed after adding the route.
+The blue Telegram button **«Учитель — общение»** opens `/voice`. If you see **404**, redeploy the **webapp-bay** project (see below).
+
+### Vercel projects in this repo
+
+| Project | Purpose | Root Directory |
+|---------|---------|----------------|
+| `ai-agency` | Marketing site (AI-Agentes) | `.` (repo root) |
+| `ai-agency-kbsp` | **Duplicate** — disconnect or ignore emails | `.` |
+| `webapp-bay-three-75` | Language tutor TWA (`/app`, `/voice`) | `language-tutor/webapp` |
+
+To stop duplicate error emails: Vercel → **ai-agency-kbsp** → Settings → disable Git integration or delete the project.
+
+If you see **"Git author must have access"**: Vercel → Team Settings → uncheck **"Only deploy commits from users with access"** or add the bot user to the team.
+
+Builds on `main` only (preview branches are skipped via `scripts/vercel-ignore.sh`).
 
 ### Option A — Deploy Hook (recommended, 2 minutes)
 

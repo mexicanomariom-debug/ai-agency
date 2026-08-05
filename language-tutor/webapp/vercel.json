@@ -3,6 +3,7 @@
   "devCommand": "npm run dev",
   "installCommand": "npm install",
   "framework": "nextjs",
+  "ignoreCommand": "bash scripts/vercel-ignore.sh",
   "env": {
     "BACKEND_URL": "http://140.84.183.154:8000"
   }

@@ -2,5 +2,5 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "buildCommand": "npm run build",
   "framework": "nextjs",
-  "ignoreCommand": "git diff HEAD^ HEAD --quiet -- . ':(exclude)language-tutor'"
+  "ignoreCommand": "bash scripts/vercel-ignore.sh"
 }
