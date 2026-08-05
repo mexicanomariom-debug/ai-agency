@@ -1,0 +1,9 @@
+node_modules/
+.next/
+.env
+.env.local
+.env.production
+*.pyc
+__pycache__/
+.venv/
+backend/data/textbooks/raw/

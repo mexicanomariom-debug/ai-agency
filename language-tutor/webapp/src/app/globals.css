@@ -1,0 +1,30 @@
+@import "tailwindcss";
+
+:root {
+  --background: #0a0a0f;
+  --foreground: #f4f4f5;
+  --primary: #6366f1;
+  --primary-hover: #818cf8;
+  --card: #18181b;
+  --card-border: #27272a;
+  --muted: #71717a;
+  --accent: #22d3ee;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: system-ui, -apple-system, sans-serif;
+}
+
+.gradient-text {
+  background: linear-gradient(135deg, #6366f1, #22d3ee);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.chat-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: var(--card-border) transparent;
+}

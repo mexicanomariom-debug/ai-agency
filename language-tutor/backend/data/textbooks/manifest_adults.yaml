@@ -1,0 +1,56 @@
+# Разговорники и разговорные курсы для взрослых (public domain / открытые материалы)
+
+sources:
+  - id: spanish_adult_fast_txt
+    language: spanish
+    audience: adult
+    levels: [beginner, elementary, intermediate, upper_intermediate]
+    title: "FSI Spanish FAST — разговорник для взрослых"
+    url: "https://archive.org/download/Fsi-SpanishFastCourse-StudentText/Fsi-SpanishFamiliarizationAndShort-termTraining_djvu.txt"
+    format: txt
+    year: 2020
+
+  - id: german_adult_fast_pdf
+    language: german
+    audience: adult
+    levels: [beginner, elementary, intermediate, upper_intermediate]
+    title: "FSI German FAST — разговорник для взрослых"
+    url: "https://fsi-language-courses-media.nyc3.cdn.digitaloceanspaces.com/languages/German/FAST/FSI%20-%20German%20FAST%20-%20Student%20Text.pdf"
+    format: pdf
+    year: 2020
+
+  - id: english_adult_phrasebook_gutenberg
+    language: english
+    audience: adult
+    levels: [beginner, elementary, intermediate, upper_intermediate, advanced]
+    title: "Putnam's Phrase Book — разговорные фразы для взрослых"
+    url: "https://www.gutenberg.org/ebooks/48441.txt.utf-8"
+    format: txt
+    year: 2015
+
+  - id: english_adult_useful_phrases_gutenberg
+    language: english
+    audience: adult
+    levels: [intermediate, upper_intermediate, advanced]
+    title: "Fifteen Thousand Useful Phrases — разговорник"
+    url: "https://www.gutenberg.org/ebooks/18362.txt.utf-8"
+    format: txt
+    year: 2006
+
+  - id: spanish_adult_phrasebook_wikivoyage
+    language: spanish
+    audience: adult
+    levels: [beginner, elementary, intermediate, upper_intermediate]
+    title: "Wikivoyage — Spanish phrasebook"
+    url: "https://en.wikivoyage.org/w/index.php?title=Spanish_phrasebook&action=raw"
+    format: txt
+    year: 2026
+
+  - id: german_adult_phrasebook_wikivoyage
+    language: german
+    audience: adult
+    levels: [beginner, elementary, intermediate, upper_intermediate]
+    title: "Wikivoyage — German phrasebook"
+    url: "https://en.wikivoyage.org/w/index.php?title=German_phrasebook&action=raw"
+    format: txt
+    year: 2026

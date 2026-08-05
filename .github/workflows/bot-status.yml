@@ -1,0 +1,35 @@
+name: Bot Status Check
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [cursor/language-tutor-recreate-a360]
+    paths:
+      - '.github/workflows/bot-status.yml'
+      - 'language-tutor/backend/**'
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.ORACLE_SSH_KEY }}
+
+      - name: Check bot containers and logs
+        run: |
+          HOST="${{ secrets.ORACLE_HOST || '140.84.183.154' }}"
+          USER="${{ secrets.ORACLE_SSH_USER || 'ubuntu' }}"
+          ssh -o StrictHostKeyChecking=no "${USER}@${HOST}" "
+            cd /opt/opus5
+            echo '=== ENV CHECK ==='
+            grep -E '^(BOT_TOKEN|OPENAI)' .env | sed 's/=.*/=***masked***/'
+            echo '=== CONTAINERS ==='
+            sudo docker compose -f docker-compose.prod.yml ps -a
+            echo '=== BOT LOGS ==='
+            sudo docker compose -f docker-compose.prod.yml logs bot --tail 80
+            echo '=== RESTART BOT ==='
+            sudo docker compose -f docker-compose.prod.yml restart bot
+            sleep 5
+            sudo docker compose -f docker-compose.prod.yml logs bot --tail 20
+          "

@@ -1,0 +1,52 @@
+services:
+  db:
+    image: pgvector/pgvector:pg16
+    environment:
+      POSTGRES_USER: language_tutor
+      POSTGRES_PASSWORD: language_tutor
+      POSTGRES_DB: language_tutor
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./backend/scripts/init-pgvector.sql:/docker-entrypoint-initdb.d/init-pgvector.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U language_tutor -d language_tutor"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  api:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    command: python -m api.run
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    environment:
+      DATABASE_URL: postgresql+asyncpg://language_tutor:language_tutor@db:5432/language_tutor
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - ./backend:/app
+
+  bot:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    command: python -m bot.main
+    env_file:
+      - .env
+    environment:
+      DATABASE_URL: postgresql+asyncpg://language_tutor:language_tutor@db:5432/language_tutor
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - ./backend:/app
+
+volumes:
+  pgdata:
