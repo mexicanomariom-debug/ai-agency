@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { buildVoiceFallbackSystemPrompt } from "@/lib/tutorPedagogy";
 
 const BACKEND_URL = process.env.BACKEND_URL || "http://140.84.183.154:8000";
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY || "";
@@ -59,9 +60,7 @@ async function transcribe(audio: Blob): Promise<string> {
 }
 
 async function chatReply(transcript: string, name: string): Promise<string> {
-  const system = `Ты Илья — харизматичный AI-учитель языков с вайбом чемпиона: уверенный, мотивирующий, по делу.
-Ученик: ${name}. Отвечай кратко голосом (2–4 предложения), на русском с примерами на изучаемом языке.
-Исправляй ошибки мягко. Без markdown.`;
+  const system = buildVoiceFallbackSystemPrompt(name);
 
   if (ANTHROPIC_API_KEY) {
     const res = await fetch("https://api.anthropic.com/v1/messages", {

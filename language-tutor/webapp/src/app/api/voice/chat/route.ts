@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { buildChatFallbackSystemPrompt } from "@/lib/tutorPedagogy";
 
 const BACKEND_URL = process.env.BACKEND_URL || "http://140.84.183.154:8000";
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY || "";
@@ -14,8 +15,7 @@ function authHeaders(request: NextRequest): Headers {
 }
 
 async function localChat(message: string, name: string): Promise<Response> {
-  const system = `Ты Илья — харизматичный AI-учитель языков. Ученик: ${name}.
-Отвечай кратко (2–4 предложения), по-русски с примерами на изучаемом языке. Без markdown.`;
+  const system = buildChatFallbackSystemPrompt(name);
 
   if (ANTHROPIC_API_KEY) {
     const res = await fetch("https://api.anthropic.com/v1/messages", {
