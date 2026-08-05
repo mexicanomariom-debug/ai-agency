@@ -1,6 +1,6 @@
 # Language Tutor — Deployment Guide
 
-Auto-deploy: push to `cursor/language-tutor-recreate-a360` triggers GitHub Actions (Oracle + Vercel).
+Auto-deploy: push to `main` triggers GitHub Actions (Oracle + Vercel build check).
 
 ## Architecture
 
@@ -70,6 +70,31 @@ Required secrets in Render dashboard:
 - `POSTGRES_PASSWORD` (if not using Render Postgres)
 
 ## Vercel (Web App)
+
+Production URL: `https://webapp-bay-three-75.vercel.app`
+
+The blue Telegram button **«Учитель — общение»** opens `/voice`. If you see **404**, the Vercel project was not redeployed after adding the route.
+
+### Option A — Deploy Hook (recommended, 2 minutes)
+
+1. Vercel → project **webapp-bay-three-75** → **Settings → Git → Deploy Hooks**
+2. Create hook for branch `main` (Root Directory must be `language-tutor/webapp`)
+3. GitHub → repo **Secrets** → add `VERCEL_DEPLOY_HOOK` with the hook URL
+4. Re-run workflow **Deploy Webapp to Vercel** or push any change to `language-tutor/webapp/`
+
+### Option B — Vercel CLI token
+
+```bash
+cd language-tutor/webapp
+vercel link   # select webapp-bay project
+vercel --prod
+```
+
+Or add GitHub Secrets: `VERCEL_TOKEN`, `VERCEL_ORG_ID`, `VERCEL_PROJECT_ID` (from `.vercel/project.json` after `vercel link`).
+
+### Option C — Manual from CI
+
+Push to `main` triggers build verification. Without secrets, only the `vercel-webapp` branch sync runs (webapp-only tree for separate Vercel project).
 
 ```bash
 cd webapp

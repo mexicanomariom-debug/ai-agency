@@ -2,9 +2,9 @@ name: Deploy Webapp to Vercel
 
 on:
   push:
-    branches: [cursor/language-tutor-recreate-a360, main]
+    branches: [main]
     paths:
-      - 'language-tutor/**'
+      - 'language-tutor/webapp/**'
       - '.github/workflows/deploy-vercel.yml'
   workflow_dispatch:
 
@@ -24,8 +24,8 @@ jobs:
           npm ci
           npm run build
 
-      - name: Deploy to Vercel
-        if: ${{ env.VERCEL_TOKEN != '' }}
+      - name: Deploy to Vercel (CLI)
+        if: ${{ secrets.VERCEL_TOKEN != '' }}
         working-directory: language-tutor/webapp
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
@@ -36,8 +36,16 @@ jobs:
           npx vercel build --prod --token="$VERCEL_TOKEN"
           npx vercel deploy --prebuilt --prod --token="$VERCEL_TOKEN"
 
-      - name: Skip Vercel CLI deploy
-        if: ${{ env.VERCEL_TOKEN == '' }}
+      - name: Trigger Vercel deploy hook (webapp-bay)
+        if: ${{ secrets.VERCEL_TOKEN == '' && secrets.VERCEL_DEPLOY_HOOK != '' }}
         env:
-          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
-        run: echo "VERCEL_TOKEN not set — relying on Vercel Git integration for deploy"
+          VERCEL_DEPLOY_HOOK: ${{ secrets.VERCEL_DEPLOY_HOOK }}
+        run: |
+          echo "Triggering Vercel deploy hook..."
+          curl -fsS -X POST "$VERCEL_DEPLOY_HOOK"
+
+      - name: No Vercel credentials
+        if: ${{ secrets.VERCEL_TOKEN == '' && secrets.VERCEL_DEPLOY_HOOK == '' }}
+        run: |
+          echo "::warning::Set VERCEL_TOKEN or VERCEL_DEPLOY_HOOK in GitHub Secrets to deploy /voice"
+          echo "Create a Deploy Hook in Vercel → webapp-bay project → Settings → Git → Deploy Hooks"
