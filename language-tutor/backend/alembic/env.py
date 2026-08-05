@@ -34,7 +34,8 @@ def run_migrations_offline() -> None:
 
 
 def do_run_migrations(connection: Connection) -> None:
-    context.configure(connection=connection, target_metadata=target_metadata)
+    # Do not pass target_metadata here — it can trigger spurious CREATE TYPE for PG enums.
+    context.configure(connection=connection)
     with context.begin_transaction():
         context.run_migrations()
 
