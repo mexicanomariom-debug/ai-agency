@@ -86,6 +86,23 @@ The blue Telegram button **«Учитель — общение»** opens `/voice
 
 Если у **webapp** написано *Connect Git Repository* — репозиторий не подключён, поэтому `/voice` не обновляется.
 
+### Oracle API: открыть порт 8000 (обязательно для голоса)
+
+Спиннер / «нет связи» значит Vercel не достучался до `http://140.84.183.154:8000`.
+
+В **Oracle Cloud Console**:
+1. **Networking → Virtual Cloud Networks →** ваш VCN  
+2. **Security Lists → Default Security List**  
+3. **Add Ingress Rules**:
+   - Source CIDR: `0.0.0.0/0`
+   - IP Protocol: TCP
+   - Destination Port: `8000`
+4. Save
+
+Проверка: `curl http://140.84.183.154:8000/health` → `{"status":"ok",...}`
+
+**Альтернатива без открытия порта:** в Vercel → **webapp** → Settings → Environment Variables добавьте `OPENAI_API_KEY` (и опционально `ANTHROPIC_API_KEY`), затем Redeploy. Голос пойдёт напрямую через Vercel.
+
 ### Подключить Git (один раз)
 
 1. Vercel → кликнуть проект **webapp**
