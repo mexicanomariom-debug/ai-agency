@@ -97,12 +97,19 @@ export default function VoiceTeacher() {
       setError(null);
       try {
         const result = await voiceTalk(blob, initData || undefined);
-        if (result.error && !result.reply) {
+        if (result.error) {
           setError(result.error);
+        }
+        if (!result.reply && result.error) {
           setStatus("idle");
           return;
         }
-        setLastUser(result.transcript);
+        if (!result.reply) {
+          setError("Пустой ответ учителя");
+          setStatus("idle");
+          return;
+        }
+        setLastUser(result.transcript || "");
         await playReply(result.reply, result.audio_base64);
       } catch (e) {
         setError(e instanceof Error ? e.message : "Ошибка связи");

@@ -32,6 +32,10 @@ jobs:
           POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD || 'opus5_prod_secret_2026' }}
           API_SECRET_KEY: ${{ secrets.API_SECRET_KEY || 'opus5-api-secret-2026' }}
         run: |
+          if [ -z "$OPENAI_API_KEY" ]; then
+            echo "::error::OPENAI_API_KEY secret is empty — voice STT/TTS will not work. Add it in GitHub → Settings → Secrets."
+            exit 1
+          fi
           cat > language-tutor/.env <<EOF
           BOT_TOKEN=${BOT_TOKEN}
           BOT_USERNAME=All_languages_bot
@@ -54,6 +58,9 @@ jobs:
           ENVIRONMENT=production
           EOF
           sed -i 's/^          //' language-tutor/.env
+          # mask check: key present
+          echo "OPENAI_API_KEY length: ${#OPENAI_API_KEY}"
+          echo "ANTHROPIC_API_KEY set: $([ -n "$ANTHROPIC_API_KEY" ] && echo yes || echo no)"
 
       - name: Deploy to Oracle
         run: |
