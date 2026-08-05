@@ -20,9 +20,14 @@ jobs:
           USER="${{ secrets.ORACLE_SSH_USER || 'ubuntu' }}"
           ssh -o StrictHostKeyChecking=no "${USER}@${HOST}" "
             cd /opt/opus5
-            sudo docker compose -f docker-compose.prod.yml ps
-            echo '--- BOT LOGS ---'
-            sudo docker compose -f docker-compose.prod.yml logs bot --tail 50
-            echo '--- API LOGS ---'
-            sudo docker compose -f docker-compose.prod.yml logs api --tail 20
+            echo '=== ENV CHECK ==='
+            grep -E '^(BOT_TOKEN|OPENAI)' .env | sed 's/=.*/=***masked***/'
+            echo '=== CONTAINERS ==='
+            sudo docker compose -f docker-compose.prod.yml ps -a
+            echo '=== BOT LOGS ==='
+            sudo docker compose -f docker-compose.prod.yml logs bot --tail 80
+            echo '=== RESTART BOT ==='
+            sudo docker compose -f docker-compose.prod.yml restart bot
+            sleep 5
+            sudo docker compose -f docker-compose.prod.yml logs bot --tail 20
           "
