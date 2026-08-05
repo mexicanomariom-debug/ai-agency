@@ -2,5 +2,5 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "buildCommand": "npm run build",
   "framework": "nextjs",
-  "ignoreCommand": "bash scripts/vercel-ignore.sh"
+  "ignoreCommand": "if [ \"$VERCEL_GIT_COMMIT_REF\" != \"main\" ]; then exit 0; fi; git rev-parse HEAD^ >/dev/null 2>&1 || exit 1; git diff HEAD^ HEAD --quiet -- . ':!language-tutor' && exit 0 || exit 1"
 }
