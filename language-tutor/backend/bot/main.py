@@ -8,6 +8,7 @@ from aiogram.enums import ParseMode
 from aiogram.fsm.storage.memory import MemoryStorage
 
 from bot.dispatcher import setup_dispatcher
+from bot.setup_ui import setup_bot_ui
 from config import settings
 
 logging.basicConfig(level=logging.INFO)
@@ -31,6 +32,8 @@ async def main() -> None:
     )
     dp = Dispatcher(storage=MemoryStorage())
     setup_dispatcher(dp)
+
+    await setup_bot_ui(bot)
 
     logger.info("Starting bot @%s", settings.bot_username)
     await dp.start_polling(bot)

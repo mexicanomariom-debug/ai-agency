@@ -5,3 +5,4 @@ class OnboardingStates(StatesGroup):
     choosing_language = State()
     choosing_level = State()
     chatting = State()
+    voice_chatting = State()

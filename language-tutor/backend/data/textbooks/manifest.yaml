@@ -1,0 +1,108 @@
+# Актуальные материалы ФГОС (2025) — edsoo.ru / официальные ФРП
+# Используются для RAG: федеральные рабочие программы по иностранным языкам
+
+sources:
+  # --- 1 класс: подготовка (ИЯ с 2 кл., берём вводный блок из ФРП 2–4) ---
+  - id: english_grade_1
+    language: english
+    grades: [1]
+    title: "Английский — подготовка к изучению (1 класс, ФГОС НОО)"
+    url: "https://edsoo.ru/wp-content/uploads/2025/07/2025_noo_frp_anglijskij-yazyk_2-4.pdf"
+    year: 2025
+    pages: [1, 25]
+    split_by_grade: false
+
+  # --- Английский ---
+  - id: english_2_4_frp_2025
+    language: english
+    grades: [2, 3, 4]
+    title: "ФРП Иностранный (английский) язык 2–4 классы"
+    url: "https://edsoo.ru/wp-content/uploads/2025/07/2025_noo_frp_anglijskij-yazyk_2-4.pdf"
+    year: 2025
+    split_by_grade: true
+
+  - id: english_5_9_frp_2025
+    language: english
+    grades: [5, 6, 7, 8, 9]
+    title: "ФРП Иностранный (английский) язык 5–9 классы"
+    url: "https://edsoo.ru/wp-content/uploads/2025/07/2025_ooo_frp_angl_5-9.pdf"
+    year: 2025
+    split_by_grade: true
+
+  - id: english_10_11_frp_2025
+    language: english
+    grades: [10, 11]
+    title: "ФРП Иностранный (английский) язык 10–11 классы (базовый)"
+    url: "https://edsoo.ru/wp-content/uploads/2025/07/2025_soo_frp_angl-yaz_10-11_baz.pdf"
+    year: 2025
+    split_by_grade: true
+
+  # --- Испанский ---
+  - id: spanish_grade_1
+    language: spanish
+    grades: [1]
+    title: "Испанский — подготовка (1 класс)"
+    url: "https://edsoo.ru/wp-content/uploads/2025/07/2025_noo_frp_ispanskij-yazyk_2-4.pdf"
+    year: 2025
+    pages: [1, 25]
+    split_by_grade: false
+
+  - id: spanish_2_4_frp_2025
+    language: spanish
+    grades: [2, 3, 4]
+    title: "ФРП Иностранный (испанский) язык 2–4 классы"
+    url: "https://edsoo.ru/wp-content/uploads/2025/07/2025_noo_frp_ispanskij-yazyk_2-4.pdf"
+    year: 2025
+    split_by_grade: true
+
+  - id: spanish_5_9_frp_2025
+    language: spanish
+    grades: [5, 6, 7, 8, 9]
+    title: "ФРП Второй иностранный (испанский) язык 5–9 классы"
+    url: "https://edsoo.ru/wp-content/uploads/2025/02/frp_ispanskij_yazyk_vi_5_9_.pdf"
+    year: 2025
+    split_by_grade: true
+
+  - id: spanish_10_11_frp_2025
+    language: spanish
+    grades: [10, 11]
+    title: "ФРП Второй иностранный (испанский) язык 10–11 классы"
+    url: "https://edsoo.ru/wp-content/uploads/2025/07/2025_soo_frp_vi_ispanskij_10-11.pdf"
+    year: 2025
+    split_by_grade: true
+
+  # --- Немецкий ---
+  - id: german_grade_1
+    language: german
+    grades: [1]
+    title: "Немецкий — подготовка (1 класс)"
+    url: "https://edsoo.ru/wp-content/uploads/2025/07/2025_ooo_frp-nemeczkij_5-9.pdf"
+    year: 2025
+    pages: [1, 20]
+    split_by_grade: false
+
+  - id: german_5_9_frp_2025
+    language: german
+    grades: [5, 6, 7, 8, 9]
+    title: "ФРП Иностранный (немецкий) язык 5–9 классы"
+    url: "https://edsoo.ru/wp-content/uploads/2025/07/2025_ooo_frp-nemeczkij_5-9.pdf"
+    year: 2025
+    split_by_grade: true
+
+  - id: german_10_11_frp_2025
+    language: german
+    grades: [10, 11]
+    title: "ФРП Иностранный (немецкий) язык 10–11 классы (базовый)"
+    url: "https://edsoo.ru/wp-content/uploads/2025/07/2025_soo_frp_nemyaz_10-11_baz.pdf"
+    year: 2025
+    split_by_grade: true
+
+  # Немецкий 2–4: во многих школах начинается с 5 класса; для полноты 1–11:
+  - id: german_2_4_placeholder
+    language: german
+    grades: [2, 3, 4]
+    title: "Немецкий 2–4 (базовые темы из ФРП 5–9, вводный уровень)"
+    url: "https://edsoo.ru/wp-content/uploads/2025/07/2025_ooo_frp-nemeczkij_5-9.pdf"
+    year: 2025
+    pages: [1, 80]
+    split_by_grade: false

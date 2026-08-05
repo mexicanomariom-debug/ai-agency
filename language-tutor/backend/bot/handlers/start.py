@@ -4,7 +4,8 @@ from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery, Message
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from bot.keyboards.inline import language_keyboard, level_keyboard, webapp_keyboard
+from bot.keyboards.inline import language_keyboard, level_keyboard
+from bot.keyboards.reply import main_menu_keyboard
 from bot.states.onboarding import OnboardingStates
 from services.user_service import user_service
 
@@ -44,16 +45,15 @@ async def cmd_start(message: Message, state: FSMContext, session: AsyncSession) 
             f"С возвращением, {name}! 👋\n\n"
             f"🗣 Язык: {LANGUAGE_LABELS.get(user.language.value, user.language.value)}\n"
             f"📊 Уровень: {LEVEL_LABELS.get(user.level.value, user.level.value)}\n\n"
-            "Пиши сообщение — начнём практику!\n"
-            "🎭 Выбрать репетитора — только в Web App:",
-            reply_markup=webapp_keyboard(),
+            "Пиши сообщение или нажми «Учитель — общение голосом» для практики голосом.",
+            reply_markup=main_menu_keyboard(),
         )
         return
 
     await state.set_state(OnboardingStates.choosing_language)
     await message.answer(
         f"Привет, {name}! 👋\n\n"
-        "Я — AI-репетитор по методологии «Опус 5».\n"
+        "Я — AI-репетитор по школьной программе ФГОС.\n"
         "Помогу практиковать <b>английский</b>, <b>испанский</b> или <b>немецкий</b>.\n\n"
         "Выбери язык:",
         reply_markup=language_keyboard(),
@@ -93,19 +93,13 @@ async def choose_level(callback: CallbackQuery, state: FSMContext, session: Asyn
     await state.set_state(OnboardingStates.chatting)
     await callback.message.edit_text(
         f"Уровень: {LEVEL_LABELS.get(level_value, level_value)} ✅\n\n"
-        "Всё готово! Напиши первое сообщение на выбранном языке.\n\n"
-        "🎭 Виртуальных репетиторов можно выбрать в Web App:",
-        reply_markup=webapp_keyboard(),
+        "Всё готово! Напиши первое сообщение на выбранном языке."
+    )
+    await callback.message.answer(
+        "Используй меню внизу: текстовый чат или голосовой режим.",
+        reply_markup=main_menu_keyboard(),
     )
     await callback.answer()
-
-
-@router.message(Command("webapp"))
-async def cmd_webapp(message: Message) -> None:
-    await message.answer(
-        "🌐 Web App — выбор репетитора и удобный чат:",
-        reply_markup=webapp_keyboard(),
-    )
 
 
 @router.message(Command("settings"))

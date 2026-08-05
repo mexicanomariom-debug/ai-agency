@@ -15,6 +15,9 @@ class OpenAIService:
         self.client = AsyncOpenAI(api_key=settings.openai_api_key or "sk-placeholder")
         self.model = settings.openai_model
 
+    def has_api_key(self) -> bool:
+        return bool(settings.openai_api_key)
+
     def _demo_enabled(self) -> bool:
         return settings.demo_mode and not settings.openai_api_key
 
@@ -26,6 +29,24 @@ class OpenAIService:
             input=text,
         )
         return response.data[0].embedding
+
+    async def transcribe_voice(self, audio_bytes: bytes, mime_type: str = "audio/ogg") -> str:
+        if not settings.openai_api_key:
+            raise RuntimeError("OPENAI_API_KEY is required for voice transcription")
+
+        ext = "ogg"
+        if "mpeg" in mime_type or "mp3" in mime_type:
+            ext = "mp3"
+        elif "wav" in mime_type:
+            ext = "wav"
+        elif "mp4" in mime_type or "m4a" in mime_type:
+            ext = "m4a"
+
+        response = await self.client.audio.transcriptions.create(
+            model="whisper-1",
+            file=(f"voice.{ext}", audio_bytes, mime_type),
+        )
+        return response.text
 
     async def chat_completion(
         self,

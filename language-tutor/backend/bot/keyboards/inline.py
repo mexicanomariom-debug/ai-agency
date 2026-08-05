@@ -1,6 +1,5 @@
-from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup, WebAppInfo
+from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 
-from config import settings
 from database.enums import Language, ProficiencyLevel
 
 
@@ -32,15 +31,3 @@ def level_keyboard() -> InlineKeyboardMarkup:
     ]
     return InlineKeyboardMarkup(inline_keyboard=buttons)
 
-
-def webapp_keyboard() -> InlineKeyboardMarkup:
-    return InlineKeyboardMarkup(
-        inline_keyboard=[
-            [
-                InlineKeyboardButton(
-                    text="🌐 Открыть Web App",
-                    web_app=WebAppInfo(url=f"{settings.twa_url}/app"),
-                )
-            ]
-        ]
-    )

@@ -90,6 +90,7 @@ class KnowledgeChunk(Base):
     language: Mapped[Language] = mapped_column(LanguageEnum, index=True)
     level: Mapped[ProficiencyLevel] = mapped_column(ProficiencyLevelEnum, index=True)
     topic: Mapped[str] = mapped_column(String(255), index=True)
+    grade: Mapped[int | None] = mapped_column(Integer, index=True, nullable=True)
     content: Mapped[str] = mapped_column(Text, nullable=False)
     embedding: Mapped[list[float] | None] = mapped_column(Vector(1536), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
