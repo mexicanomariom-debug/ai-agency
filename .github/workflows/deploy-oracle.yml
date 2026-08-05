@@ -81,3 +81,12 @@ jobs:
         run: |
           sleep 15
           curl -sf "http://${{ secrets.ORACLE_HOST || '140.84.183.154' }}:8000/health" || echo "Health check failed (firewall may block GitHub Actions IP)"
+
+      - name: Bot logs after deploy
+        run: |
+          HOST="${{ secrets.ORACLE_HOST || '140.84.183.154' }}"
+          USER="${{ secrets.ORACLE_SSH_USER || 'ubuntu' }}"
+          ssh -o StrictHostKeyChecking=no "${USER}@${HOST}" "
+            cd /opt/opus5
+            sudo docker compose -f docker-compose.prod.yml logs bot --tail 30
+          "

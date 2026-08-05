@@ -4,7 +4,9 @@ on:
   workflow_dispatch:
   push:
     branches: [cursor/language-tutor-recreate-a360]
-    paths: ['.github/workflows/bot-status.yml']
+    paths:
+      - '.github/workflows/bot-status.yml'
+      - 'language-tutor/backend/**'
 
 jobs:
   check:
