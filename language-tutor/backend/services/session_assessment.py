@@ -187,7 +187,7 @@ Rules:
         record = SessionAssessment(
             user_id=user.id,
             persona_id=persona.id,
-            language=user.language.value if user.language else None,
+            target_language=user.language.value if user.language else None,
             user_message_count=len(user_turns),
             speaking_cefr=speaking_cefr,
             mapped_level=mapped.value if mapped else None,

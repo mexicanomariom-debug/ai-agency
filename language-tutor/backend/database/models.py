@@ -99,7 +99,7 @@ class SessionAssessment(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
     persona_id: Mapped[int | None] = mapped_column(ForeignKey("personas.id", ondelete="SET NULL"), nullable=True)
-    language: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    target_language: Mapped[str | None] = mapped_column(String(32), nullable=True)
     user_message_count: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
     speaking_cefr: Mapped[str | None] = mapped_column(String(10), nullable=True)
     mapped_level: Mapped[str | None] = mapped_column(String(32), nullable=True)

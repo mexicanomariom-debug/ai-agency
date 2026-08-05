@@ -22,7 +22,7 @@ def upgrade() -> None:
         sa.Column("id", sa.Integer(), autoincrement=True, nullable=False),
         sa.Column("user_id", sa.Integer(), nullable=False),
         sa.Column("persona_id", sa.Integer(), nullable=True),
-        sa.Column("language", sa.String(length=32), nullable=True),
+        sa.Column("target_language", sa.String(length=32), nullable=True),
         sa.Column("user_message_count", sa.Integer(), nullable=False, server_default="0"),
         sa.Column("speaking_cefr", sa.String(length=10), nullable=True),
         sa.Column("mapped_level", sa.String(length=32), nullable=True),
