@@ -235,14 +235,17 @@ body {
 
 .avatar3d-stage {
   width: 100%;
-  height: min(52vh, 380px);
+  height: min(58vh, 420px);
   border-radius: 1.25rem;
   overflow: hidden;
   background:
-    radial-gradient(ellipse at 50% 30%, rgba(255, 255, 255, 0.08), transparent 55%),
-    linear-gradient(180deg, rgba(255, 248, 238, 0.05), rgba(0, 0, 0, 0.25));
-  border: 1px solid var(--panel-border);
-  box-shadow: inset 0 0 40px rgba(0, 0, 0, 0.25);
+    radial-gradient(ellipse at 50% 18%, rgba(255, 220, 180, 0.14), transparent 50%),
+    radial-gradient(ellipse at 80% 80%, rgba(120, 160, 255, 0.08), transparent 45%),
+    linear-gradient(165deg, rgba(32, 28, 38, 0.95), rgba(12, 10, 16, 0.98));
+  border: 1px solid color-mix(in srgb, var(--gold) 22%, var(--panel-border));
+  box-shadow:
+    0 12px 40px rgba(0, 0, 0, 0.35),
+    inset 0 1px 0 rgba(255, 255, 255, 0.06);
   transition: box-shadow 0.35s ease, border-color 0.35s ease;
 }
 
