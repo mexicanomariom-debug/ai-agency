@@ -63,17 +63,9 @@ jobs:
               --exclude=node_modules --exclude=.next --exclude=__pycache__ --exclude=.venv --exclude=.git \
               -C language-tutor .
             scp -o StrictHostKeyChecking=no /tmp/opus5-deploy.tar.gz "$server:/tmp/opus5-deploy.tar.gz"
+            ssh -o StrictHostKeyChecking=no "$server" "sudo mkdir -p $REMOTE_DIR && sudo chown -R \$(whoami):\$(whoami) $REMOTE_DIR"
             scp -o StrictHostKeyChecking=no language-tutor/.env "$server:$REMOTE_DIR/.env"
-            ssh -o StrictHostKeyChecking=no "$server" bash -s <<REMOTE
-          set -euo pipefail
-          sudo mkdir -p $REMOTE_DIR
-          sudo chown -R \$(whoami):\$(whoami) $REMOTE_DIR
-          cd $REMOTE_DIR
-          tar -xzf /tmp/opus5-deploy.tar.gz
-          rm -f /tmp/opus5-deploy.tar.gz
-          chmod +x oracle-redeploy.sh oracle-setup.sh
-          ./oracle-redeploy.sh
-          REMOTE
+            ssh -o StrictHostKeyChecking=no "$server" "cd $REMOTE_DIR && tar -xzf /tmp/opus5-deploy.tar.gz && rm -f /tmp/opus5-deploy.tar.gz && chmod +x oracle-redeploy.sh oracle-setup.sh && ./oracle-redeploy.sh"
           }
 
           if deploy_to "${USER}@${HOST}"; then
