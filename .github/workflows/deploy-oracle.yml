@@ -95,6 +95,7 @@ jobs:
 
       - name: Open TCP 8000 on VM firewall
         run: |
+          sleep 20
           HOST="${{ secrets.ORACLE_HOST || '140.84.183.154' }}"
           USER="${{ secrets.ORACLE_SSH_USER || 'ubuntu' }}"
           ssh -o StrictHostKeyChecking=no "${USER}@${HOST}" '
