@@ -5,7 +5,7 @@ set -euo pipefail
 cd "$(dirname "$0")"
 
 echo "=== Deploy webapp to Vercel (production) ==="
-echo "Project: webapp  →  https://webapp-bay-three-75.vercel.app"
+echo "Project: webapp  ->  https://webapp-bay-three-75.vercel.app"
 echo ""
 
 if ! command -v npx >/dev/null 2>&1; then
@@ -13,18 +13,18 @@ if ! command -v npx >/dev/null 2>&1; then
   exit 1
 fi
 
-echo "1) Login (browser will open — use the Vercel account that owns project 'webapp')..."
+echo "1. Login - browser will open. Use the Vercel account that owns project webapp..."
 npx vercel login
 
 echo ""
-echo "2) Link to existing project 'webapp'..."
+echo "2. Link to existing project webapp..."
 npx vercel link --yes --project webapp
 
 echo ""
-echo "3) Production deploy..."
+echo "3. Production deploy..."
 npx vercel --prod --yes
 
 echo ""
 echo "=== Done ==="
 echo "Check: https://webapp-bay-three-75.vercel.app/voice"
-echo "Expected: HTTP 200 (voice teacher page), not 404"
+echo "Expected: HTTP 200 voice teacher page, not 404"
