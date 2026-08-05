@@ -49,6 +49,20 @@ export interface VoiceTalkResult {
   error?: string | null;
 }
 
+export interface VoiceSessionAssessment {
+  assessed: boolean;
+  skipped_reason?: string | null;
+  speaking_cefr?: string | null;
+  mapped_level?: string | null;
+  confidence?: string | null;
+  strengths?: string[];
+  weaknesses?: string[];
+  grammar_focus?: string[];
+  recommendation?: string | null;
+  summary?: string | null;
+  level_updated?: boolean;
+}
+
 export function getAuthHeaders(initData?: string): HeadersInit {
   const headers: HeadersInit = { "Content-Type": "application/json" };
   if (initData) {
@@ -185,6 +199,22 @@ export async function voiceChat(message: string, initData?: string): Promise<Voi
   const data = (await res.json()) as VoiceTalkResult;
   if (!res.ok && !data.reply) {
     throw new Error(data.error || `Ошибка: ${res.status}`);
+  }
+  return data;
+}
+
+export async function closeVoiceSession(
+  initData?: string,
+  personaSlug?: string | null,
+): Promise<VoiceSessionAssessment> {
+  const res = await fetch(`${VOICE_API}/session/close`, {
+    method: "POST",
+    headers: getAuthHeaders(initData),
+    body: JSON.stringify({ persona_slug: personaSlug ?? "voice-teacher" }),
+  });
+  const data = (await res.json()) as VoiceSessionAssessment;
+  if (!res.ok && !data.assessed) {
+    return { assessed: false, skipped_reason: data.skipped_reason || "request_failed" };
   }
   return data;
 }

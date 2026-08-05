@@ -83,11 +83,36 @@ class CognitiveProfile(Base):
     learning_style: Mapped[str | None] = mapped_column(String(255), nullable=True)
     vocabulary_level: Mapped[str | None] = mapped_column(String(255), nullable=True)
     grammar_notes: Mapped[str | None] = mapped_column(Text, nullable=True)
+    last_speaking_cefr: Mapped[str | None] = mapped_column(String(10), nullable=True)
+    last_session_summary: Mapped[str | None] = mapped_column(Text, nullable=True)
+    last_assessed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
     )
 
     user: Mapped["User"] = relationship(back_populates="cognitive_profile")
+
+
+class SessionAssessment(Base):
+    __tablename__ = "session_assessments"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    persona_id: Mapped[int | None] = mapped_column(ForeignKey("personas.id", ondelete="SET NULL"), nullable=True)
+    language: Mapped[Language | None] = mapped_column(LanguageEnum, nullable=True)
+    user_message_count: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
+    speaking_cefr: Mapped[str | None] = mapped_column(String(10), nullable=True)
+    mapped_level: Mapped[ProficiencyLevel | None] = mapped_column(ProficiencyLevelEnum, nullable=True)
+    confidence: Mapped[str | None] = mapped_column(String(20), nullable=True)
+    strengths: Mapped[str | None] = mapped_column(Text, nullable=True)
+    weaknesses: Mapped[str | None] = mapped_column(Text, nullable=True)
+    grammar_focus: Mapped[str | None] = mapped_column(Text, nullable=True)
+    recommendation: Mapped[str | None] = mapped_column(Text, nullable=True)
+    summary: Mapped[str | None] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+    user: Mapped["User"] = relationship()
+    persona: Mapped["Persona | None"] = relationship()
 
 
 class KnowledgeChunk(Base):

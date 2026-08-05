@@ -61,6 +61,24 @@ class VoiceTutorResponse(BaseModel):
     greeting: str
 
 
+class VoiceSessionCloseRequest(BaseModel):
+    persona_slug: str | None = None
+
+
+class VoiceSessionAssessmentResponse(BaseModel):
+    assessed: bool
+    skipped_reason: str | None = None
+    speaking_cefr: str | None = None
+    mapped_level: str | None = None
+    confidence: str | None = None
+    strengths: list[str] = []
+    weaknesses: list[str] = []
+    grammar_focus: list[str] = []
+    recommendation: str | None = None
+    summary: str | None = None
+    level_updated: bool = False
+
+
 class MessageResponse(BaseModel):
     role: str
     content: str

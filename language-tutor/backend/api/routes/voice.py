@@ -7,6 +7,8 @@ from api.deps import get_current_user, get_db
 from api.schemas import (
     VoiceCapabilitiesResponse,
     VoiceChatRequest,
+    VoiceSessionAssessmentResponse,
+    VoiceSessionCloseRequest,
     VoiceTalkResponse,
     VoiceTutorResponse,
 )
@@ -19,6 +21,7 @@ from services.cognitive_profiler import cognitive_profiler
 from services.llm_service import llm_service
 from services.openai_service import openai_service
 from services.personas import persona_service
+from services.session_assessment import session_assessment_service
 from services.tutor_context import build_tutor_system_prompt
 
 router = APIRouter(prefix="/voice", tags=["voice"])
@@ -182,3 +185,31 @@ async def voice_talk(
         )
 
     return await _generate_voice_reply(session, user, transcript, persona_slug)
+
+
+@router.post("/session/close", response_model=VoiceSessionAssessmentResponse)
+async def close_voice_session(
+    body: VoiceSessionCloseRequest,
+    session: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
+) -> VoiceSessionAssessmentResponse:
+    """Run CEFR-style assessment on recent voice session messages and update profile."""
+    slug = body.persona_slug or VOICE_TUTOR_SLUG
+    persona = await persona_service.get_by_slug(session, slug) or await persona_service.get_default(session)
+
+    result = await session_assessment_service.assess_voice_session(session, user, persona)
+    await session.commit()
+
+    return VoiceSessionAssessmentResponse(
+        assessed=result.assessed,
+        skipped_reason=result.skipped_reason,
+        speaking_cefr=result.speaking_cefr,
+        mapped_level=result.mapped_level,
+        confidence=result.confidence,
+        strengths=result.strengths,
+        weaknesses=result.weaknesses,
+        grammar_focus=result.grammar_focus,
+        recommendation=result.recommendation,
+        summary=result.summary,
+        level_updated=result.level_updated,
+    )

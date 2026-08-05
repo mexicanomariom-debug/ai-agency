@@ -6,10 +6,12 @@ import { Loader2, Mic, MicOff } from "lucide-react";
 import type { TalkingAvatarHandle } from "@/components/TalkingAvatar3D";
 import { useTelegram } from "@/hooks/useTelegram";
 import {
+  closeVoiceSession,
   fetchVoiceCapabilities,
   fetchVoiceTutor,
   voiceChat,
   voiceTalk,
+  type VoiceSessionAssessment,
   type VoiceTutor,
 } from "@/lib/api";
 
@@ -53,12 +55,17 @@ export default function VoiceTeacher() {
   const [useBrowserStt, setUseBrowserStt] = useState(true);
   const [loading, setLoading] = useState(true);
   const [avatarReady, setAvatarReady] = useState(false);
+  const [sessionSummary, setSessionSummary] = useState<VoiceSessionAssessment | null>(null);
+  const [closingSession, setClosingSession] = useState(false);
+  const [userTurnCount, setUserTurnCount] = useState(0);
 
   const mediaRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
   const recognitionRef = useRef<SpeechRec | null>(null);
   const transcriptRef = useRef("");
   const avatarRef = useRef<TalkingAvatarHandle | null>(null);
+  const userTurnCountRef = useRef(0);
+  const closingRef = useRef(false);
 
   useEffect(() => {
     if (!isReady) return;
@@ -102,6 +109,40 @@ export default function VoiceTeacher() {
       cancelled = true;
     };
   }, [isReady, initData]);
+
+  const runSessionClose = useCallback(
+    async (silent = false) => {
+      if (closingRef.current || userTurnCountRef.current < 2) return;
+      closingRef.current = true;
+      if (!silent) setClosingSession(true);
+      try {
+        const result = await closeVoiceSession(initData || undefined, "voice-teacher");
+        if (result.assessed) {
+          setSessionSummary(result);
+        }
+      } catch {
+        /* best-effort on exit */
+      } finally {
+        if (!silent) setClosingSession(false);
+      }
+    },
+    [initData],
+  );
+
+  useEffect(() => {
+    const onPageHide = () => {
+      if (userTurnCountRef.current >= 2) {
+        void runSessionClose(true);
+      }
+    };
+    window.addEventListener("pagehide", onPageHide);
+    return () => {
+      window.removeEventListener("pagehide", onPageHide);
+      if (userTurnCountRef.current >= 2) {
+        void runSessionClose(true);
+      }
+    };
+  }, [runSessionClose]);
 
   const playReply = useCallback(async (reply: string, audioBase64: string | null) => {
     setLastReply(reply);
@@ -168,6 +209,8 @@ export default function VoiceTeacher() {
           setStatus("idle");
           return;
         }
+        userTurnCountRef.current += 1;
+        setUserTurnCount(userTurnCountRef.current);
         await playReply(result.reply, result.audio_base64);
       } catch (e) {
         setError(e instanceof Error ? e.message : "Ошибка связи");
@@ -204,6 +247,8 @@ export default function VoiceTeacher() {
           return;
         }
         setLastUser(result.transcript || "");
+        userTurnCountRef.current += 1;
+        setUserTurnCount(userTurnCountRef.current);
         await playReply(result.reply, result.audio_base64);
       } catch (e) {
         setError(e instanceof Error ? e.message : "Ошибка связи");
@@ -317,6 +362,16 @@ export default function VoiceTeacher() {
           {tutor.level ? ` · ${tutor.level}` : ""}
           {audience ? ` · ${audience}` : ""}
         </p>
+        {userTurnCount >= 2 && !sessionSummary && (
+          <button
+            type="button"
+            className="premium-finish-btn"
+            disabled={closingSession || status !== "idle"}
+            onClick={() => void runSessionClose(false)}
+          >
+            {closingSession ? "Считаю итоги…" : "Завершить урок"}
+          </button>
+        )}
       </header>
 
       <div className="premium-stage">
@@ -341,6 +396,25 @@ export default function VoiceTeacher() {
         )}
 
         {error && <p className="premium-error">{error}</p>}
+
+        {sessionSummary?.assessed && (
+          <div className="premium-session-recap" role="status">
+            <p className="premium-recap-title">
+              Итоги урока
+              {sessionSummary.speaking_cefr ? ` · CEFR ${sessionSummary.speaking_cefr}` : ""}
+              {sessionSummary.level_updated ? " · уровень обновлён" : ""}
+            </p>
+            {sessionSummary.summary && <p className="premium-recap-text">{sessionSummary.summary}</p>}
+            {sessionSummary.recommendation && (
+              <p className="premium-recap-next">Дальше: {sessionSummary.recommendation}</p>
+            )}
+            {sessionSummary.weaknesses && sessionSummary.weaknesses.length > 0 && (
+              <p className="premium-recap-text">
+                Слабые места: {sessionSummary.weaknesses.join("; ")}
+              </p>
+            )}
+          </div>
+        )}
       </div>
 
       <div className="premium-mic-block">
