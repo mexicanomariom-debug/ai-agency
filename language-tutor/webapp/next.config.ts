@@ -7,6 +7,10 @@ const nextConfig: NextConfig = {
   async rewrites() {
     return [
       {
+        source: "/voice",
+        destination: `${BACKEND_URL}/twa/voice`,
+      },
+      {
         source: "/api/proxy/:path*",
         destination: `${BACKEND_URL}/:path*`,
       },

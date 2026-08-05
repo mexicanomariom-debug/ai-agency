@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+  <title>Учитель — голосовое общение</title>
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      min-height: 100vh;
+      background: linear-gradient(180deg, #0a0a12, #12121f);
+      color: #fff;
+      display: flex;
+      flex-direction: column;
+      padding: 1rem;
+    }
+    header { text-align: center; margin-bottom: 1rem; }
+    header p { font-size: 0.7rem; letter-spacing: 0.15em; color: #818cf8; text-transform: uppercase; }
+    header h1 { font-size: 1.25rem; margin-top: 0.25rem; }
+    .sub { color: #a1a1aa; font-size: 0.85rem; margin-top: 0.25rem; }
+    main { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1.5rem; }
+    .avatar { position: relative; width: 12rem; height: 14rem; }
+    .avatar svg { width: 100%; height: 100%; filter: drop-shadow(0 0 20px rgba(99,102,241,0.3)); }
+    .msg { max-width: 20rem; text-align: center; color: #a1a1aa; font-size: 0.9rem; line-height: 1.5; min-height: 3rem; }
+    .user-msg { background: rgba(39,39,42,0.6); padding: 0.5rem 1rem; border-radius: 0.75rem; color: #d4d4d8; }
+    .err { color: #fca5a5; background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.3); padding: 0.5rem 1rem; border-radius: 0.5rem; font-size: 0.85rem; }
+    footer { display: flex; flex-direction: column; align-items: center; gap: 0.75rem; padding-bottom: 1rem; }
+    #mic {
+      width: 5rem; height: 5rem; border-radius: 50%; border: none;
+      background: #4f46e5; color: #fff; font-size: 1.5rem; cursor: pointer;
+      box-shadow: 0 8px 24px rgba(79,70,229,0.4); transition: transform 0.15s, background 0.15s;
+    }
+    #mic:active, #mic.recording { transform: scale(1.1); background: #ef4444; }
+    #mic:disabled { opacity: 0.5; cursor: not-allowed; }
+    .hint { font-size: 0.75rem; color: #71717a; }
+    .loader { width: 2rem; height: 2rem; border: 3px solid #3f3f46; border-top-color: #818cf8; border-radius: 50%; animation: spin 0.8s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+  </style>
+</head>
+<body>
+  <header>
+    <p>AI Учитель · Репетитор</p>
+    <h1>Голосовое общение</h1>
+    <p class="sub" id="userLine"></p>
+  </header>
+  <main>
+    <div id="loading" class="loader"></div>
+    <div class="avatar" id="avatar" hidden>
+      <svg viewBox="0 0 200 240" aria-label="Учитель">
+        <ellipse cx="100" cy="72" rx="62" ry="58" fill="#3d2b1f"/>
+        <ellipse cx="100" cy="95" rx="50" ry="55" fill="#f5d0b5"/>
+        <ellipse id="mouth" cx="100" cy="118" rx="14" ry="6" fill="#c97b6e"/>
+        <circle cx="82" cy="95" r="5" fill="#2d1f14"/>
+        <circle cx="118" cy="95" r="5" fill="#2d1f14"/>
+        <path d="M55 200 Q100 230 145 200 L145 240 L55 240 Z" fill="#4f46e5"/>
+      </svg>
+    </div>
+    <p class="msg" id="message"></p>
+    <p class="user-msg" id="userText" hidden></p>
+    <p class="err" id="error" hidden></p>
+  </main>
+  <footer id="controls" hidden>
+    <button id="mic" type="button" aria-label="Микрофон">🎤</button>
+    <p class="hint" id="hint">Удерживайте и говорите</p>
+  </footer>
+  <script>
+    const tg = window.Telegram?.WebApp;
+    tg?.ready();
+    tg?.expand();
+
+    const initData = tg?.initData || "";
+    const user = tg?.initDataUnsafe?.user;
+    const headers = () => {
+      const h = {};
+      if (initData) h["X-Telegram-Init-Data"] = initData;
+      return h;
+    };
+
+    let status = "idle";
+    let recorder = null;
+    let chunks = [];
+    let audioCtx = null;
+    let mouthAnim = 0;
+
+    const el = (id) => document.getElementById(id);
+    const mouth = el("mouth");
+    const message = el("message");
+    const userText = el("userText");
+    const errorEl = el("error");
+    const mic = el("mic");
+    const hint = el("hint");
+
+    function setError(msg) {
+      errorEl.textContent = msg;
+      errorEl.hidden = !msg;
+    }
+
+    function animateMouth(open) {
+      const h = 4 + open * 18;
+      const w = 14 + open * 12;
+      mouth.setAttribute("rx", w);
+      mouth.setAttribute("ry", h);
+    }
+
+    async function loadTutor() {
+      const res = await fetch("/api/voice/tutor", { headers: headers() });
+      if (!res.ok) throw new Error("Не удалось загрузить учителя");
+      return res.json();
+    }
+
+    async function sendAudio(blob) {
+      const form = new FormData();
+      form.append("audio", blob, "voice.webm");
+      const res = await fetch("/api/voice/talk", { method: "POST", headers: headers(), body: form });
+      if (!res.ok) throw new Error("Ошибка связи: " + res.status);
+      return res.json();
+    }
+
+    async function playReply(reply, audioBase64) {
+      message.textContent = reply;
+      if (audioBase64) {
+        const bytes = Uint8Array.from(atob(audioBase64), (c) => c.charCodeAt(0));
+        const url = URL.createObjectURL(new Blob([bytes], { type: "audio/mpeg" }));
+        const audio = new Audio(url);
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        const src = audioCtx.createMediaElementSource(audio);
+        const analyser = audioCtx.createAnalyser();
+        src.connect(analyser);
+        analyser.connect(audioCtx.destination);
+        const data = new Uint8Array(analyser.frequencyBinCount);
+        const tick = () => {
+          analyser.getByteFrequencyData(data);
+          const avg = data.reduce((a, b) => a + b, 0) / data.length;
+          animateMouth(Math.min(1, avg / 80));
+          if (!audio.paused) requestAnimationFrame(tick);
+          else animateMouth(0);
+        };
+        audio.onplay = tick;
+        audio.onended = () => { URL.revokeObjectURL(url); status = "idle"; mic.disabled = false; hint.textContent = "Удерживайте и говорите"; };
+        await audio.play();
+        return;
+      }
+      if ("speechSynthesis" in window) {
+        const u = new SpeechSynthesisUtterance(reply);
+        u.lang = "ru-RU";
+        u.onend = () => { status = "idle"; mic.disabled = false; };
+        speechSynthesis.speak(u);
+      } else {
+        status = "idle";
+        mic.disabled = false;
+      }
+    }
+
+    mic.addEventListener("pointerdown", async () => {
+      if (status !== "idle") return;
+      setError("");
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        recorder = new MediaRecorder(stream, { mimeType: "audio/webm" });
+        chunks = [];
+        recorder.ondataavailable = (e) => { if (e.data.size) chunks.push(e.data); };
+        recorder.onstop = async () => {
+          stream.getTracks().forEach((t) => t.stop());
+          status = "processing";
+          mic.disabled = true;
+          hint.textContent = "Думаю над ответом…";
+          message.textContent = "Думаю над ответом…";
+          try {
+            const blob = new Blob(chunks, { type: "audio/webm" });
+            const result = await sendAudio(blob);
+            if (result.error && !result.reply) throw new Error(result.error);
+            userText.textContent = "Вы: " + result.transcript;
+            userText.hidden = !result.transcript;
+            status = "speaking";
+            hint.textContent = "Слушайте ответ…";
+            await playReply(result.reply, result.audio_base64);
+          } catch (e) {
+            setError(e.message || "Ошибка");
+            status = "idle";
+            mic.disabled = false;
+            hint.textContent = "Удерживайте и говорите";
+          }
+        };
+        recorder.start();
+        status = "recording";
+        mic.classList.add("recording");
+        hint.textContent = "Отпустите для отправки";
+        animateMouth(0.6);
+      } catch {
+        setError("Нужен доступ к микрофону");
+      }
+    });
+
+    mic.addEventListener("pointerup", () => {
+      if (recorder?.state === "recording") {
+        recorder.stop();
+        mic.classList.remove("recording");
+        animateMouth(0);
+      }
+    });
+    mic.addEventListener("pointerleave", () => mic.dispatchEvent(new PointerEvent("pointerup")));
+
+    loadTutor().then((tutor) => {
+      el("loading").hidden = true;
+      el("avatar").hidden = false;
+      el("controls").hidden = false;
+      if (user) {
+        el("userLine").textContent = [user.first_name, tutor.language, tutor.level].filter(Boolean).join(" · ");
+      }
+      message.textContent = tutor.greeting;
+    }).catch((e) => {
+      el("loading").hidden = true;
+      setError(e.message);
+    });
+  </script>
+</body>
+</html>
