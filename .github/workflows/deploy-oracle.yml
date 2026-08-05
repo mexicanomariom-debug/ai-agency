@@ -71,8 +71,8 @@ jobs:
           if deploy_to "${USER}@${HOST}"; then
             echo "Deployed as ${USER}@${HOST}"
           elif [ "$USER" = "ubuntu" ]; then
-            echo "ubuntu failed, trying opc..."
-            deploy_to "opc@${HOST}"
+            echo "ubuntu deploy failed"
+            exit 1
           else
             exit 1
           fi

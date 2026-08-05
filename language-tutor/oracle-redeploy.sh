@@ -6,9 +6,15 @@ cd "$(dirname "$0")"
 
 echo "=== Opus 5 — Clean Redeploy ==="
 
+if docker info &>/dev/null 2>&1; then
+  DOCKER="docker"
+else
+  DOCKER="sudo docker"
+fi
+
 if command -v docker &>/dev/null; then
   echo "Stopping old containers..."
-  docker compose -f docker-compose.prod.yml down -v 2>/dev/null || true
+  $DOCKER compose -f docker-compose.prod.yml down -v 2>/dev/null || true
 fi
 
 echo "Removing old build artifacts..."
