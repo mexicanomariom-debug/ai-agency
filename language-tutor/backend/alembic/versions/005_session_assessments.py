@@ -7,7 +7,6 @@ Create Date: 2026-08-05
 
 from typing import Sequence, Union
 
-import sqlalchemy as sa
 from alembic import op
 
 revision: str = "005"
@@ -17,34 +16,32 @@ depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
-    op.create_table(
-        "session_assessments",
-        sa.Column("id", sa.Integer(), autoincrement=True, nullable=False),
-        sa.Column("user_id", sa.Integer(), nullable=False),
-        sa.Column("persona_id", sa.Integer(), nullable=True),
-        sa.Column("target_language", sa.String(length=32), nullable=True),
-        sa.Column("user_message_count", sa.Integer(), nullable=False, server_default="0"),
-        sa.Column("speaking_cefr", sa.String(length=10), nullable=True),
-        sa.Column("mapped_level", sa.String(length=32), nullable=True),
-        sa.Column("confidence", sa.String(length=20), nullable=True),
-        sa.Column("strengths", sa.Text(), nullable=True),
-        sa.Column("weaknesses", sa.Text(), nullable=True),
-        sa.Column("grammar_focus", sa.Text(), nullable=True),
-        sa.Column("recommendation", sa.Text(), nullable=True),
-        sa.Column("summary", sa.Text(), nullable=True),
-        sa.Column(
-            "created_at",
-            sa.DateTime(timezone=True),
-            server_default=sa.text("now()"),
-            nullable=False,
-        ),
-        sa.ForeignKeyConstraint(["user_id"], ["users.id"], ondelete="CASCADE"),
-        sa.ForeignKeyConstraint(["persona_id"], ["personas.id"], ondelete="SET NULL"),
-        sa.PrimaryKeyConstraint("id"),
+    # Raw SQL avoids SQLAlchemy confusing column/type name "language" with PG enum.
+    op.execute(
+        """
+        CREATE TABLE IF NOT EXISTS session_assessments (
+            id SERIAL PRIMARY KEY,
+            user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+            persona_id INTEGER REFERENCES personas(id) ON DELETE SET NULL,
+            target_language VARCHAR(32),
+            user_message_count INTEGER NOT NULL DEFAULT 0,
+            speaking_cefr VARCHAR(10),
+            mapped_level VARCHAR(32),
+            confidence VARCHAR(20),
+            strengths TEXT,
+            weaknesses TEXT,
+            grammar_focus TEXT,
+            recommendation TEXT,
+            summary TEXT,
+            created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+        )
+        """
     )
-    op.create_index("ix_session_assessments_user_id", "session_assessments", ["user_id"])
+    op.execute(
+        "CREATE INDEX IF NOT EXISTS ix_session_assessments_user_id ON session_assessments (user_id)"
+    )
 
 
 def downgrade() -> None:
-    op.drop_index("ix_session_assessments_user_id", table_name="session_assessments")
-    op.drop_table("session_assessments")
+    op.execute("DROP INDEX IF EXISTS ix_session_assessments_user_id")
+    op.execute("DROP TABLE IF EXISTS session_assessments")

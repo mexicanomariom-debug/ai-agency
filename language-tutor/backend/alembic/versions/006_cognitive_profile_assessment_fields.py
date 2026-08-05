@@ -7,7 +7,6 @@ Create Date: 2026-08-05
 
 from typing import Sequence, Union
 
-import sqlalchemy as sa
 from alembic import op
 
 revision: str = "006"
@@ -17,12 +16,14 @@ depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
-    op.add_column("cognitive_profiles", sa.Column("last_speaking_cefr", sa.String(length=10), nullable=True))
-    op.add_column("cognitive_profiles", sa.Column("last_session_summary", sa.Text(), nullable=True))
-    op.add_column("cognitive_profiles", sa.Column("last_assessed_at", sa.DateTime(timezone=True), nullable=True))
+    op.execute("ALTER TABLE cognitive_profiles ADD COLUMN IF NOT EXISTS last_speaking_cefr VARCHAR(10)")
+    op.execute("ALTER TABLE cognitive_profiles ADD COLUMN IF NOT EXISTS last_session_summary TEXT")
+    op.execute(
+        "ALTER TABLE cognitive_profiles ADD COLUMN IF NOT EXISTS last_assessed_at TIMESTAMPTZ"
+    )
 
 
 def downgrade() -> None:
-    op.drop_column("cognitive_profiles", "last_assessed_at")
-    op.drop_column("cognitive_profiles", "last_session_summary")
-    op.drop_column("cognitive_profiles", "last_speaking_cefr")
+    op.execute("ALTER TABLE cognitive_profiles DROP COLUMN IF EXISTS last_assessed_at")
+    op.execute("ALTER TABLE cognitive_profiles DROP COLUMN IF EXISTS last_session_summary")
+    op.execute("ALTER TABLE cognitive_profiles DROP COLUMN IF EXISTS last_speaking_cefr")
