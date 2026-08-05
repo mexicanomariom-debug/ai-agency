@@ -1,5 +1,4 @@
-#!/usr/bin/env bash
-# Clean redeploy on Oracle server — run via deploy script or manually over SSH
+# Redeploy trigger: BOT_TOKEN configured in GitHub Secrets
 set -euo pipefail
 
 cd "$(dirname "$0")"
