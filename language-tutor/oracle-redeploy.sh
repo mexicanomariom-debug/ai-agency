@@ -1,3 +1,4 @@
+#!/usr/bin/env bash
 # Redeploy trigger: BOT_TOKEN configured in GitHub Secrets
 set -euo pipefail
 
@@ -13,7 +14,7 @@ fi
 
 if command -v docker &>/dev/null; then
   echo "Stopping old containers..."
-  $DOCKER compose -f docker-compose.prod.yml down -v 2>/dev/null || true
+  $DOCKER compose -f docker-compose.prod.yml down 2>/dev/null || true
 fi
 
 echo "Removing old build artifacts..."

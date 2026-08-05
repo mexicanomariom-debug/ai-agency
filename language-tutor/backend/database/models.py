@@ -1,11 +1,12 @@
 from datetime import datetime
 
 from pgvector.sqlalchemy import Vector
-from sqlalchemy import BigInteger, Boolean, DateTime, Enum, ForeignKey, Integer, String, Text, func
+from sqlalchemy import BigInteger, Boolean, DateTime, ForeignKey, Integer, String, Text, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from database.base import Base
 from database.enums import Language, MessageRole, ProficiencyLevel, SubscriptionTier
+from database.types import LanguageEnum, MessageRoleEnum, ProficiencyLevelEnum, SubscriptionTierEnum
 
 
 class User(Base):
@@ -16,11 +17,11 @@ class User(Base):
     username: Mapped[str | None] = mapped_column(String(255), nullable=True)
     first_name: Mapped[str | None] = mapped_column(String(255), nullable=True)
     last_name: Mapped[str | None] = mapped_column(String(255), nullable=True)
-    language: Mapped[Language | None] = mapped_column(Enum(Language), nullable=True)
-    level: Mapped[ProficiencyLevel | None] = mapped_column(Enum(ProficiencyLevel), nullable=True)
+    language: Mapped[Language | None] = mapped_column(LanguageEnum, nullable=True)
+    level: Mapped[ProficiencyLevel | None] = mapped_column(ProficiencyLevelEnum, nullable=True)
     is_onboarded: Mapped[bool] = mapped_column(Boolean, default=False, server_default="false")
     subscription_tier: Mapped[SubscriptionTier] = mapped_column(
-        Enum(SubscriptionTier), default=SubscriptionTier.FREE, server_default="free"
+        SubscriptionTierEnum, default=SubscriptionTier.FREE, server_default="free"
     )
     stripe_customer_id: Mapped[str | None] = mapped_column(String(255), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
@@ -43,7 +44,7 @@ class Persona(Base):
     description: Mapped[str] = mapped_column(Text, nullable=False)
     avatar_url: Mapped[str | None] = mapped_column(String(512), nullable=True)
     system_prompt: Mapped[str] = mapped_column(Text, nullable=False)
-    language: Mapped[Language | None] = mapped_column(Enum(Language), nullable=True)
+    language: Mapped[Language | None] = mapped_column(LanguageEnum, nullable=True)
     is_default: Mapped[bool] = mapped_column(Boolean, default=False, server_default="false")
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, server_default="true")
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
@@ -57,7 +58,7 @@ class ChatMessage(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
     persona_id: Mapped[int | None] = mapped_column(ForeignKey("personas.id", ondelete="SET NULL"), nullable=True)
-    role: Mapped[MessageRole] = mapped_column(Enum(MessageRole), nullable=False)
+    role: Mapped[MessageRole] = mapped_column(MessageRoleEnum, nullable=False)
     content: Mapped[str] = mapped_column(Text, nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
@@ -86,8 +87,8 @@ class KnowledgeChunk(Base):
     __tablename__ = "knowledge_chunks"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
-    language: Mapped[Language] = mapped_column(Enum(Language), index=True)
-    level: Mapped[ProficiencyLevel] = mapped_column(Enum(ProficiencyLevel), index=True)
+    language: Mapped[Language] = mapped_column(LanguageEnum, index=True)
+    level: Mapped[ProficiencyLevel] = mapped_column(ProficiencyLevelEnum, index=True)
     topic: Mapped[str] = mapped_column(String(255), index=True)
     content: Mapped[str] = mapped_column(Text, nullable=False)
     embedding: Mapped[list[float] | None] = mapped_column(Vector(1536), nullable=True)

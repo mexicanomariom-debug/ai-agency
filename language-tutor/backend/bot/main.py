@@ -1,5 +1,6 @@
 import asyncio
 import logging
+import subprocess
 
 from aiogram import Bot, Dispatcher
 from aiogram.client.default import DefaultBotProperties
@@ -13,9 +14,16 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
+def run_migrations() -> None:
+    logger.info("Running database migrations...")
+    subprocess.run(["alembic", "upgrade", "head"], check=True)
+
+
 async def main() -> None:
     if not settings.bot_token:
         raise RuntimeError("BOT_TOKEN is required")
+
+    run_migrations()
 
     bot = Bot(
         token=settings.bot_token,

@@ -6,14 +6,12 @@ cd "$(dirname "$0")"
 
 echo "=== Opus 5 — Oracle Server Setup ==="
 
-# Use sudo for docker if user is not in docker group (common on fresh Oracle VMs)
 if docker info &>/dev/null 2>&1; then
   DOCKER="docker"
 else
   DOCKER="sudo docker"
 fi
 
-# Install Docker if missing
 if ! command -v docker &>/dev/null; then
   echo "Installing Docker..."
   curl -fsSL https://get.docker.com | sudo sh
@@ -26,7 +24,6 @@ if ! $DOCKER compose version &>/dev/null 2>&1; then
   sudo apt-get install -y docker-compose-plugin 2>/dev/null || true
 fi
 
-# Create .env if missing
 if [[ ! -f .env ]]; then
   if [[ -f .env.production ]]; then
     cp .env.production .env
@@ -37,21 +34,30 @@ if [[ ! -f .env ]]; then
   fi
 fi
 
-# Open port 8000 in local firewall (if ufw active)
 if command -v ufw &>/dev/null && sudo ufw status 2>/dev/null | grep -q "Status: active"; then
   sudo ufw allow 8000/tcp || true
   sudo ufw allow 22/tcp || true
 fi
 
-echo "Building and starting containers..."
-$DOCKER compose -f docker-compose.prod.yml down 2>/dev/null || true
-$DOCKER compose -f docker-compose.prod.yml up -d --build
+echo "Starting database..."
+$DOCKER compose -f docker-compose.prod.yml up -d db
 
 echo "Waiting for database..."
-sleep 15
+for i in $(seq 1 30); do
+  if $DOCKER compose -f docker-compose.prod.yml exec -T db pg_isready -U "${POSTGRES_USER:-language_tutor}" &>/dev/null; then
+    break
+  fi
+  sleep 2
+done
 
 echo "Running migrations..."
-$DOCKER compose -f docker-compose.prod.yml exec -T api alembic upgrade head
+$DOCKER compose -f docker-compose.prod.yml run --rm --no-deps api alembic upgrade head
+
+echo "Building and starting all containers..."
+$DOCKER compose -f docker-compose.prod.yml up -d --build
+
+echo "Waiting for services..."
+sleep 10
 
 echo ""
 echo "=== Status ==="
@@ -59,9 +65,8 @@ $DOCKER compose -f docker-compose.prod.yml ps
 
 echo ""
 echo "=== Health check ==="
-curl -sf http://localhost:8000/health && echo " API OK" || echo " API not responding"
+curl -sf http://localhost:8000/health && echo " API OK" || echo " API not responding yet"
 
 echo ""
 echo "=== Done ==="
-echo "API:  http://$(curl -sf ifconfig.me 2>/dev/null || hostname -I | awk '{print $1}'):8000"
 echo "Logs: $DOCKER compose -f docker-compose.prod.yml logs -f bot"
