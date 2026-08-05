@@ -30,6 +30,23 @@ class UserResponse(BaseModel):
     model_config = {"from_attributes": True}
 
 
+class VoiceTalkResponse(BaseModel):
+    transcript: str
+    reply: str
+    audio_base64: str | None = None
+    audio_mime: str | None = None
+    error: str | None = None
+
+
+class VoiceTutorResponse(BaseModel):
+    name: str
+    slug: str
+    description: str
+    language: str | None
+    level: str | None
+    greeting: str
+
+
 class MessageResponse(BaseModel):
     role: str
     content: str

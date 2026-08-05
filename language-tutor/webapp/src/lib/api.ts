@@ -31,6 +31,23 @@ export interface ChatMessage {
   content: string;
 }
 
+export interface VoiceTutor {
+  name: string;
+  slug: string;
+  description: string;
+  language: string | null;
+  level: string | null;
+  greeting: string;
+}
+
+export interface VoiceTalkResult {
+  transcript: string;
+  reply: string;
+  audio_base64: string | null;
+  audio_mime: string | null;
+  error?: string | null;
+}
+
 export function getAuthHeaders(initData?: string): HeadersInit {
   const headers: HeadersInit = { "Content-Type": "application/json" };
   if (initData) {
@@ -101,4 +118,32 @@ export async function* streamChat(
       }
     }
   }
+}
+
+export async function fetchVoiceTutor(initData?: string): Promise<VoiceTutor> {
+  const res = await fetch(`${API_URL}/api/voice/tutor`, {
+    headers: getAuthHeaders(initData),
+  });
+  if (!res.ok) throw new Error("Не удалось загрузить учителя");
+  return res.json();
+}
+
+export async function voiceTalk(audio: Blob, initData?: string): Promise<VoiceTalkResult> {
+  const form = new FormData();
+  form.append("audio", audio, "voice.webm");
+
+  const headers: HeadersInit = {};
+  if (initData) {
+    headers["X-Telegram-Init-Data"] = initData;
+  } else if (DEMO_MODE) {
+    headers["X-Demo-Mode"] = "true";
+  }
+
+  const res = await fetch(`${API_URL}/api/voice/talk`, {
+    method: "POST",
+    headers,
+    body: form,
+  });
+  if (!res.ok) throw new Error(`Ошибка: ${res.status}`);
+  return res.json();
 }

@@ -28,6 +28,7 @@ jobs:
         env:
           BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD || 'opus5_prod_secret_2026' }}
           API_SECRET_KEY: ${{ secrets.API_SECRET_KEY || 'opus5-api-secret-2026' }}
         run: |
@@ -36,6 +37,9 @@ jobs:
           BOT_USERNAME=All_languages_bot
           OPENAI_API_KEY=${OPENAI_API_KEY}
           OPENAI_MODEL=gpt-4o-mini
+          OPENAI_TTS_VOICE=nova
+          ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+          ANTHROPIC_MODEL=claude-sonnet-4-20250514
           POSTGRES_USER=language_tutor
           POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
           POSTGRES_DB=language_tutor

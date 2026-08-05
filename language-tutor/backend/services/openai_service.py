@@ -94,5 +94,16 @@ class OpenAIService:
             if delta:
                 yield delta
 
+    async def synthesize_speech(self, text: str, voice: str | None = None) -> bytes | None:
+        if not settings.openai_api_key:
+            return None
+        response = await self.client.audio.speech.create(
+            model="tts-1",
+            voice=voice or settings.openai_tts_voice,
+            input=text[:4096],
+            response_format="mp3",
+        )
+        return response.content
+
 
 openai_service = OpenAIService()

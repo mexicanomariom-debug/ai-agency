@@ -13,16 +13,20 @@ const nextConfig: NextConfig = {
     ];
   },
   async headers() {
+    const tgFrameAncestors =
+      "frame-ancestors 'self' https://web.telegram.org https://telegram.org";
     return [
       {
         source: "/app/:path*",
-        headers: [
-          {
-            key: "Content-Security-Policy",
-            value:
-              "frame-ancestors 'self' https://web.telegram.org https://telegram.org",
-          },
-        ],
+        headers: [{ key: "Content-Security-Policy", value: tgFrameAncestors }],
+      },
+      {
+        source: "/voice/:path*",
+        headers: [{ key: "Content-Security-Policy", value: tgFrameAncestors }],
+      },
+      {
+        source: "/voice",
+        headers: [{ key: "Content-Security-Policy", value: tgFrameAncestors }],
       },
     ];
   },

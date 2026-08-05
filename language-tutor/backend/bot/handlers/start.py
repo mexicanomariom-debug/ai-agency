@@ -17,12 +17,12 @@ LANGUAGE_LABELS = {
 }
 
 LEVEL_LABELS = {
-    "beginner": "A1",
-    "elementary": "A2",
-    "intermediate": "B1",
-    "upper_intermediate": "B2",
-    "advanced": "C1",
-    "native": "C2",
+    "beginner": "A1 — Начальный",
+    "elementary": "A2 — Элементарный",
+    "intermediate": "B1 — Средний",
+    "upper_intermediate": "B2 — Выше среднего",
+    "advanced": "C1 — Продвинутый",
+    "native": "C2 — Профи",
 }
 
 
@@ -42,9 +42,11 @@ async def cmd_start(message: Message, state: FSMContext, session: AsyncSession) 
         await state.set_state(OnboardingStates.chatting)
         await message.answer(
             f"С возвращением, {name}! 👋\n\n"
+            f"🎓 <b>Ваш урок</b>\n"
             f"🗣 Язык: {LANGUAGE_LABELS.get(user.language.value, user.language.value)}\n"
             f"📊 Уровень: {LEVEL_LABELS.get(user.level.value, user.level.value)}\n\n"
-            "Пиши сообщение или отправь голосовое — начнём практику!",
+            "• Пишите или отправляйте голосовые — практика с репетитором\n"
+            "• Синяя кнопка «Учитель — общение» — голосовой AI-учитель",
             reply_markup=ReplyKeyboardRemove(),
         )
         return
@@ -52,10 +54,23 @@ async def cmd_start(message: Message, state: FSMContext, session: AsyncSession) 
     await state.set_state(OnboardingStates.choosing_language)
     await message.answer(
         f"Привет, {name}! 👋\n\n"
-        "Я — AI-репетитор по школьной программе ФГОС.\n"
-        "Помогу практиковать <b>английский</b>, <b>испанский</b> или <b>немецкий</b>.\n\n"
+        "Я — ваш <b>AI-учитель и репетитор</b>.\n"
+        "Помогу выучить <b>английский</b>, <b>испанский</b> или <b>немецкий</b> "
+        "по программе ФГОС и разговорникам для взрослых.\n\n"
         "Выбери язык:",
         reply_markup=language_keyboard(),
+    )
+
+
+@router.message(Command("help"))
+async def cmd_help(message: Message) -> None:
+    await message.answer(
+        "🎓 <b>Как заниматься</b>\n\n"
+        "1. <b>Текст и голос в чате</b> — пишите или записывайте голосовые сообщения\n"
+        "2. <b>Учитель — общение</b> — синяя кнопка слева от поля ввода: "
+        "голосовой AI-учитель с виртуальным репетитором\n"
+        "3. <b>/settings</b> — сменить язык или уровень\n\n"
+        "Репетитор подстраивается под ваш уровень и даёт обратную связь."
     )
 
 
@@ -92,8 +107,8 @@ async def choose_level(callback: CallbackQuery, state: FSMContext, session: Asyn
     await state.set_state(OnboardingStates.chatting)
     await callback.message.edit_text(
         f"Уровень: {LEVEL_LABELS.get(level_value, level_value)} ✅\n\n"
-        "Всё готово! Напиши первое сообщение на выбранном языке\n"
-        "или отправь голосовое сообщение."
+        "Урок готов! Пишите или отправляйте голосовые.\n"
+        "Для голосового учителя нажмите синюю кнопку «Учитель — общение»."
     )
     await callback.answer()
 

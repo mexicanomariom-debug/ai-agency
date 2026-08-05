@@ -12,24 +12,11 @@ from database.models import User
 from database.rag import rag_service
 from services.chat_history import chat_history_service
 from services.cognitive_profiler import cognitive_profiler
-from services.openai_service import openai_service
+from services.llm_service import llm_service
 from services.personas import persona_service
+from services.tutor_context import build_tutor_system_prompt
 
 router = APIRouter(prefix="/chat", tags=["chat"])
-
-
-def _build_system_prompt(user: User, persona, rag_context: str, cognitive_context: str) -> str:
-    parts = [persona.system_prompt]
-    if user.language:
-        parts.append(f"The student is learning {user.language.value.title()}.")
-    if user.level:
-        parts.append(f"Their level is {user.level.value.replace('_', ' ').title()}.")
-    if cognitive_context:
-        parts.append(f"Student profile:\n{cognitive_context}")
-    if rag_context:
-        parts.append(f"Relevant learning material:\n{rag_context}")
-    parts.append("Respond in the target language when appropriate for practice.")
-    return "\n\n".join(parts)
 
 
 async def _stream_response(
@@ -54,14 +41,16 @@ async def _stream_response(
         rag_context = await rag_service.format_context(chunks)
 
     cognitive_context = cognitive_profiler.build_context(user.cognitive_profile)
-    system_prompt = _build_system_prompt(user, persona, rag_context, cognitive_context)
+    system_prompt = build_tutor_system_prompt(
+        persona, user=user, rag_context=rag_context, cognitive_context=cognitive_context
+    )
 
     openai_messages = chat_history_service.to_openai_messages(history)
     openai_messages.append({"role": "user", "content": message})
 
     full_response = ""
     try:
-        async for chunk in openai_service.stream_chat_completion(openai_messages, system_prompt):
+        async for chunk in llm_service.stream_chat_completion(openai_messages, system_prompt):
             full_response += chunk
             yield f"data: {json.dumps({'content': chunk, 'done': False})}\n\n"
     except Exception as e:
