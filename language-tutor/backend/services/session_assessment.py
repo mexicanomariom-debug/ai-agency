@@ -6,7 +6,7 @@ from datetime import datetime, timedelta, timezone
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from database.enums import Language, MessageRole, ProficiencyLevel
+from database.enums import MessageRole, ProficiencyLevel
 from database.models import ChatMessage, Persona, SessionAssessment, User
 from services.cognitive_profiler import cognitive_profiler
 from services.llm_service import llm_service
@@ -187,10 +187,10 @@ Rules:
         record = SessionAssessment(
             user_id=user.id,
             persona_id=persona.id,
-            language=user.language,
+            language=user.language.value if user.language else None,
             user_message_count=len(user_turns),
             speaking_cefr=speaking_cefr,
-            mapped_level=mapped,
+            mapped_level=mapped.value if mapped else None,
             confidence=confidence,
             strengths="\n".join(strengths) if strengths else None,
             weaknesses="\n".join(weaknesses) if weaknesses else None,
