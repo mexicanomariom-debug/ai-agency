@@ -7,10 +7,12 @@ import type { TalkingAvatarHandle } from "@/components/TalkingAvatar3D";
 import { useTelegram } from "@/hooks/useTelegram";
 import {
   closeVoiceSession,
+  fetchProgress,
   fetchVoiceCapabilities,
   fetchVoiceTutor,
   voiceChat,
   voiceTalk,
+  type ProgressSnapshot,
   type VoiceSessionAssessment,
   type VoiceTutor,
 } from "@/lib/api";
@@ -58,6 +60,7 @@ export default function VoiceTeacher() {
   const [sessionSummary, setSessionSummary] = useState<VoiceSessionAssessment | null>(null);
   const [closingSession, setClosingSession] = useState(false);
   const [userTurnCount, setUserTurnCount] = useState(0);
+  const [progress, setProgress] = useState<ProgressSnapshot | null>(null);
 
   const mediaRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
@@ -75,10 +78,12 @@ export default function VoiceTeacher() {
     Promise.all([
       fetchVoiceTutor(initData || undefined),
       fetchVoiceCapabilities(initData || undefined),
+      fetchProgress(initData || undefined).catch(() => null),
     ])
-      .then(([t, caps]) => {
+      .then(([t, caps, prog]) => {
         if (cancelled) return;
         setTutor(t);
+        setProgress(prog);
         setUseBrowserStt(!caps.stt);
         if (!caps.llm) {
           setError("Нет LLM ключа (ANTHROPIC/OPENAI). Добавьте в GitHub Secrets и задеплойте Oracle.");
@@ -119,6 +124,9 @@ export default function VoiceTeacher() {
         const result = await closeVoiceSession(initData || undefined, "voice-teacher");
         if (result.assessed) {
           setSessionSummary(result);
+          void fetchProgress(initData || undefined)
+            .then(setProgress)
+            .catch(() => undefined);
         }
       } catch {
         /* best-effort on exit */
@@ -362,6 +370,15 @@ export default function VoiceTeacher() {
           {tutor.level ? ` · ${tutor.level}` : ""}
           {audience ? ` · ${audience}` : ""}
         </p>
+        {progress && (
+          <p className="premium-progress-stats">
+            🔥 {progress.streak_days} дн.
+            {progress.speaking_cefr ? ` · CEFR ${progress.speaking_cefr}` : ""}
+            {progress.vocab_total > 0
+              ? ` · 📚 ${progress.vocab_total} слов (${progress.vocab_due} на сегодня)`
+              : ""}
+          </p>
+        )}
         {userTurnCount >= 2 && !sessionSummary && (
           <button
             type="button"

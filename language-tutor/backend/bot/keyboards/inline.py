@@ -76,6 +76,7 @@ def premium_menu_keyboard() -> InlineKeyboardMarkup:
         inline_keyboard=[
             [InlineKeyboardButton(text="🎙 Голосовой учитель Илья", callback_data="menu:voice_hint")],
             [InlineKeyboardButton(text="📚 Слова на сегодня", callback_data="menu:review")],
+            [InlineKeyboardButton(text="📊 Мой прогресс", callback_data="menu:progress")],
             [InlineKeyboardButton(text="✍️ Написать в чат", callback_data="menu:chat_hint")],
             [InlineKeyboardButton(text="⚙️ Сменить профиль", callback_data="menu:settings")],
         ]
