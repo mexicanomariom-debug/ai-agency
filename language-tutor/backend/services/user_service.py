@@ -2,7 +2,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from database.enums import Language, ProficiencyLevel, SubscriptionTier
+from database.enums import Audience, Language, ProficiencyLevel, SubscriptionTier
 from database.models import User
 
 
@@ -37,6 +37,11 @@ class UserService:
             last_name=last_name,
         )
         session.add(user)
+        await session.flush()
+        return user
+
+    async def set_audience(self, session: AsyncSession, user: User, audience: Audience) -> User:
+        user.audience = audience
         await session.flush()
         return user
 

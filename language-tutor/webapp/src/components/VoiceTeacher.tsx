@@ -1,9 +1,9 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Loader2, Mic, MicOff } from "lucide-react";
-import VirtualTeacherAvatar from "@/components/VirtualTeacherAvatar";
-import { useAudioLipSync } from "@/hooks/useAudioLipSync";
+import type { TalkingAvatarHandle } from "@/components/TalkingAvatar3D";
 import { useTelegram } from "@/hooks/useTelegram";
 import {
   fetchVoiceCapabilities,
@@ -12,6 +12,15 @@ import {
   voiceTalk,
   type VoiceTutor,
 } from "@/lib/api";
+
+const TalkingAvatar3D = dynamic(() => import("@/components/TalkingAvatar3D"), {
+  ssr: false,
+  loading: () => (
+    <div className="flex h-72 w-full items-center justify-center">
+      <Loader2 className="h-8 w-8 animate-spin text-[var(--gold)]" />
+    </div>
+  ),
+});
 
 type Status = "idle" | "recording" | "processing" | "speaking";
 
@@ -41,16 +50,15 @@ export default function VoiceTeacher() {
   const [error, setError] = useState<string | null>(null);
   const [lastUser, setLastUser] = useState("");
   const [lastReply, setLastReply] = useState("");
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [audioEl, setAudioEl] = useState<HTMLAudioElement | null>(null);
   const [useBrowserStt, setUseBrowserStt] = useState(true);
   const [loading, setLoading] = useState(true);
+  const [avatarReady, setAvatarReady] = useState(false);
 
   const mediaRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
   const recognitionRef = useRef<SpeechRec | null>(null);
   const transcriptRef = useRef("");
-  const mouthOpen = useAudioLipSync(isPlaying, audioEl);
+  const avatarRef = useRef<TalkingAvatarHandle | null>(null);
 
   useEffect(() => {
     if (!isReady) return;
@@ -64,11 +72,10 @@ export default function VoiceTeacher() {
       .then(([t, caps]) => {
         if (cancelled) return;
         setTutor(t);
-        // Prefer Whisper when OpenAI STT is available; otherwise browser speech
         setUseBrowserStt(!caps.stt);
         if (!caps.llm) {
           setError("Нет LLM ключа (ANTHROPIC/OPENAI). Добавьте в GitHub Secrets и задеплойте Oracle.");
-        } else if (!caps.stt) {
+        } else {
           setError(null);
         }
       })
@@ -78,9 +85,10 @@ export default function VoiceTeacher() {
           setTutor({
             name: "Илья",
             slug: "voice-teacher",
-            description: "Голосовой AI-учитель",
+            description: "Премиальный 3D-учитель",
             language: null,
             level: null,
+            audience: null,
             greeting: "Не удалось связаться с сервером.",
           });
           setUseBrowserStt(true);
@@ -99,44 +107,54 @@ export default function VoiceTeacher() {
     setLastReply(reply);
     setStatus("speaking");
 
-    if (audioBase64) {
-      const bytes = Uint8Array.from(atob(audioBase64), (c) => c.charCodeAt(0));
-      const blob = new Blob([bytes], { type: "audio/mpeg" });
-      const url = URL.createObjectURL(blob);
-      const audio = new Audio(url);
-      setAudioEl(audio);
-      audio.onended = () => {
-        setIsPlaying(false);
-        setAudioEl(null);
+    try {
+      if (audioBase64 && avatarRef.current && avatarReady) {
+        await avatarRef.current.speakAudioBase64(audioBase64, reply);
         setStatus("idle");
-        URL.revokeObjectURL(url);
-      };
-      setIsPlaying(true);
-      await audio.play();
-      return;
-    }
+        return;
+      }
 
-    if ("speechSynthesis" in window) {
-      window.speechSynthesis.cancel();
-      const utter = new SpeechSynthesisUtterance(reply);
-      utter.lang = "ru-RU";
-      utter.rate = 1.02;
-      const voices = window.speechSynthesis.getVoices();
-      const ru = voices.find((v) => v.lang.startsWith("ru"));
-      if (ru) utter.voice = ru;
-      utter.onstart = () => setIsPlaying(true);
-      utter.onend = () => {
-        setIsPlaying(false);
+      if (audioBase64) {
+        const bytes = Uint8Array.from(atob(audioBase64), (c) => c.charCodeAt(0));
+        const blob = new Blob([bytes], { type: "audio/mpeg" });
+        const url = URL.createObjectURL(blob);
+        const audio = new Audio(url);
+        await new Promise<void>((resolve) => {
+          audio.onended = () => {
+            URL.revokeObjectURL(url);
+            resolve();
+          };
+          audio.onerror = () => {
+            URL.revokeObjectURL(url);
+            resolve();
+          };
+          void audio.play();
+        });
         setStatus("idle");
-      };
-      window.speechSynthesis.speak(utter);
-      // Approximate lip-sync for browser TTS (no MediaElement source)
-      setIsPlaying(true);
-      return;
-    }
+        return;
+      }
 
+      if (avatarRef.current && avatarReady) {
+        await avatarRef.current.speakBrowserText(reply);
+        setStatus("idle");
+        return;
+      }
+
+      if ("speechSynthesis" in window) {
+        window.speechSynthesis.cancel();
+        const utter = new SpeechSynthesisUtterance(reply);
+        utter.lang = "ru-RU";
+        await new Promise<void>((resolve) => {
+          utter.onend = () => resolve();
+          utter.onerror = () => resolve();
+          window.speechSynthesis.speak(utter);
+        });
+      }
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Ошибка озвучки");
+    }
     setStatus("idle");
-  }, []);
+  }, [avatarReady]);
 
   const handleTranscript = useCallback(
     async (transcript: string) => {
@@ -199,7 +217,7 @@ export default function VoiceTeacher() {
     if (useBrowserStt) {
       const SR = getSpeechRecognition();
       if (!SR) {
-        setError("Распознавание речи недоступно в этом клиенте. Добавьте OPENAI_API_KEY в GitHub Secrets.");
+        setError("Распознавание речи недоступно. Добавьте OPENAI_API_KEY в GitHub Secrets.");
         return;
       }
       const rec = new SR();
@@ -270,80 +288,76 @@ export default function VoiceTeacher() {
     }
   }, [useBrowserStt, handleTranscript]);
 
+  const audience = tutor?.audience || null;
+  const isChild = audience === "child";
+
   if (loading || !tutor) {
     return (
-      <div className="flex min-h-screen flex-col items-center justify-center gap-3 px-4">
-        <Loader2 className="h-8 w-8 animate-spin text-amber-400" />
-        <p className="text-sm text-zinc-400">Загрузка учителя…</p>
+      <div className="premium-shell flex min-h-screen flex-col items-center justify-center gap-3 px-4">
+        <Loader2 className="h-8 w-8 animate-spin text-[var(--gold)]" />
+        <p className="text-sm text-[var(--muted-fg)]">Открываем студию учителя…</p>
         {error && <p className="max-w-sm text-center text-sm text-red-300">{error}</p>}
       </div>
     );
   }
 
   return (
-    <div className="flex min-h-screen flex-col bg-gradient-to-b from-[#0a0a0c] via-[#141210] to-[#0c0c0e] px-4 py-6">
-      <header className="mb-4 text-center">
-        <p className="text-xs uppercase tracking-[0.2em] text-amber-400/80">AI Учитель · Репетитор</p>
-        <h1 className="text-xl font-bold text-white">Голосовое общение</h1>
-        {user && (
-          <p className="mt-1 text-sm text-zinc-400">
-            {user.first_name}
-            {tutor.language ? ` · ${tutor.language}` : ""}
-            {tutor.level ? ` · ${tutor.level}` : ""}
-          </p>
-        )}
+    <div className={`premium-shell ${isChild ? "theme-child" : "theme-adult"}`}>
+      <div className="premium-glow" aria-hidden />
+      <header className="premium-header">
+        <p className="premium-kicker">{isChild ? "Opus Kids · Studio" : "Opus 5 · Concierge"}</p>
+        <h1 className="premium-title">Илья</h1>
+        <p className="premium-sub">
+          {user?.first_name ? `${user.first_name}` : "Гость"}
+          {tutor.language ? ` · ${tutor.language}` : ""}
+          {tutor.level ? ` · ${tutor.level}` : ""}
+          {audience ? ` · ${audience}` : ""}
+        </p>
       </header>
 
-      <div className="flex flex-1 flex-col items-center justify-center gap-6">
-        <VirtualTeacherAvatar
+      <div className="premium-stage">
+        <TalkingAvatar3D
+          ref={avatarRef}
           name={tutor.name}
-          mouthOpen={mouthOpen}
-          isSpeaking={status === "speaking"}
+          audience={audience}
           isListening={status === "recording"}
+          isSpeaking={status === "speaking"}
+          onReadyChange={setAvatarReady}
         />
 
-        <p className="max-w-sm text-center text-sm leading-relaxed text-zinc-400">
+        <p className="premium-caption">
           {status === "idle" && tutor.greeting}
-          {status === "recording" && "Говорите… отпустите кнопку, когда закончите"}
-          {status === "processing" && "Думаю над ответом…"}
+          {status === "recording" && (isChild ? "Говори… отпусти кнопку, когда закончишь" : "Говорите… отпустите, когда закончите")}
+          {status === "processing" && (isChild ? "Илья думает…" : "Формирую ответ…")}
           {status === "speaking" && lastReply}
         </p>
 
         {lastUser && status === "idle" && (
-          <p className="max-w-sm rounded-xl bg-zinc-800/60 px-4 py-2 text-center text-sm text-zinc-300">
-            Вы: {lastUser}
-          </p>
+          <p className="premium-echo">Вы: {lastUser}</p>
         )}
 
-        {error && (
-          <p className="rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-2 text-sm text-red-300">
-            {error}
-          </p>
-        )}
+        {error && <p className="premium-error">{error}</p>}
       </div>
 
-      <div className="flex flex-col items-center gap-3 pb-6">
+      <div className="premium-mic-block">
         <button
           type="button"
           onPointerDown={startRecording}
           onPointerUp={stopRecording}
           onPointerLeave={stopRecording}
           disabled={status === "processing" || status === "speaking"}
-          className={`flex h-20 w-20 items-center justify-center rounded-full transition-all ${
-            status === "recording"
-              ? "scale-110 bg-red-500 shadow-lg shadow-red-500/40"
-              : "bg-gradient-to-b from-amber-400 to-amber-600 shadow-lg shadow-amber-500/25 hover:from-amber-300 hover:to-amber-500"
-          } disabled:opacity-50`}
+          className={`premium-mic ${status === "recording" ? "recording" : ""}`}
+          aria-label="Микрофон"
         >
           {status === "processing" ? (
-            <Loader2 className="h-8 w-8 animate-spin text-black" />
+            <Loader2 className="h-8 w-8 animate-spin" />
           ) : status === "recording" ? (
-            <MicOff className="h-8 w-8 text-white" />
+            <MicOff className="h-8 w-8" />
           ) : (
-            <Mic className="h-8 w-8 text-black" />
+            <Mic className="h-8 w-8" />
           )}
         </button>
-        <p className="text-xs text-zinc-500">
+        <p className="premium-mic-hint">
           {status === "recording" ? "Отпустите для отправки" : "Удерживайте и говорите"}
         </p>
       </div>

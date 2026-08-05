@@ -23,6 +23,12 @@ class ProficiencyLevel(StrEnum):
     NATIVE = "native"
 
 
+class Audience(StrEnum):
+    CHILD = "child"
+    TEEN = "teen"
+    ADULT = "adult"
+
+
 class SubscriptionTier(StrEnum):
     FREE = "free"
     BASIC = "basic"

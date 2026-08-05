@@ -11,12 +11,12 @@ MENU_BUTTON_TEXT = "Учитель — общение"
 
 
 async def setup_bot_ui(bot: Bot) -> None:
-    """Teacher/tutor menu: blue voice button + bot commands."""
+    """Premium teacher menu: blue voice button + concierge commands."""
     await bot.set_my_commands(
         [
-            BotCommand(command="start", description="🎓 Начать урок"),
+            BotCommand(command="start", description="✦ Concierge · начать"),
             BotCommand(command="help", description="📖 Как заниматься"),
-            BotCommand(command="settings", description="⚙️ Настройки"),
+            BotCommand(command="settings", description="⚙️ Профиль"),
         ],
         scope=BotCommandScopeDefault(),
     )
