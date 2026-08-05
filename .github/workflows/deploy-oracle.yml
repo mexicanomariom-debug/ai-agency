@@ -59,14 +59,21 @@ jobs:
 
           deploy_to() {
             local server="$1"
-            rsync -avz --delete \
-              -e "ssh -o StrictHostKeyChecking=no -o BatchMode=yes" \
-              --exclude node_modules --exclude .next --exclude __pycache__ --exclude .venv \
-              language-tutor/ "$server:$REMOTE_DIR/" && \
-            scp -o StrictHostKeyChecking=no \
-              language-tutor/.env "$server:$REMOTE_DIR/.env" && \
-            ssh -o StrictHostKeyChecking=no "$server" \
-              "chmod +x $REMOTE_DIR/oracle-setup.sh && cd $REMOTE_DIR && ./oracle-setup.sh"
+            tar -czf /tmp/opus5-deploy.tar.gz \
+              --exclude=node_modules --exclude=.next --exclude=__pycache__ --exclude=.venv --exclude=.git \
+              -C language-tutor .
+            scp -o StrictHostKeyChecking=no /tmp/opus5-deploy.tar.gz "$server:/tmp/opus5-deploy.tar.gz"
+            scp -o StrictHostKeyChecking=no language-tutor/.env "$server:$REMOTE_DIR/.env"
+            ssh -o StrictHostKeyChecking=no "$server" bash -s <<REMOTE
+          set -euo pipefail
+          sudo mkdir -p $REMOTE_DIR
+          sudo chown -R \$(whoami):\$(whoami) $REMOTE_DIR
+          cd $REMOTE_DIR
+          tar -xzf /tmp/opus5-deploy.tar.gz
+          rm -f /tmp/opus5-deploy.tar.gz
+          chmod +x oracle-redeploy.sh oracle-setup.sh
+          ./oracle-redeploy.sh
+          REMOTE
           }
 
           if deploy_to "${USER}@${HOST}"; then

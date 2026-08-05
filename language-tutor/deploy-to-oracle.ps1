@@ -1,11 +1,9 @@
-# Deploy Opus 5 to Oracle from Windows PowerShell 5.1+
+# Fast deploy to Oracle via tar archive (PowerShell 5.1+)
 # Usage:
-#   .\deploy-to-oracle.ps1
-#   .\deploy-to-oracle.ps1 -KeyPath "C:\Users\DavidPC\Downloads\ssh-key-2024-01-01.key"
-#   .\deploy-to-oracle.ps1 -Server "opc@140.84.183.154" -KeyPath "C:\path\to\key.pem"
+#   .\deploy-to-oracle.ps1 -KeyPath "C:\Users\DavidPC\.ssh\oracle_key"
 
 param(
-    [string]$Host = "140.84.183.154",
+    [string]$TargetHost = "140.84.183.154",
     [string]$User = "ubuntu",
     [string]$RemoteDir = "/opt/opus5",
     [string]$KeyPath = ""
@@ -13,78 +11,67 @@ param(
 
 $ErrorActionPreference = "Stop"
 $ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
+$Archive = Join-Path $env:TEMP "opus5-deploy.tar.gz"
 
 function Find-OracleKey {
     $candidates = @(
         $KeyPath,
         "$env:USERPROFILE\.ssh\oracle_key",
         "$env:USERPROFILE\.ssh\oracle_key.pem",
-        "$env:USERPROFILE\.ssh\id_rsa",
-        "$env:USERPROFILE\.ssh\id_ed25519"
+        "$env:USERPROFILE\.ssh\id_rsa"
     )
-    $downloads = Get-ChildItem "$env:USERPROFILE\Downloads\*.pem" -ErrorAction SilentlyContinue
-    foreach ($f in $downloads) { $candidates += $f.FullName }
-    $sshDir = Get-ChildItem "$env:USERPROFILE\.ssh\*.pem" -ErrorAction SilentlyContinue
-    foreach ($f in $sshDir) { $candidates += $f.FullName }
-
+    Get-ChildItem "$env:USERPROFILE\Downloads\*.pem" -ErrorAction SilentlyContinue | ForEach-Object { $candidates += $_.FullName }
+    Get-ChildItem "$env:USERPROFILE\.ssh\*.pem" -ErrorAction SilentlyContinue | ForEach-Object { $candidates += $_.FullName }
     foreach ($path in $candidates) {
         if ($path -and (Test-Path $path)) { return $path }
     }
     return $null
 }
 
-function Invoke-RemoteDeploy {
-    param(
-        [string]$Server,
-        [string[]]$SshArgs,
-        [string[]]$ScpArgs
-    )
+function Invoke-Deploy {
+    param([string]$Server, [string[]]$SshArgs, [string[]]$ScpArgs)
 
-    Write-Host "-> Deploying to ${Server}:${RemoteDir}" -ForegroundColor Cyan
+    Write-Host "-> Building archive..." -ForegroundColor Cyan
+    if (Test-Path $Archive) { Remove-Item $Archive -Force }
+
+    Push-Location $ScriptDir
+    & tar -czf $Archive `
+        --exclude=node_modules `
+        --exclude=.next `
+        --exclude=__pycache__ `
+        --exclude=.venv `
+        --exclude=.git `
+        .
+    Pop-Location
+
+    $sizeMb = [math]::Round((Get-Item $Archive).Length / 1MB, 1)
+    Write-Host "   Archive: $sizeMb MB" -ForegroundColor DarkGray
 
     $mkdirCmd = "sudo mkdir -p $RemoteDir; sudo chown -R `$(whoami):`$(whoami) $RemoteDir"
     & ssh @SshArgs $Server $mkdirCmd
     if ($LASTEXITCODE -ne 0) { return $false }
 
-    $exclude = @("node_modules", ".next", "__pycache__", ".venv", ".git")
-    $items = Get-ChildItem -Path $ScriptDir -Force | Where-Object { $_.Name -notin $exclude }
-
-    foreach ($item in $items) {
-        Write-Host "   copying $($item.Name)..." -ForegroundColor DarkGray
-        & scp @ScpArgs -r $item.FullName "${Server}:${RemoteDir}/"
-        if ($LASTEXITCODE -ne 0) { return $false }
-    }
+    Write-Host "-> Uploading..." -ForegroundColor Cyan
+    & scp @ScpArgs $Archive "${Server}:/tmp/opus5-deploy.tar.gz"
+    if ($LASTEXITCODE -ne 0) { return $false }
 
     $envFile = Join-Path $ScriptDir ".env.production"
     if (-not (Test-Path $envFile)) { $envFile = Join-Path $ScriptDir ".env" }
     if (Test-Path $envFile) {
         & scp @ScpArgs $envFile "${Server}:${RemoteDir}/.env"
         if ($LASTEXITCODE -ne 0) { return $false }
-        Write-Host "   .env copied" -ForegroundColor DarkGray
-    } else {
-        Write-Warning "No .env or .env.production found - create on server manually"
     }
 
-    Write-Host "-> Running setup on server..." -ForegroundColor Cyan
-    $setupCmd = "chmod +x $RemoteDir/oracle-setup.sh; cd $RemoteDir; ./oracle-setup.sh"
-    & ssh @SshArgs $Server $setupCmd
+    Write-Host "-> Clean redeploy on server..." -ForegroundColor Cyan
+    $remoteCmd = "cd $RemoteDir; tar -xzf /tmp/opus5-deploy.tar.gz; rm -f /tmp/opus5-deploy.tar.gz; chmod +x oracle-redeploy.sh oracle-setup.sh; ./oracle-redeploy.sh"
+    & ssh @SshArgs $Server $remoteCmd
     return ($LASTEXITCODE -eq 0)
 }
 
-# Resolve SSH key
 $key = Find-OracleKey
 if (-not $key) {
-    Write-Host ""
-    Write-Host "SSH key not found!" -ForegroundColor Red
-    Write-Host ""
-    Write-Host "Oracle Cloud gives you a .pem file when you create the VM."
-    Write-Host "Find it (usually in Downloads) and run:"
-    Write-Host ""
-    Write-Host '  .\deploy-to-oracle.ps1 -KeyPath "C:\Users\DavidPC\Downloads\YOUR-KEY.pem"' -ForegroundColor Yellow
-    Write-Host ""
-    Write-Host "Or test SSH manually:"
-    Write-Host '  ssh -i "C:\path\to\key.pem" ubuntu@140.84.183.154' -ForegroundColor Yellow
-    Write-Host '  ssh -i "C:\path\to\key.pem" opc@140.84.183.154' -ForegroundColor Yellow
+    Write-Host "SSH key not found. Run:" -ForegroundColor Red
+    Write-Host '  .\deploy-to-oracle.ps1 -KeyPath "C:\Users\DavidPC\.ssh\oracle_key"' -ForegroundColor Yellow
     exit 1
 }
 
@@ -96,25 +83,18 @@ $users = @($User)
 if ($User -eq "ubuntu") { $users += "opc" }
 
 foreach ($u in $users) {
-    $server = "${u}@${Host}"
+    $server = "${u}@${TargetHost}"
     Write-Host ""
     Write-Host "Trying $server ..." -ForegroundColor Cyan
-    if (Invoke-RemoteDeploy -Server $server -SshArgs $sshArgs -ScpArgs $scpArgs) {
+    if (Invoke-Deploy -Server $server -SshArgs $sshArgs -ScpArgs $scpArgs) {
         Write-Host ""
         Write-Host "Deploy complete!" -ForegroundColor Green
+        Write-Host "   API:     http://140.84.183.154:8000/health"
         Write-Host "   Web App: https://webapp-bay-three-75.vercel.app/app"
         Write-Host "   Bot:     https://t.me/All_languages_bot"
         exit 0
     }
-    Write-Host "Failed for $server" -ForegroundColor Yellow
 }
 
-Write-Host ""
-Write-Host "SSH failed for all users. Permission denied (publickey)." -ForegroundColor Red
-Write-Host ""
-Write-Host "1. Find your Oracle .pem key (Downloads folder or Oracle Cloud console)"
-Write-Host "2. Run with explicit path:"
-Write-Host '   .\deploy-to-oracle.ps1 -KeyPath "C:\Users\DavidPC\Downloads\YOUR-KEY.pem"' -ForegroundColor Yellow
-Write-Host "3. If key is correct but user is opc:"
-Write-Host '   .\deploy-to-oracle.ps1 -User opc -KeyPath "C:\path\to\key.pem"' -ForegroundColor Yellow
+Write-Host "Deploy failed. Check SSH key and server access." -ForegroundColor Red
 exit 1
