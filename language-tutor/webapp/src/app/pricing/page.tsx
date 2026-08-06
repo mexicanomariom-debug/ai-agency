@@ -8,12 +8,12 @@ const PLANS = [
     name: "Free",
     price: "$0",
     period: "forever",
-    description: "Get started with basic language practice.",
+    description: "Telegram onboarding and daily practice.",
     features: [
-      "10 messages per day",
-      "Default AI tutor",
-      "Telegram bot access",
-      "Basic conversation practice",
+      "Telegram bot + placement test",
+      "Default tutor Elena",
+      "Basic chat practice",
+      "/progress snapshot",
     ],
     cta: "Start Free",
     href: `https://t.me/${BOT_USERNAME}`,
@@ -23,13 +23,13 @@ const PLANS = [
     name: "Basic",
     price: "$9",
     period: "/month",
-    description: "More practice with persona tutors.",
+    description: "Persona Lounge and richer sessions.",
     features: [
-      "100 messages per day",
       "All persona tutors",
-      "Web App access",
-      "Conversation history",
-      "Cognitive profiling",
+      "Web App streaming chat",
+      "Opus Studio voice access",
+      "FSRS /review in Telegram",
+      "Session CEFR recap",
     ],
     cta: "Get Basic",
     href: `https://t.me/${BOT_USERNAME}`,
@@ -39,14 +39,13 @@ const PLANS = [
     name: "Premium",
     price: "$19",
     period: "/month",
-    description: "Unlimited learning with full features.",
+    description: "Unlimited concierge learning.",
     features: [
       "Unlimited messages",
-      "All persona tutors",
-      "Priority responses",
-      "Advanced cognitive profiling",
-      "RAG-enhanced tutoring",
-      "Early access to new personas",
+      "Priority model tier",
+      "Full cognitive profile",
+      "RAG textbook context",
+      "Learning program updates",
     ],
     cta: "Get Premium",
     href: `https://t.me/${BOT_USERNAME}`,
@@ -56,43 +55,40 @@ const PLANS = [
 
 export default function PricingPage() {
   return (
-    <>
+    <div className="opus-marketing">
       <Header />
       <main className="px-4 pb-24 pt-32">
-        <div className="mx-auto max-w-5xl text-center">
-          <h1 className="text-4xl font-bold tracking-tight sm:text-5xl">
-            Simple, transparent <span className="gradient-text">pricing</span>
+        <div className="opus-container text-center">
+          <p className="opus-kicker">Plans</p>
+          <h1 className="mt-2 font-[family-name:var(--font-display)] text-4xl font-semibold sm:text-5xl">
+            Simple <span className="gradient-text">concierge</span> pricing
           </h1>
-          <p className="mx-auto mt-4 max-w-xl text-zinc-400">
-            Start free on Telegram. Upgrade when you&apos;re ready for persona tutors and unlimited practice.
+          <p className="mx-auto mt-4 max-w-xl text-[var(--muted-fg)]">
+            Start free on Telegram. Upgrade for Persona Lounge, Studio voice, and the full learning path.
           </p>
         </div>
 
-        <div className="mx-auto mt-16 grid max-w-5xl gap-8 md:grid-cols-3">
+        <div className="opus-container mt-16 grid max-w-5xl gap-6 md:grid-cols-3">
           {PLANS.map((plan) => (
             <div
               key={plan.name}
-              className={`relative rounded-2xl border p-8 ${
-                plan.highlighted
-                  ? "border-indigo-500 bg-indigo-500/5 ring-2 ring-indigo-500/30"
-                  : "border-zinc-800 bg-zinc-900/50"
-              }`}
+              className={`opus-pricing-card ${plan.highlighted ? "opus-pricing-card--highlight" : ""}`}
             >
               {plan.highlighted && (
-                <span className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-indigo-600 px-3 py-0.5 text-xs font-medium text-white">
-                  Most Popular
+                <span className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-[var(--gold)] px-3 py-0.5 text-xs font-semibold text-[#12100e]">
+                  Most popular
                 </span>
               )}
               <h3 className="text-xl font-semibold">{plan.name}</h3>
               <div className="mt-4 flex items-baseline gap-1">
                 <span className="text-4xl font-bold">{plan.price}</span>
-                <span className="text-zinc-500">{plan.period}</span>
+                <span className="text-[var(--muted-fg)]">{plan.period}</span>
               </div>
-              <p className="mt-2 text-sm text-zinc-400">{plan.description}</p>
+              <p className="mt-2 text-sm text-[var(--muted-fg)]">{plan.description}</p>
               <ul className="mt-6 space-y-3">
                 {plan.features.map((feature) => (
-                  <li key={feature} className="flex items-start gap-2 text-sm text-zinc-300">
-                    <Check className="mt-0.5 h-4 w-4 shrink-0 text-indigo-400" />
+                  <li key={feature} className="flex items-start gap-2 text-sm text-[var(--foreground)]">
+                    <Check className="mt-0.5 h-4 w-4 shrink-0 text-[var(--gold)]" />
                     {feature}
                   </li>
                 ))}
@@ -101,11 +97,7 @@ export default function PricingPage() {
                 href={plan.href}
                 target="_blank"
                 rel="noopener noreferrer"
-                className={`mt-8 flex w-full items-center justify-center gap-2 rounded-xl py-3 text-sm font-semibold transition ${
-                  plan.highlighted
-                    ? "bg-indigo-600 text-white hover:bg-indigo-500"
-                    : "border border-zinc-700 text-white hover:border-zinc-600 hover:bg-zinc-800"
-                }`}
+                className={`opus-btn mt-8 w-full ${plan.highlighted ? "opus-btn--primary" : "opus-btn--ghost"}`}
               >
                 <Bot className="h-4 w-4" />
                 {plan.cta}
@@ -114,14 +106,14 @@ export default function PricingPage() {
           ))}
         </div>
 
-        <p className="mt-12 text-center text-sm text-zinc-500">
-          Subscriptions are managed through the Telegram bot.{" "}
-          <Link href="/app" className="text-indigo-400 hover:underline">
-            Or try the Web App
+        <p className="opus-container mt-12 text-center text-sm text-[var(--muted-fg)]">
+          Subscriptions via Telegram.{" "}
+          <Link href="/app" className="text-[var(--gold)] hover:underline">
+            Try Persona Lounge
           </Link>
         </p>
       </main>
       <Footer />
-    </>
+    </div>
   );
 }

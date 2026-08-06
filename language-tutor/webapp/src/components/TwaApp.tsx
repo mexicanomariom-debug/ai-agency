@@ -84,30 +84,33 @@ export default function TwaApp() {
 
   if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-indigo-400" />
+      <div className="opus-app flex min-h-screen items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-[var(--gold)]" />
       </div>
     );
   }
 
   if (view === "personas") {
     return (
-      <div className="min-h-screen px-4 py-6">
+      <div className="opus-app min-h-screen px-4 py-6">
         <div className="mx-auto max-w-2xl">
-          <h1 className="mb-1 text-2xl font-bold">Choose Your Tutor</h1>
-          <p className="mb-6 text-sm text-zinc-400">
+          <p className="opus-kicker">Persona Lounge</p>
+          <h1 className="mt-1 font-[family-name:var(--font-display)] text-2xl font-semibold">
+            Choose your tutor
+          </h1>
+          <p className="mb-6 mt-2 text-sm text-[var(--muted-fg)]">
             {user
-              ? `Hello, ${user.first_name}! Pick a persona to start practicing.`
+              ? `Hello, ${user.first_name} — pick a voice and start practicing.`
               : DEMO_MODE
-                ? "Demo mode — pick a persona to start practicing."
+                ? "Demo mode — pick a persona to start."
                 : "Pick a persona to start practicing."}
           </p>
           {error && (
-            <div className="mb-4 rounded-lg border border-red-500/30 bg-red-500/10 p-3 text-sm text-red-300">
+            <div className="mb-4 rounded-xl border border-red-500/30 bg-red-500/10 p-3 text-sm text-red-300">
               {error}
             </div>
           )}
-          <div className="grid gap-4">
+          <div className="grid gap-3">
             {personas.map((p) => (
               <CharacterCard
                 key={p.slug}
@@ -123,25 +126,26 @@ export default function TwaApp() {
   }
 
   return (
-    <div className="flex min-h-screen flex-col">
-      <header className="flex items-center gap-3 border-b border-zinc-800 px-4 py-3">
+    <div className="opus-app flex min-h-screen flex-col">
+      <header className="opus-app-header flex items-center gap-3 px-4 py-3">
         <button
+          type="button"
           onClick={() => setView("personas")}
-          className="rounded-lg p-1.5 text-zinc-400 transition hover:bg-zinc-800 hover:text-white"
+          className="rounded-lg p-1.5 text-[var(--muted-fg)] transition hover:bg-[var(--surface)] hover:text-white"
         >
           <ArrowLeft className="h-5 w-5" />
         </button>
         <div>
           <h2 className="font-semibold">{selectedPersona?.name}</h2>
-          <p className="text-xs capitalize text-zinc-500">{selectedPersona?.language}</p>
+          <p className="text-xs capitalize text-[var(--muted-fg)]">{selectedPersona?.language}</p>
         </div>
       </header>
 
-      <div className="chat-scroll flex-1 overflow-y-auto px-4 py-4">
+      <div className="flex-1 overflow-y-auto px-4 py-4">
         <div className="mx-auto max-w-2xl space-y-4">
           {messages.length === 0 && (
-            <p className="text-center text-sm text-zinc-500">
-              Start a conversation with {selectedPersona?.name}!
+            <p className="text-center text-sm text-[var(--muted-fg)]">
+              Start a conversation with {selectedPersona?.name}
             </p>
           )}
           {messages.map((msg, i) => (
@@ -150,13 +154,11 @@ export default function TwaApp() {
               className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
             >
               <div
-                className={`max-w-[80%] rounded-2xl px-4 py-2.5 text-sm leading-relaxed ${
-                  msg.role === "user"
-                    ? "bg-indigo-600 text-white"
-                    : "bg-zinc-800 text-zinc-100"
+                className={`max-w-[85%] rounded-2xl px-4 py-2.5 text-sm leading-relaxed ${
+                  msg.role === "user" ? "opus-chat-bubble-user" : "opus-chat-bubble-assistant"
                 }`}
               >
-                {msg.content || (streaming && i === messages.length - 1 ? "..." : "")}
+                {msg.content || (streaming && i === messages.length - 1 ? "…" : "")}
               </div>
             </div>
           ))}
@@ -164,7 +166,7 @@ export default function TwaApp() {
         </div>
       </div>
 
-      <div className="border-t border-zinc-800 px-4 py-3">
+      <div className="border-t border-[var(--panel-border)] px-4 py-3">
         <form
           onSubmit={(e) => {
             e.preventDefault();
@@ -176,20 +178,16 @@ export default function TwaApp() {
             type="text"
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            placeholder="Type your message..."
+            placeholder="Type your message…"
             disabled={streaming}
-            className="flex-1 rounded-xl border border-zinc-700 bg-zinc-900 px-4 py-2.5 text-sm text-white placeholder-zinc-500 outline-none focus:border-indigo-500 disabled:opacity-50"
+            className="opus-input"
           />
           <button
             type="submit"
             disabled={streaming || !input.trim()}
-            className="flex items-center justify-center rounded-xl bg-indigo-600 px-4 py-2.5 text-white transition hover:bg-indigo-500 disabled:opacity-50"
+            className="opus-btn opus-btn--primary opus-btn--sm disabled:opacity-50"
           >
-            {streaming ? (
-              <Loader2 className="h-5 w-5 animate-spin" />
-            ) : (
-              <Send className="h-5 w-5" />
-            )}
+            {streaming ? <Loader2 className="h-5 w-5 animate-spin" /> : <Send className="h-5 w-5" />}
           </button>
         </form>
       </div>

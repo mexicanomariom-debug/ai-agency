@@ -2,8 +2,8 @@ import Script from "next/script";
 import VoiceTeacher from "@/components/VoiceTeacher";
 
 export const metadata = {
-  title: "Учитель — голосовое общение",
-  description: "AI-учитель с голосовым общением",
+  title: "Opus Studio — voice lessons",
+  description: "3D voice lessons with Elena — Opus 5 Concierge",
 };
 
 export default function VoicePage() {
