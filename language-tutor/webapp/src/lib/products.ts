@@ -17,12 +17,12 @@ export type Product = {
 export const PRODUCTS: Product[] = [
   {
     id: "studio",
-    name: "Opus Studio",
-    tagline: "3D voice lessons",
+    name: "Opus Voice",
+    tagline: "Голос в Telegram",
     description:
-      "Live lessons with Elena — hold to speak, lip-sync avatar, session recap with CEFR and vocabulary import.",
-    features: ["WebGL teacher", "Whisper + TTS", "Session assessment"],
-    href: `${TWA_URL}/voice`,
+      "Голосовое в чат бота → ответ живым TTS. Whisper, короткие реплики, премиальный голос.",
+    features: ["Voice in / voice out", "Whisper STT", "TTS shimmer"],
+    href: `https://t.me/${BOT_USERNAME}`,
     external: true,
     accent: "gold",
     badge: "Flagship",
@@ -42,8 +42,8 @@ export const PRODUCTS: Product[] = [
     name: "Telegram Concierge",
     tagline: "Always-on coach",
     description:
-      "Onboarding, voice notes, /review FSRS cards, /progress dashboard, /test placement in Russian.",
-    features: ["/review · /progress", "/test · /program", "Blue voice button"],
+      "Онбординг, голосовые в чат, /review FSRS, /progress, /test на русском.",
+    features: ["/review · /progress", "/test · /program", "🎙 голосовые"],
     href: `https://t.me/${BOT_USERNAME}`,
     external: true,
     accent: "teal",
@@ -64,7 +64,7 @@ export const PRODUCTS: Product[] = [
 
 export const PRODUCT_JOURNEY = [
   { step: "01", title: "Discover", text: "Mini-test in Russian or pick your level" },
-  { step: "02", title: "Practice", text: "Studio voice or Lounge chat with Elena & personas" },
+  { step: "02", title: "Practice", text: "Голосовые в Telegram или текст в Lounge" },
   { step: "03", title: "Review", text: "FSRS words and session recap in Telegram" },
   { step: "04", title: "Grow", text: "Progress dashboard and program updates" },
 ];
