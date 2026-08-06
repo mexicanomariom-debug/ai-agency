@@ -29,12 +29,12 @@ export const STUDIO_LIGHTING = {
 export function getAvatarPreset(audience?: string | null): AvatarPreset {
   if (audience === "child") {
     return {
-      url: `${CDN}/vroid.glb`,
-      body: "F",
+      url: "/models/child-boy.glb",
+      body: "M",
       avatarMood: "happy",
       lipsyncLang: "en",
       baseline: {
-        headRotateX: -0.1,
+        headRotateX: -0.08,
         eyeBlinkLeft: 0.05,
         eyeBlinkRight: 0.05,
       },
