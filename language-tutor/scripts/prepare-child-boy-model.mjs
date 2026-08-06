@@ -211,6 +211,30 @@ function prepareGltfAssets(gltfPath, searchRoot) {
     }
   }
 
+  // Fail early with helpful listing if .bin still missing
+  if (doc.buffers) {
+    for (const buf of doc.buffers) {
+      if (!buf.uri || buf.uri.startsWith("data:")) continue;
+      const raw = decodeURIComponent(buf.uri.split(/[/\\]/).pop() || buf.uri);
+      const dest = path.join(gltfDir, raw);
+      if (fs.existsSync(dest)) continue;
+      const bins = walkFiles(searchRoot).filter((f) => f.toLowerCase().endsWith(".bin"));
+      const listing = listFiles(gltfDir).join("\n  ");
+      console.error("\n=== ОШИБКА: нет файла геометрии .bin ===");
+      console.error(`Нужен: ${raw}`);
+      console.error(`Папка pack:\n  ${listing || "(пусто)"}`);
+      console.error(
+        bins.length
+          ? `Найдены .bin:\n  ${bins.join("\n  ")}`
+          : "В pack НЕТ ни одного .bin — скачайте на CGTrader файл .gltf ещё раз\n" +
+              "  (рядом с .gltf обычно лежит .bin) и положите оба в:\n" +
+              `  ${gltfDir}`,
+      );
+      console.error("Или положите FBX и конвертируйте в Blender → Export glTF (.glb)\n");
+      throw new Error(`Missing .bin: ${raw}`);
+    }
+  }
+
   const fixedPath = path.join(gltfDir, "model.fixed.gltf");
   fs.writeFileSync(fixedPath, JSON.stringify(doc));
   console.log(`Prepared GLTF → ${fixedPath}`);
