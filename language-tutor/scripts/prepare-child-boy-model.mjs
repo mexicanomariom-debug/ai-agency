@@ -1,12 +1,5 @@
 /**
  * Build webapp/public/models/child-boy.glb from CGTrader files in assets/child-boy/pack/
- *
- * Drop into pack/ (or source/):
- *   - *.gltf (required for custom model)
- *   - textures.zip (and any other *.zip with textures)
- *   - optional: .blend / .fbx (not converted by this script)
- *
- * Usage: node scripts/prepare-child-boy-model.mjs
  */
 import { execSync } from "node:child_process";
 import fs from "node:fs";
@@ -22,6 +15,8 @@ const outFile = path.join(outDir, "child-boy.glb");
 const fallbackUrl =
   "https://cdn.jsdelivr.net/gh/met4citizen/TalkingHead@main/avatars/vroid.glb";
 
+const ASSET_EXT = /\.(png|jpg|jpeg|webp|ktx2|bin)$/i;
+
 function run(cmd) {
   console.log(cmd);
   execSync(cmd, { stdio: "inherit", cwd: root });
@@ -30,6 +25,17 @@ function run(cmd) {
 function listFiles(dir) {
   if (!fs.existsSync(dir)) return [];
   return fs.readdirSync(dir).filter((n) => !n.startsWith("."));
+}
+
+function walkFiles(dir, acc = []) {
+  if (!fs.existsSync(dir)) return acc;
+  for (const name of fs.readdirSync(dir)) {
+    if (name.startsWith(".")) continue;
+    const full = path.join(dir, name);
+    if (fs.statSync(full).isDirectory()) walkFiles(full, acc);
+    else acc.push(full);
+  }
+  return acc;
 }
 
 function findAsset(dir) {
@@ -71,6 +77,77 @@ function unzipAllZips(dir) {
   }
 }
 
+/** CGTrader zips often nest textures — copy images/bin next to .gltf and fix URIs. */
+function prepareGltfAssets(gltfPath, searchRoot) {
+  const gltfDir = path.dirname(gltfPath);
+  const allFiles = walkFiles(searchRoot);
+  const assets = allFiles.filter((f) => ASSET_EXT.test(f));
+
+  for (const file of assets) {
+    const base = path.basename(file);
+    const dest = path.join(gltfDir, base);
+    if (file !== dest && !fs.existsSync(dest)) {
+      fs.copyFileSync(file, dest);
+      console.log(`Copied: ${base}`);
+    }
+  }
+
+  const byName = new Map(
+    assets.map((f) => [path.basename(f).toLowerCase(), path.basename(f)]),
+  );
+
+  const resolveName = (uri) => {
+    const raw = decodeURIComponent(uri.split(/[/\\]/).pop() || uri);
+    if (byName.has(raw.toLowerCase())) return byName.get(raw.toLowerCase());
+    const stem = raw.replace(/\.[^.]+$/, "").toLowerCase();
+    for (const [low, name] of byName) {
+      if (low.includes(stem) || stem.includes(low.replace(/\.[^.]+$/, ""))) return name;
+    }
+    return raw;
+  };
+
+  const doc = JSON.parse(fs.readFileSync(gltfPath, "utf8"));
+  let changed = false;
+
+  if (doc.images) {
+    for (const img of doc.images) {
+      if (!img.uri || img.uri.startsWith("data:")) continue;
+      const fixed = resolveName(img.uri);
+      if (fixed !== img.uri) {
+        img.uri = fixed;
+        changed = true;
+      }
+      const dest = path.join(gltfDir, fixed);
+      if (!fs.existsSync(dest)) {
+        const src = assets.find((f) => path.basename(f).toLowerCase() === fixed.toLowerCase());
+        if (src) fs.copyFileSync(src, dest);
+      }
+    }
+  }
+
+  if (changed) {
+    const fixedPath = path.join(gltfDir, "model.fixed.gltf");
+    fs.writeFileSync(fixedPath, JSON.stringify(doc));
+    console.log(`Patched GLTF URIs → ${fixedPath}`);
+    return fixedPath;
+  }
+  return gltfPath;
+}
+
+function buildOptimizedGlb(inputPath, outputPath) {
+  const q = (p) => `"${p}"`;
+  try {
+    run(
+      `npx --yes @gltf-transform/cli optimize ${q(inputPath)} ${q(outputPath)} --compress meshopt --texture-compress webp`,
+    );
+  } catch {
+    console.warn("WebP compression failed — retrying without texture compression...");
+    run(
+      `npx --yes @gltf-transform/cli optimize ${q(inputPath)} ${q(outputPath)} --compress meshopt --texture-compress false`,
+    );
+  }
+}
+
 async function downloadFallback() {
   fs.mkdirSync(outDir, { recursive: true });
   const res = await fetch(fallbackUrl);
@@ -92,13 +169,15 @@ async function main() {
 
   console.log(`Input: ${asset.path}`);
   unzipAllZips(asset.dir);
+
+  let inputPath = asset.path;
+  if (asset.kind === "gltf") {
+    inputPath = prepareGltfAssets(asset.path, asset.dir);
+  }
+
   fs.mkdirSync(outDir, { recursive: true });
   const tmp = path.join(outDir, "child-boy-raw.glb");
-
-  // gltf-transform v4: use `optimize` (not `copy`) for compression flags
-  run(
-    `npx --yes @gltf-transform/cli optimize "${asset.path}" "${tmp}" --compress meshopt --texture-compress webp`,
-  );
+  buildOptimizedGlb(inputPath, tmp);
 
   fs.renameSync(tmp, outFile);
   const mb = fs.statSync(outFile).size / 1e6;
