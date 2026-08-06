@@ -1,10 +1,10 @@
 /**
- * Build webapp/public/models/child-boy.glb from CGTrader source files.
+ * Build webapp/public/models/child-boy.glb from CGTrader files in assets/child-boy/pack/
  *
- * Place in language-tutor/assets/child-boy/source/:
- *   - young boy character riigged.gltf (or any *.gltf)
- *   - textures.zip
- *   - optional: .blend / .fbx (not used by this script)
+ * Drop into pack/ (or source/):
+ *   - *.gltf (required for custom model)
+ *   - textures.zip (and any other *.zip with textures)
+ *   - optional: .blend / .fbx (not converted by this script)
  *
  * Usage: node scripts/prepare-child-boy-model.mjs
  */
@@ -14,7 +14,9 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+const packDir = path.join(root, "assets", "child-boy", "pack");
 const sourceDir = path.join(root, "assets", "child-boy", "source");
+const inputDirs = [packDir, sourceDir];
 const outDir = path.join(root, "webapp", "public", "models");
 const outFile = path.join(outDir, "child-boy.glb");
 const fallbackUrl =
@@ -25,17 +27,35 @@ function run(cmd) {
   execSync(cmd, { stdio: "inherit", cwd: root });
 }
 
-function findGltf(dir) {
-  if (!fs.existsSync(dir)) return null;
-  const names = fs.readdirSync(dir);
-  const hit = names.find((n) => n.toLowerCase().endsWith(".gltf"));
-  return hit ? path.join(dir, hit) : null;
+function listFiles(dir) {
+  if (!fs.existsSync(dir)) return [];
+  return fs.readdirSync(dir).filter((n) => !n.startsWith("."));
 }
 
-function unzipTextures(dir) {
-  const zip = path.join(dir, "textures.zip");
-  if (!fs.existsSync(zip)) return;
-  run(`unzip -o -q "${zip}" -d "${dir}"`);
+function findAsset(dir) {
+  if (!fs.existsSync(dir)) return null;
+  const names = listFiles(dir);
+  const gltf = names.find((n) => n.toLowerCase().endsWith(".gltf"));
+  if (gltf) return { path: path.join(dir, gltf), kind: "gltf" };
+  const glb = names.find((n) => n.toLowerCase().endsWith(".glb"));
+  if (glb) return { path: path.join(dir, glb), kind: "glb" };
+  return null;
+}
+
+function findInputAsset() {
+  for (const dir of inputDirs) {
+    const hit = findAsset(dir);
+    if (hit) return { ...hit, dir };
+  }
+  return null;
+}
+
+function unzipAllZips(dir) {
+  for (const name of listFiles(dir)) {
+    if (name.toLowerCase().endsWith(".zip")) {
+      run(`unzip -o -q "${path.join(dir, name)}" -d "${dir}"`);
+    }
+  }
 }
 
 async function downloadFallback() {
@@ -48,19 +68,30 @@ async function downloadFallback() {
 }
 
 async function main() {
-  const gltf = findGltf(sourceDir);
-  if (!gltf) {
-    console.warn("No .gltf in assets/child-boy/source — using TalkingHead vroid fallback.");
+  const asset = findInputAsset();
+  if (!asset) {
+    console.warn(
+      "No .gltf/.glb in assets/child-boy/pack or source — using TalkingHead vroid fallback.",
+    );
     await downloadFallback();
     return;
   }
 
-  unzipTextures(sourceDir);
+  console.log(`Input: ${asset.path}`);
+  unzipAllZips(asset.dir);
   fs.mkdirSync(outDir, { recursive: true });
   const tmp = path.join(outDir, "child-boy-raw.glb");
-  run(
-    `npx --yes @gltf-transform/cli copy "${gltf}" "${tmp}" --compress meshopt --texture-compress webp`,
-  );
+
+  if (asset.kind === "glb" && asset.path !== outFile) {
+    run(
+      `npx --yes @gltf-transform/cli copy "${asset.path}" "${tmp}" --compress meshopt --texture-compress webp`,
+    );
+  } else {
+    run(
+      `npx --yes @gltf-transform/cli copy "${asset.path}" "${tmp}" --compress meshopt --texture-compress webp`,
+    );
+  }
+
   fs.renameSync(tmp, outFile);
   const mb = fs.statSync(outFile).size / 1e6;
   console.log(`Built ${outFile} (${mb.toFixed(1)} MB)`);

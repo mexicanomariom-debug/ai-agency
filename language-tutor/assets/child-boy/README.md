@@ -1,19 +1,18 @@
 # Child boy 3D model (landing)
 
-Place downloaded CGTrader files here:
+## Папка для файлов: `pack/`
 
-| File | Required |
-|------|----------|
-| `young boy character riigged.gltf` | yes |
-| `textures.zip` | yes |
-| `.blend` / `.fbx` | optional (for Blender edits only) |
+```
+language-tutor/assets/child-boy/pack/
+```
 
-Then from `language-tutor/`:
+Сюда кидайте gltf + textures.zip (+ blend/fbx если есть).
 
 ```bash
+cd language-tutor
 node scripts/prepare-child-boy-model.mjs
 ```
 
-Output: `webapp/public/models/child-boy.glb`
+Альтернативная папка (тоже работает): `assets/child-boy/source/`
 
-Without source files the script uses a TalkingHead fallback until you add the real model.
+Output: `webapp/public/models/child-boy.glb`
