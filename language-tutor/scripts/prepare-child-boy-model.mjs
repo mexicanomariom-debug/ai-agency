@@ -95,15 +95,10 @@ async function main() {
   fs.mkdirSync(outDir, { recursive: true });
   const tmp = path.join(outDir, "child-boy-raw.glb");
 
-  if (asset.kind === "glb" && asset.path !== outFile) {
-    run(
-      `npx --yes @gltf-transform/cli copy "${asset.path}" "${tmp}" --compress meshopt --texture-compress webp`,
-    );
-  } else {
-    run(
-      `npx --yes @gltf-transform/cli copy "${asset.path}" "${tmp}" --compress meshopt --texture-compress webp`,
-    );
-  }
+  // gltf-transform v4: use `optimize` (not `copy`) for compression flags
+  run(
+    `npx --yes @gltf-transform/cli optimize "${asset.path}" "${tmp}" --compress meshopt --texture-compress webp`,
+  );
 
   fs.renameSync(tmp, outFile);
   const mb = fs.statSync(outFile).size / 1e6;
