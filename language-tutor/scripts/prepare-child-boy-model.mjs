@@ -44,10 +44,23 @@ function walkFiles(dir, acc = []) {
   return acc;
 }
 
+/** Normalize CGTrader names: spaces / pluses / underscores. */
+function normalizeKey(name) {
+  return decodeURIComponent(name)
+    .toLowerCase()
+    .replace(/\+/g, " ")
+    .replace(/[_-]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
 function findAsset(dir) {
   if (!fs.existsSync(dir)) return null;
   const names = listFiles(dir);
-  const gltf = names.find((n) => n.toLowerCase().endsWith(".gltf"));
+  // Prefer original download gltf, skip our generated model.fixed.gltf
+  const gltf = names.find(
+    (n) => n.toLowerCase().endsWith(".gltf") && !n.toLowerCase().includes("model.fixed"),
+  );
   if (gltf) return { path: path.join(dir, gltf), kind: "gltf" };
   const glb = names.find((n) => n.toLowerCase().endsWith(".glb") && !n.includes("child-boy"));
   if (glb) return { path: path.join(dir, glb), kind: "glb" };
@@ -83,12 +96,49 @@ function unzipAllZips(dir) {
   }
 }
 
-/** CGTrader zips often nest textures — copy images/bin next to .gltf and fix URIs. */
+function ensureFileBesideGltf(srcPath, destName, gltfDir) {
+  const dest = path.join(gltfDir, destName);
+  if (fs.existsSync(dest)) return dest;
+  if (srcPath && fs.existsSync(srcPath)) {
+    fs.copyFileSync(srcPath, dest);
+    console.log(`Copied: ${destName}`);
+  }
+  return dest;
+}
+
+function findMatchingFile(wantedUri, assets, preferExt) {
+  const raw = decodeURIComponent(wantedUri.split(/[/\\]/).pop() || wantedUri);
+  const wantKey = normalizeKey(raw);
+  const wantStem = normalizeKey(raw.replace(/\.[^.]+$/, ""));
+
+  // Exact / normalized basename match
+  for (const f of assets) {
+    const base = path.basename(f);
+    if (normalizeKey(base) === wantKey) return f;
+  }
+  // Same stem + preferred extension
+  for (const f of assets) {
+    const base = path.basename(f);
+    if (preferExt && !base.toLowerCase().endsWith(preferExt)) continue;
+    if (normalizeKey(base.replace(/\.[^.]+$/, "")) === wantStem) return f;
+  }
+  // Fuzzy: stem contained
+  for (const f of assets) {
+    const base = path.basename(f);
+    if (preferExt && !base.toLowerCase().endsWith(preferExt)) continue;
+    const stem = normalizeKey(base.replace(/\.[^.]+$/, ""));
+    if (stem.includes(wantStem) || wantStem.includes(stem)) return f;
+  }
+  return null;
+}
+
+/** CGTrader: textures/bin may be nested; names use + vs spaces. */
 function prepareGltfAssets(gltfPath, searchRoot) {
   const gltfDir = path.dirname(gltfPath);
   const allFiles = walkFiles(searchRoot);
   const assets = allFiles.filter((f) => ASSET_EXT.test(f));
 
+  // Copy every texture/bin into gltf folder under its own basename
   for (const file of assets) {
     const base = path.basename(file);
     const dest = path.join(gltfDir, base);
@@ -98,51 +148,73 @@ function prepareGltfAssets(gltfPath, searchRoot) {
     }
   }
 
-  const byName = new Map(
-    assets.map((f) => [path.basename(f).toLowerCase(), path.basename(f)]),
-  );
-
-  const resolveName = (uri) => {
-    const raw = decodeURIComponent(uri.split(/[/\\]/).pop() || uri);
-    if (byName.has(raw.toLowerCase())) return byName.get(raw.toLowerCase());
-    const stem = raw.replace(/\.[^.]+$/, "").toLowerCase();
-    for (const [low, name] of byName) {
-      if (low.includes(stem) || stem.includes(low.replace(/\.[^.]+$/, ""))) return name;
-    }
-    return raw;
-  };
+  // Refresh list after copies
+  const localAssets = walkFiles(gltfDir).filter((f) => ASSET_EXT.test(f));
 
   const doc = JSON.parse(fs.readFileSync(gltfPath, "utf8"));
   let changed = false;
 
-  if (doc.images) {
-    for (const img of doc.images) {
-      if (!img.uri || img.uri.startsWith("data:")) continue;
-      const fixed = resolveName(img.uri);
-      if (fixed !== img.uri) {
-        img.uri = fixed;
-        changed = true;
+  const fixUriList = (list, preferExt, placeholder) => {
+    if (!list) return;
+    for (const item of list) {
+      if (!item.uri || item.uri.startsWith("data:")) continue;
+      const raw = decodeURIComponent(item.uri.split(/[/\\]/).pop() || item.uri);
+      const match = findMatchingFile(item.uri, localAssets, preferExt);
+      if (match) {
+        const base = path.basename(match);
+        ensureFileBesideGltf(match, base, gltfDir);
+        // Also copy under the exact name the GLTF asked for (spaces vs +)
+        if (base !== raw) {
+          ensureFileBesideGltf(match, raw, gltfDir);
+          item.uri = raw;
+          changed = true;
+          console.log(`Bound: ${raw} ← ${base}`);
+        } else if (item.uri !== raw) {
+          item.uri = raw;
+          changed = true;
+        }
+        continue;
       }
-      const dest = path.join(gltfDir, fixed);
-      if (!fs.existsSync(dest)) {
-        const src = assets.find((f) => path.basename(f).toLowerCase() === fixed.toLowerCase());
-        if (src) fs.copyFileSync(src, dest);
-      }
-      if (!fs.existsSync(dest)) {
-        fs.writeFileSync(dest, PLACEHOLDER_PNG);
-        console.warn(`Missing texture ${fixed} — 1×1 placeholder`);
+
+      const dest = path.join(gltfDir, raw);
+      if (!fs.existsSync(dest) && placeholder) {
+        fs.writeFileSync(dest, placeholder);
+        console.warn(`Missing ${raw} — placeholder`);
+        item.uri = raw;
         changed = true;
+      } else if (!fs.existsSync(dest)) {
+        console.error(`Missing required file: ${raw}`);
+        console.error(
+          `Look in pack/ for a .bin next to the .gltf (name may use + instead of spaces).`,
+        );
+      }
+    }
+  };
+
+  fixUriList(doc.images, null, PLACEHOLDER_PNG);
+  fixUriList(doc.buffers, ".bin", null);
+
+  // If still no .bin beside gltf — try rename any .bin to what buffer wants
+  if (doc.buffers) {
+    for (const buf of doc.buffers) {
+      if (!buf.uri || buf.uri.startsWith("data:")) continue;
+      const raw = decodeURIComponent(buf.uri.split(/[/\\]/).pop() || buf.uri);
+      const dest = path.join(gltfDir, raw);
+      if (fs.existsSync(dest)) continue;
+      const anyBin = localAssets.find((f) => f.toLowerCase().endsWith(".bin"));
+      if (anyBin) {
+        fs.copyFileSync(anyBin, dest);
+        buf.uri = raw;
+        changed = true;
+        console.log(`Bound buffer: ${raw} ← ${path.basename(anyBin)}`);
       }
     }
   }
 
   const fixedPath = path.join(gltfDir, "model.fixed.gltf");
-  if (changed || !fs.existsSync(fixedPath)) {
-    fs.writeFileSync(fixedPath, JSON.stringify(doc));
-    console.log(`Prepared GLTF → ${fixedPath}`);
-    return fixedPath;
-  }
-  return gltfPath;
+  fs.writeFileSync(fixedPath, JSON.stringify(doc));
+  console.log(`Prepared GLTF → ${fixedPath}`);
+  return fixedPath;
 }
 
 function buildOptimizedGlb(inputPath, outputPath) {
