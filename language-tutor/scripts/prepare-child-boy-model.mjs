@@ -26,6 +26,7 @@ function run(cmd) {
 }
 
 function findGltf(dir) {
+  if (!fs.existsSync(dir)) return null;
   const names = fs.readdirSync(dir);
   const hit = names.find((n) => n.toLowerCase().endsWith(".gltf"));
   return hit ? path.join(dir, hit) : null;
