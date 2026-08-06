@@ -73,7 +73,7 @@ Required secrets in Render dashboard:
 
 Production URL: `https://webapp-bay-three-75.vercel.app`
 
-The blue Telegram button **«Учитель — общение»** opens `/voice`. If you see **404**, redeploy the **webapp** project (see below).
+The blue Telegram button **«Учитель — общение»** was removed. Voice practice is via **voice messages in chat**. `/voice` web page may still exist for direct links but is not linked from the bot menu.
 
 ### Где проект в Vercel
 
