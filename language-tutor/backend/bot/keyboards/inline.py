@@ -78,7 +78,7 @@ def hub_menu_keyboard() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(
         inline_keyboard=[
             [
-                InlineKeyboardButton(text="🎙 Голосом", callback_data="menu:voice_hint"),
+                InlineKeyboardButton(text="👩‍🏫 Учитель", callback_data="menu:voice_hint"),
                 InlineKeyboardButton(text="💬 Текст", callback_data="menu:chat_hint"),
             ],
             [

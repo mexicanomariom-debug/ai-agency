@@ -1,8 +1,9 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Loader2, Mic, MicOff } from "lucide-react";
-import MatrixIntelligence from "@/components/MatrixIntelligence";
+import type { TalkingAvatarHandle } from "@/components/TalkingAvatar3D";
 import { useTelegram } from "@/hooks/useTelegram";
 import {
   closeVoiceSession,
@@ -15,6 +16,15 @@ import {
   type VoiceSessionAssessment,
   type VoiceTutor,
 } from "@/lib/api";
+
+const TalkingAvatar3D = dynamic(() => import("@/components/TalkingAvatar3D"), {
+  ssr: false,
+  loading: () => (
+    <div className="flex h-72 w-full items-center justify-center">
+      <Loader2 className="h-8 w-8 animate-spin text-[var(--gold)]" />
+    </div>
+  ),
+});
 
 type Status = "idle" | "recording" | "processing" | "speaking";
 
@@ -37,15 +47,6 @@ function getSpeechRecognition(): (new () => SpeechRec) | null {
   return w.SpeechRecognition || w.webkitSpeechRecognition || null;
 }
 
-function statusLabel(status: Status, isChild: boolean): string {
-  if (status === "recording") {
-    return isChild ? "Слушаю… отпусти кнопку" : "Слушаю… отпустите микрофон";
-  }
-  if (status === "processing") return "NEURAL · processing";
-  if (status === "speaking") return "NEURAL · transmitting";
-  return "NEURAL · standby";
-}
-
 export default function VoiceTeacher() {
   const { initData, user, isReady, webApp } = useTelegram();
   const [tutor, setTutor] = useState<VoiceTutor | null>(null);
@@ -55,6 +56,7 @@ export default function VoiceTeacher() {
   const [lastReply, setLastReply] = useState("");
   const [useBrowserStt, setUseBrowserStt] = useState(true);
   const [loading, setLoading] = useState(true);
+  const [avatarReady, setAvatarReady] = useState(false);
   const [sessionSummary, setSessionSummary] = useState<VoiceSessionAssessment | null>(null);
   const [closingSession, setClosingSession] = useState(false);
   const [userTurnCount, setUserTurnCount] = useState(0);
@@ -66,6 +68,7 @@ export default function VoiceTeacher() {
   const chunksRef = useRef<Blob[]>([]);
   const recognitionRef = useRef<SpeechRec | null>(null);
   const transcriptRef = useRef("");
+  const avatarRef = useRef<TalkingAvatarHandle | null>(null);
   const userTurnCountRef = useRef(0);
   const closingRef = useRef(false);
 
@@ -86,7 +89,7 @@ export default function VoiceTeacher() {
         setChatModel(caps.chat_model ?? caps.provider ?? null);
         setUseBrowserStt(!caps.stt);
         if (!caps.llm) {
-          setError("Нет LLM ключа на сервере. Добавьте ANTHROPIC/OPENAI в Secrets.");
+          setError("Нет LLM ключа (ANTHROPIC/OPENAI). Добавьте в GitHub Secrets и задеплойте Oracle.");
         } else {
           setError(null);
         }
@@ -95,13 +98,13 @@ export default function VoiceTeacher() {
         if (!cancelled) {
           setError(e instanceof Error ? e.message : "Ошибка загрузки");
           setTutor({
-            name: "Opus Neural",
+            name: "Елена",
             slug: "voice-teacher",
-            description: "Нейро-интерфейс",
+            description: "Премиальный 3D-репетитор",
             language: null,
             level: null,
             audience: null,
-            greeting: "Связь с нейро-ядром…",
+            greeting: "Не удалось связаться с сервером.",
           });
           setUseBrowserStt(true);
         }
@@ -129,7 +132,7 @@ export default function VoiceTeacher() {
             .catch(() => undefined);
         }
       } catch {
-        /* best-effort */
+        /* best-effort on exit */
       } finally {
         if (!silent) setClosingSession(false);
       }
@@ -139,12 +142,16 @@ export default function VoiceTeacher() {
 
   useEffect(() => {
     const onPageHide = () => {
-      if (userTurnCountRef.current >= 2) void runSessionClose(true);
+      if (userTurnCountRef.current >= 2) {
+        void runSessionClose(true);
+      }
     };
     window.addEventListener("pagehide", onPageHide);
     return () => {
       window.removeEventListener("pagehide", onPageHide);
-      if (userTurnCountRef.current >= 2) void runSessionClose(true);
+      if (userTurnCountRef.current >= 2) {
+        void runSessionClose(true);
+      }
     };
   }, [runSessionClose]);
 
@@ -154,6 +161,12 @@ export default function VoiceTeacher() {
     setStatus("speaking");
 
     try {
+      if (audioBase64 && avatarRef.current && avatarReady) {
+        await avatarRef.current.speakAudioBase64(audioBase64, reply);
+        setStatus("idle");
+        return;
+      }
+
       if (audioBase64) {
         const bytes = Uint8Array.from(atob(audioBase64), (c) => c.charCodeAt(0));
         const blob = new Blob([bytes], { type: "audio/mpeg" });
@@ -170,7 +183,17 @@ export default function VoiceTeacher() {
           };
           void audio.play();
         });
-      } else if ("speechSynthesis" in window) {
+        setStatus("idle");
+        return;
+      }
+
+      if (avatarRef.current && avatarReady) {
+        await avatarRef.current.speakBrowserText(reply);
+        setStatus("idle");
+        return;
+      }
+
+      if ("speechSynthesis" in window) {
         window.speechSynthesis.cancel();
         const utter = new SpeechSynthesisUtterance(reply);
         utter.lang = "ru-RU";
@@ -184,7 +207,7 @@ export default function VoiceTeacher() {
       setError(e instanceof Error ? e.message : "Ошибка озвучки");
     }
     setStatus("idle");
-  }, []);
+  }, [avatarReady]);
 
   const handleTranscript = useCallback(
     async (transcript: string) => {
@@ -215,16 +238,12 @@ export default function VoiceTeacher() {
       setError(null);
       try {
         const result = await voiceTalk(blob, initData || undefined);
-        if (
-          result.error?.includes("OPENAI_API_KEY") ||
-          result.error?.includes("Security List") ||
-          result.error?.includes("не ответил")
-        ) {
+        if (result.error?.includes("OPENAI_API_KEY") || result.error?.includes("Security List") || result.error?.includes("не ответил")) {
           setUseBrowserStt(true);
           setError(
             result.error.includes("не ответил")
-              ? "Таймаут — переключаю на браузерное распознавание."
-              : "Нет OpenAI STT — удерживайте микрофон (браузерный режим).",
+              ? "Сервер думал слишком долго — переключаю на браузерное распознавание. Удерживайте микрофон и говорите."
+              : "Нет OpenAI для распознавания — используйте удержание микрофона (браузерный режим).",
           );
           setStatus("idle");
           return;
@@ -235,7 +254,7 @@ export default function VoiceTeacher() {
           return;
         }
         if (!result.reply) {
-          setError("Пустой ответ нейро-ядра");
+          setError("Пустой ответ учителя");
           setStatus("idle");
           return;
         }
@@ -259,7 +278,7 @@ export default function VoiceTeacher() {
     if (useBrowserStt) {
       const SR = getSpeechRecognition();
       if (!SR) {
-        setError("Распознавание речи недоступно в браузере.");
+        setError("Распознавание речи недоступно. Добавьте OPENAI_API_KEY в GitHub Secrets.");
         return;
       }
       const rec = new SR();
@@ -270,7 +289,9 @@ export default function VoiceTeacher() {
       rec.onresult = (ev) => {
         const results = ev.results as unknown as ArrayLike<{ 0: { transcript: string } }>;
         let text = "";
-        for (let i = 0; i < results.length; i++) text += results[i][0].transcript;
+        for (let i = 0; i < results.length; i++) {
+          text += results[i][0].transcript;
+        }
         transcriptRef.current = text.trim();
       };
       rec.onerror = (ev) => {
@@ -293,7 +314,8 @@ export default function VoiceTeacher() {
       };
       recorder.onstop = () => {
         stream.getTracks().forEach((t) => t.stop());
-        void sendAudio(new Blob(chunksRef.current, { type: "audio/webm" }));
+        const blob = new Blob(chunksRef.current, { type: "audio/webm" });
+        void sendAudio(blob);
       };
       mediaRef.current = recorder;
       recorder.start();
@@ -308,9 +330,10 @@ export default function VoiceTeacher() {
       recognitionRef.current.onend = () => {
         const text = transcriptRef.current.trim();
         recognitionRef.current = null;
-        if (text) void handleTranscript(text);
-        else {
-          setError("Не расслышал — говорите чётче.");
+        if (text) {
+          void handleTranscript(text);
+        } else {
+          setError("Не расслышал — попробуйте ещё раз, говорите чётче.");
           setStatus("idle");
         }
       };
@@ -321,7 +344,9 @@ export default function VoiceTeacher() {
       }
       return;
     }
-    if (mediaRef.current?.state === "recording") mediaRef.current.stop();
+    if (mediaRef.current?.state === "recording") {
+      mediaRef.current.stop();
+    }
   }, [useBrowserStt, handleTranscript]);
 
   const audience = tutor?.audience || null;
@@ -329,110 +354,130 @@ export default function VoiceTeacher() {
 
   if (loading || !tutor) {
     return (
-      <div className="matrix-shell matrix-shell--loading">
-        <Loader2 className="h-8 w-8 animate-spin text-[var(--matrix-green)]" />
-        <p className="matrix-muted">Инициализация Opus Neural…</p>
-        {error && <p className="matrix-error">{error}</p>}
+      <div className="premium-shell flex min-h-screen flex-col items-center justify-center gap-3 px-4">
+        <Loader2 className="h-8 w-8 animate-spin text-[var(--gold)]" />
+        <p className="text-sm text-[var(--muted-fg)]">Открываем студию учителя…</p>
+        {error && <p className="max-w-sm text-center text-sm text-red-300">{error}</p>}
       </div>
     );
   }
 
   return (
-    <div className="matrix-shell">
-      <div className="matrix-stage">
-        <MatrixIntelligence status={status} />
-      </div>
-
-      <div className="matrix-overlay">
-        <header className="matrix-header">
-          <div>
-            <p className="matrix-kicker">Opus 5 · Neural Interface</p>
-            <p className="matrix-status">{statusLabel(status, isChild)}</p>
-          </div>
-          <div className="matrix-meta">
-            {user?.first_name && <span>{user.first_name}</span>}
-            {tutor.language && <span>{tutor.language}</span>}
-            {tutor.level && <span>{tutor.level}</span>}
-            {chatModel && <span className="matrix-model">{chatModel}</span>}
-          </div>
-        </header>
-
-        {status === "idle" && !hasSpoken && (
-          <p className="matrix-greeting">{tutor.greeting}</p>
+    <div className={`premium-shell ${isChild ? "theme-child" : "theme-adult"}`}>
+      <div className="premium-glow" aria-hidden />
+      <header className="premium-header">
+        <p className="premium-kicker">{isChild ? "Opus Kids · Studio" : "Opus 5 · Concierge"}</p>
+        <h1 className="premium-title">Илья</h1>
+        <p className="premium-sub">
+          {user?.first_name ? `${user.first_name}` : "Гость"}
+          {tutor.language ? ` · ${tutor.language}` : ""}
+          {tutor.level ? ` · ${tutor.level}` : ""}
+          {audience ? ` · ${audience}` : ""}
+        </p>
+        {progress && (
+          <p className="premium-progress-stats">
+            🔥 {progress.streak_days} дн.
+            {progress.speaking_cefr ? ` · CEFR ${progress.speaking_cefr}` : ""}
+            {progress.vocab_total > 0
+              ? ` · 📚 ${progress.vocab_total} слов (${progress.vocab_due} на сегодня)`
+              : ""}
+            {chatModel ? ` · ${chatModel}` : ""}
+          </p>
         )}
+        {userTurnCount >= 2 && !sessionSummary && (
+          <button
+            type="button"
+            className="premium-finish-btn"
+            disabled={closingSession || status !== "idle"}
+            onClick={() => void runSessionClose(false)}
+          >
+            {closingSession ? "Считаю итоги…" : "Завершить урок"}
+          </button>
+        )}
+      </header>
+
+      <div className="premium-stage">
+        <TalkingAvatar3D
+          ref={avatarRef}
+          name={tutor.name}
+          audience={audience}
+          isListening={status === "recording"}
+          isSpeaking={status === "speaking"}
+          onReadyChange={setAvatarReady}
+        />
+
+        <p className="premium-caption">
+          {status === "recording" && (isChild ? "Говори… отпусти кнопку, когда закончишь" : "Говорите… отпустите, когда закончите")}
+          {status === "processing" && (isChild ? "Елена думает…" : "Формирую ответ…")}
+          {status === "speaking" && "Говорю…"}
+          {status === "idle" && !hasSpoken && tutor.greeting}
+        </p>
 
         {(lastUser || lastReply) && (
-          <div className="matrix-transcript" aria-live="polite">
+          <div className="premium-transcript" aria-live="polite">
             {lastUser && (
-              <p className="matrix-line matrix-line--user">
-                <span className="matrix-tag">INPUT</span>
+              <p className="premium-transcript-user">
+                <span className="premium-transcript-label">Вы</span>
                 {lastUser}
               </p>
             )}
             {lastReply && (
-              <p className="matrix-line matrix-line--ai">
-                <span className="matrix-tag">NEURAL</span>
+              <p className="premium-transcript-tutor">
+                <span className="premium-transcript-label">Елена</span>
                 {lastReply}
               </p>
             )}
           </div>
         )}
 
-        {error && <p className="matrix-error">{error}</p>}
+        {error && <p className="premium-error">{error}</p>}
 
         {sessionSummary?.assessed && (
-          <div className="matrix-recap">
-            <p className="matrix-recap-title">
-              SESSION LOG
+          <div className="premium-session-recap" role="status">
+            <p className="premium-recap-title">
+              Итоги урока
               {sessionSummary.speaking_cefr ? ` · CEFR ${sessionSummary.speaking_cefr}` : ""}
+              {sessionSummary.level_updated ? " · уровень обновлён" : ""}
             </p>
-            {sessionSummary.summary && <p>{sessionSummary.summary}</p>}
+            {sessionSummary.summary && <p className="premium-recap-text">{sessionSummary.summary}</p>}
             {sessionSummary.recommendation && (
-              <p className="matrix-recap-next">NEXT: {sessionSummary.recommendation}</p>
+              <p className="premium-recap-next">Дальше: {sessionSummary.recommendation}</p>
+            )}
+            {sessionSummary.words_added && sessionSummary.words_added > 0 && (
+              <p className="premium-recap-text">
+                В словарь добавлено {sessionSummary.words_added} слов — повтори в Telegram: /review
+              </p>
+            )}
+            {sessionSummary.weaknesses && sessionSummary.weaknesses.length > 0 && (
+              <p className="premium-recap-text">
+                Слабые места: {sessionSummary.weaknesses.join("; ")}
+              </p>
             )}
           </div>
         )}
+      </div>
 
-        {progress && (
-          <p className="matrix-stats">
-            streak {progress.streak_days}d
-            {progress.speaking_cefr ? ` · ${progress.speaking_cefr}` : ""}
-            {progress.vocab_due > 0 ? ` · review ${progress.vocab_due}` : ""}
-          </p>
-        )}
-
-        <div className="matrix-controls">
-          {userTurnCount >= 2 && !sessionSummary && (
-            <button
-              type="button"
-              className="matrix-finish"
-              disabled={closingSession || status !== "idle"}
-              onClick={() => void runSessionClose(false)}
-            >
-              {closingSession ? "CLOSING…" : "CLOSE SESSION"}
-            </button>
+      <div className="premium-mic-block">
+        <button
+          type="button"
+          onPointerDown={startRecording}
+          onPointerUp={stopRecording}
+          onPointerLeave={stopRecording}
+          disabled={status === "processing" || status === "speaking"}
+          className={`premium-mic ${status === "recording" ? "recording" : ""}`}
+          aria-label="Микрофон"
+        >
+          {status === "processing" ? (
+            <Loader2 className="h-8 w-8 animate-spin" />
+          ) : status === "recording" ? (
+            <MicOff className="h-8 w-8" />
+          ) : (
+            <Mic className="h-8 w-8" />
           )}
-          <button
-            type="button"
-            onPointerDown={startRecording}
-            onPointerUp={stopRecording}
-            onPointerLeave={stopRecording}
-            disabled={status === "processing" || status === "speaking"}
-            className={`matrix-mic ${status === "recording" ? "recording" : ""}`}
-            aria-label="Микрофон"
-          >
-            {status === "processing" ? (
-              <Loader2 className="h-7 w-7 animate-spin" />
-            ) : status === "recording" ? (
-              <MicOff className="h-7 w-7" />
-            ) : (
-              <Mic className="h-7 w-7" />
-            )}
-          </button>
-          <p className="matrix-mic-hint">
-            {status === "recording" ? "release to send" : "hold to speak"}
-          </p>
-        </div>
+        </button>
+        <p className="premium-mic-hint">
+          {status === "recording" ? "Отпустите для отправки" : "Удерживайте и говорите"}
+        </p>
       </div>
     </div>
   );
