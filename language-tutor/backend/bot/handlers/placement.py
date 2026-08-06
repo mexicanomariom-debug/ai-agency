@@ -1,7 +1,7 @@
-from aiogram import Router
+from aiogram import F, Router
 from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
-from aiogram.types import Message
+from aiogram.types import CallbackQuery, Message
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from bot.states.onboarding import OnboardingStates
@@ -13,8 +13,9 @@ from services.user_service import user_service
 router = Router()
 
 
-@router.message(Command("test"))
-async def cmd_test(message: Message, state: FSMContext, session: AsyncSession) -> None:
+async def _start_placement_test(
+    message: Message, state: FSMContext, session: AsyncSession
+) -> None:
     user = await user_service.get_by_telegram_id(session, message.from_user.id)
     if not user or not user.is_onboarded:
         await message.answer("Сначала пройди онбординг: /start")
@@ -28,6 +29,17 @@ async def cmd_test(message: Message, state: FSMContext, session: AsyncSession) -
         "Начни мини-тест уровня. Я не знаю свой уровень — задай первый вопрос.",
         placement_mode=True,
     )
+
+
+@router.message(Command("test"))
+async def cmd_test(message: Message, state: FSMContext, session: AsyncSession) -> None:
+    await _start_placement_test(message, state, session)
+
+
+@router.callback_query(F.data == "menu:test")
+async def menu_test(callback: CallbackQuery, state: FSMContext, session: AsyncSession) -> None:
+    await _start_placement_test(callback.message, state, session)
+    await callback.answer()
 
 
 @router.message(OnboardingStates.placement_test, Command("program"))

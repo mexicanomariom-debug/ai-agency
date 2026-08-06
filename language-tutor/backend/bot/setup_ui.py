@@ -7,15 +7,16 @@ from config import settings
 
 logger = logging.getLogger(__name__)
 
-MENU_BUTTON_TEXT = "Учитель — общение"
+MENU_BUTTON_TEXT = "⬡ Opus Neural"
 
 
 async def setup_bot_ui(bot: Bot) -> None:
-    """Premium teacher menu: blue voice button + concierge commands."""
+    """Opus Neural WebApp button + concierge commands."""
     await bot.set_my_commands(
         [
-            BotCommand(command="start", description="✦ Concierge · начать"),
-            BotCommand(command="help", description="📖 Как заниматься"),
+            BotCommand(command="start", description="✦ Opus 5 · начать"),
+            BotCommand(command="product", description="✦ О продукте"),
+            BotCommand(command="help", description="📖 Навигатор"),
             BotCommand(command="test", description="📋 Мини-тест уровня"),
             BotCommand(command="review", description="📚 Слова на сегодня"),
             BotCommand(command="progress", description="📊 Мой прогресс"),
@@ -30,4 +31,4 @@ async def setup_bot_ui(bot: Bot) -> None:
             web_app=WebAppInfo(url=f"{settings.twa_url}/voice"),
         )
     )
-    logger.info("Teacher menu: blue button → %s/voice", settings.twa_url)
+    logger.info("Opus Neural menu button → %s/voice", settings.twa_url)

@@ -4,14 +4,24 @@ from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery, Message
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from bot.copy import (
+    CHAT_HINT,
+    HELP_TEXT,
+    READY_ADULT,
+    READY_CHILD,
+    READY_TEEN,
+    VOICE_HINT,
+    WELCOME_BACK,
+    WELCOME_NEW,
+)
+from services.placement_service import PLACEMENT_INTRO
 from bot.keyboards.inline import (
     audience_keyboard,
     language_keyboard,
     level_keyboard,
-    premium_menu_keyboard,
+    hub_menu_keyboard,
 )
 from bot.states.onboarding import OnboardingStates
-from services.placement_service import PLACEMENT_INTRO
 from services.user_service import user_service
 
 router = Router()
@@ -38,40 +48,20 @@ AUDIENCE_LABELS = {
 }
 
 
-def _welcome_copy(name: str) -> str:
+def _profile_line(audience: str, lang: str, level: str) -> str:
     return (
-        f"✦ <b>Opus 5 Concierge</b>\n"
-        f"Добро пожаловать, {name}.\n\n"
-        "Премиальный AI-репетитор с живым 3D-учителем Еленой — "
-        "для детей с игровой атмосферой и для взрослых с деловой точностью.\n\n"
-        "<b>Для кого занятия?</b>"
+        f"{AUDIENCE_LABELS.get(audience, audience)} · "
+        f"{LANGUAGE_LABELS.get(lang, lang)} · {LEVEL_LABELS.get(level, level)}"
     )
 
 
 def _ready_copy(audience: str, lang: str, level: str) -> str:
+    line = _profile_line(audience, lang, level)
     if audience == "child":
-        return (
-            f"🎉 Профиль готов!\n"
-            f"{AUDIENCE_LABELS.get(audience, audience)} · "
-            f"{LANGUAGE_LABELS.get(lang, lang)} · {LEVEL_LABELS.get(level, level)}\n\n"
-            "Елена уже ждёт тебя — можно писать в чат или нажать синюю кнопку "
-            "«Учитель — общение» и поговорить вслух. Давай играть словами!"
-        )
+        return READY_CHILD.format(profile_line=line)
     if audience == "teen":
-        return (
-            f"✅ Профиль собран\n"
-            f"{AUDIENCE_LABELS.get(audience, audience)} · "
-            f"{LANGUAGE_LABELS.get(lang, lang)} · {LEVEL_LABELS.get(level, level)}\n\n"
-            "Пиши в чат или открой синюю кнопку «Учитель — общение» — "
-            "живой 3D-учитель поможет с школой, экзаменами и живым общением."
-        )
-    return (
-        f"✦ Профиль активирован\n"
-        f"{AUDIENCE_LABELS.get(audience, audience)} · "
-        f"{LANGUAGE_LABELS.get(lang, lang)} · {LEVEL_LABELS.get(level, level)}\n\n"
-        "Пишите в чат или откройте синюю кнопку «Учитель — общение» — "
-        "голосовой 3D-репетитор Елена для переговоров, путешествий и точности речи."
-    )
+        return READY_TEEN.format(profile_line=line)
+    return READY_ADULT.format(profile_line=line)
 
 
 @router.message(CommandStart())
@@ -90,39 +80,26 @@ async def cmd_start(message: Message, state: FSMContext, session: AsyncSession) 
         await state.set_state(OnboardingStates.chatting)
         audience = user.audience.value if user.audience else "adult"
         await message.answer(
-            f"С возвращением, {name}.\n\n"
-            f"✦ <b>Ваш concierge-профиль</b>\n"
-            f"Аудитория: {AUDIENCE_LABELS.get(audience, audience)}\n"
-            f"Язык: {LANGUAGE_LABELS.get(user.language.value, user.language.value)}\n"
-            f"Уровень: {LEVEL_LABELS.get(user.level.value, user.level.value)}\n\n"
-            "• Чат — текст и голосовые\n"
-            "• Синяя кнопка «Учитель — общение» — 3D-учитель Елена\n"
-            "• /review — слова на сегодня (FSRS)\n"
-            "• /test — мини-тест уровня на русском + программа (/program)\n"
-            "• /progress — ваш прогресс и CEFR",
-            reply_markup=premium_menu_keyboard(),
+            WELCOME_BACK.format(
+                name=name,
+                audience=AUDIENCE_LABELS.get(audience, audience),
+                language=LANGUAGE_LABELS.get(user.language.value, user.language.value),
+                level=LEVEL_LABELS.get(user.level.value, user.level.value),
+            ),
+            reply_markup=hub_menu_keyboard(),
         )
         return
 
     await state.set_state(OnboardingStates.choosing_audience)
     await message.answer(
-        _welcome_copy(name),
+        WELCOME_NEW.format(name=name),
         reply_markup=audience_keyboard(),
     )
 
 
 @router.message(Command("help"))
 async def cmd_help(message: Message) -> None:
-    await message.answer(
-        "✦ <b>Opus 5 · как заниматься</b>\n\n"
-        "1. <b>Чат</b> — пишите или отправляйте голосовые\n"
-        "2. <b>Учитель — общение</b> — синяя кнопка: 3D-учитель говорит губами в реальном времени\n"
-        "3. <b>/review</b> — повторить слова (FSRS)\n"
-        "4. <b>/test</b> — мини-тест уровня на русском, затем <b>/program</b>\n"
-        "5. <b>/progress</b> — прогресс и CEFR\n"
-        "6. <b>/settings</b> — сменить профиль\n\n"
-        "Ребёнку — игры и сказки. Взрослому — точность и деловой тон."
-    )
+    await message.answer(HELP_TEXT)
 
 
 @router.callback_query(F.data.startswith("audience:"))
@@ -189,13 +166,12 @@ async def choose_level_discover(
 
     await state.set_state(OnboardingStates.placement_test)
     await callback.message.edit_text(
-        "🤔 Не знаете уровень? Отлично — сначала короткий тест на русском.\n\n"
+        "🤔 Не знаете уровень? Сначала короткий тест на русском.\n\n"
         + PLACEMENT_INTRO.replace("<b>", "").replace("</b>", ""),
     )
     await callback.answer()
     await callback.message.answer(
-        "Напишите в чат, например: «Не знаю уровень, хочу учить язык» — "
-        "и я задам первый вопрос."
+        "Напишите в чат, например: «Не знаю уровень» — и задам первый вопрос."
     )
 
 
@@ -220,26 +196,20 @@ async def choose_level(callback: CallbackQuery, state: FSMContext, session: Asyn
     await state.set_state(OnboardingStates.chatting)
     await callback.message.edit_text(
         _ready_copy(audience, lang, level_value),
-        reply_markup=premium_menu_keyboard(),
+        reply_markup=hub_menu_keyboard(),
     )
     await callback.answer()
 
 
 @router.callback_query(F.data == "menu:voice_hint")
 async def menu_voice_hint(callback: CallbackQuery) -> None:
-    await callback.message.answer(
-        "🎙 Нажмите синюю кнопку «Учитель — общение» слева от поля ввода — "
-        "откроется 3D-учитель Елена. Удерживайте микрофон и говорите."
-    )
+    await callback.message.answer(VOICE_HINT)
     await callback.answer()
 
 
 @router.callback_query(F.data == "menu:chat_hint")
 async def menu_chat_hint(callback: CallbackQuery) -> None:
-    await callback.message.answer(
-        "✍️ Просто напишите сообщение в этот чат — или пришлите голосовое. "
-        "Репетитор ответит с учётом вашего профиля."
-    )
+    await callback.message.answer(CHAT_HINT)
     await callback.answer()
 
 

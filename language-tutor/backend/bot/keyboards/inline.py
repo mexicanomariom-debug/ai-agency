@@ -73,17 +73,29 @@ def level_keyboard(audience: str | None = None) -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(inline_keyboard=buttons)
 
 
-def premium_menu_keyboard() -> InlineKeyboardMarkup:
-    """Quick actions after onboarding — premium feel for kids & adults."""
+def hub_menu_keyboard() -> InlineKeyboardMarkup:
+    """Main hub after onboarding — product-oriented layout."""
     return InlineKeyboardMarkup(
         inline_keyboard=[
-            [InlineKeyboardButton(text="🎙 Голосовой репетитор", callback_data="menu:voice_hint")],
-            [InlineKeyboardButton(text="📚 Слова на сегодня", callback_data="menu:review")],
-            [InlineKeyboardButton(text="📊 Мой прогресс", callback_data="menu:progress")],
-            [InlineKeyboardButton(text="✍️ Написать в чат", callback_data="menu:chat_hint")],
-            [InlineKeyboardButton(text="⚙️ Сменить профиль", callback_data="menu:settings")],
+            [
+                InlineKeyboardButton(text="⬡ Opus Neural", callback_data="menu:voice_hint"),
+                InlineKeyboardButton(text="💬 Чат", callback_data="menu:chat_hint"),
+            ],
+            [
+                InlineKeyboardButton(text="📚 Слова", callback_data="menu:review"),
+                InlineKeyboardButton(text="📊 Прогресс", callback_data="menu:progress"),
+            ],
+            [
+                InlineKeyboardButton(text="📋 Тест", callback_data="menu:test"),
+                InlineKeyboardButton(text="✦ О продукте", callback_data="menu:product"),
+            ],
+            [InlineKeyboardButton(text="⚙️ Профиль", callback_data="menu:settings")],
         ]
     )
+
+
+def premium_menu_keyboard() -> InlineKeyboardMarkup:
+    return hub_menu_keyboard()
 
 
 def vocab_rating_keyboard(card_id: int) -> InlineKeyboardMarkup:
