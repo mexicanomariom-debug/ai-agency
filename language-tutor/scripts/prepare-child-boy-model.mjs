@@ -17,6 +17,12 @@ const fallbackUrl =
 
 const ASSET_EXT = /\.(png|jpg|jpeg|webp|ktx2|bin)$/i;
 
+/** 1×1 transparent PNG for missing CGTrader texture refs (e.g. Image.png). */
+const PLACEHOLDER_PNG = Buffer.from(
+  "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==",
+  "base64",
+);
+
 function run(cmd) {
   console.log(cmd);
   execSync(cmd, { stdio: "inherit", cwd: root });
@@ -122,13 +128,18 @@ function prepareGltfAssets(gltfPath, searchRoot) {
         const src = assets.find((f) => path.basename(f).toLowerCase() === fixed.toLowerCase());
         if (src) fs.copyFileSync(src, dest);
       }
+      if (!fs.existsSync(dest)) {
+        fs.writeFileSync(dest, PLACEHOLDER_PNG);
+        console.warn(`Missing texture ${fixed} — 1×1 placeholder`);
+        changed = true;
+      }
     }
   }
 
-  if (changed) {
-    const fixedPath = path.join(gltfDir, "model.fixed.gltf");
+  const fixedPath = path.join(gltfDir, "model.fixed.gltf");
+  if (changed || !fs.existsSync(fixedPath)) {
     fs.writeFileSync(fixedPath, JSON.stringify(doc));
-    console.log(`Patched GLTF URIs → ${fixedPath}`);
+    console.log(`Prepared GLTF → ${fixedPath}`);
     return fixedPath;
   }
   return gltfPath;
@@ -141,10 +152,15 @@ function buildOptimizedGlb(inputPath, outputPath) {
       `npx --yes @gltf-transform/cli optimize ${q(inputPath)} ${q(outputPath)} --compress meshopt --texture-compress webp`,
     );
   } catch {
-    console.warn("WebP compression failed — retrying without texture compression...");
-    run(
-      `npx --yes @gltf-transform/cli optimize ${q(inputPath)} ${q(outputPath)} --compress meshopt --texture-compress false`,
-    );
+    console.warn("WebP optimize failed — retrying without texture compression...");
+    try {
+      run(
+        `npx --yes @gltf-transform/cli optimize ${q(inputPath)} ${q(outputPath)} --compress meshopt --texture-compress false`,
+      );
+    } catch {
+      console.warn("Optimize failed — plain GLB copy...");
+      run(`npx --yes @gltf-transform/cli copy ${q(inputPath)} ${q(outputPath)}`);
+    }
   }
 }
 
