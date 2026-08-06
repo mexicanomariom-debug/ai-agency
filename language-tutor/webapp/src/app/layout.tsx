@@ -2,8 +2,9 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Елена — премиальный AI-репетитор",
-  description: "Живой 3D-репетитор для детей и взрослых. Голосовые уроки английского, испанского и немецкого.",
+  title: "Opus 5 Concierge — AI language studio",
+  description:
+    "Opus Studio voice lessons, Persona Lounge chat, Telegram concierge, and a CEFR learning path with FSRS vocabulary.",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
