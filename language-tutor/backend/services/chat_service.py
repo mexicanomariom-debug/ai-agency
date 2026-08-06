@@ -7,6 +7,7 @@ from services.chat_history import chat_history_service
 from services.cognitive_profiler import cognitive_profiler
 from services.llm_service import llm_service
 from services.personas import persona_service
+from services.placement_service import build_placement_program_block
 from services.tutor_context import build_tutor_system_prompt
 from services.user_service import user_service
 
@@ -17,6 +18,7 @@ async def process_user_text(
     user_text: str,
     *,
     from_voice: bool = False,
+    placement_mode: bool = False,
 ) -> str | None:
     user = await user_service.get_by_telegram_id(session, message.from_user.id)
     if not user or not user.is_onboarded:
@@ -35,6 +37,8 @@ async def process_user_text(
     system_prompt = build_tutor_system_prompt(
         persona, user=user, rag_context=rag_context, cognitive_context=cognitive_context
     )
+    if placement_mode:
+        system_prompt = f"{system_prompt}\n\n{build_placement_program_block(user)}"
 
     openai_messages = chat_history_service.to_openai_messages(history)
     openai_messages.append({"role": "user", "content": user_text})

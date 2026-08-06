@@ -17,13 +17,13 @@ function fallbackTutor(req: NextRequest) {
   }
 
   return {
-    name: "Илья",
+    name: "Елена",
     slug: "voice-teacher",
-    description: "Премиальный 3D-учитель",
+    description: "Премиальный 3D-репетитор",
     language: null,
     level: null,
     audience: null,
-    greeting: `Привет, ${firstName}! Я Илья, ваш учитель. Жми микрофон и говори — отвечу голосом.`,
+    greeting: `Привет, ${firstName}! Я Елена, ваш репетитор. Жми микрофон и говори — пояснения останутся на экране.`,
   };
 }
 

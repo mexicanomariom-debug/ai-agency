@@ -4,7 +4,7 @@ import { buildVoiceFallbackSystemPrompt } from "@/lib/tutorPedagogy";
 const BACKEND_URL = process.env.BACKEND_URL || "http://140.84.183.154:8000";
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY || "";
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY || "";
-const OPENAI_MODEL = process.env.OPENAI_MODEL || "gpt-4o-mini";
+const OPENAI_MODEL = process.env.OPENAI_MODEL || "gpt-4o";
 const ANTHROPIC_MODEL = process.env.ANTHROPIC_MODEL || "claude-sonnet-5";
 const TTS_VOICE = process.env.OPENAI_TTS_VOICE || "onyx";
 

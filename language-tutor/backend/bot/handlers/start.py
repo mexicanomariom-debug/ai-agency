@@ -11,6 +11,7 @@ from bot.keyboards.inline import (
     premium_menu_keyboard,
 )
 from bot.states.onboarding import OnboardingStates
+from services.placement_service import PLACEMENT_INTRO
 from services.user_service import user_service
 
 router = Router()
@@ -41,7 +42,7 @@ def _welcome_copy(name: str) -> str:
     return (
         f"✦ <b>Opus 5 Concierge</b>\n"
         f"Добро пожаловать, {name}.\n\n"
-        "Премиальный AI-репетитор с живым 3D-учителем Ильёй — "
+        "Премиальный AI-репетитор с живым 3D-учителем Еленой — "
         "для детей с игровой атмосферой и для взрослых с деловой точностью.\n\n"
         "<b>Для кого занятия?</b>"
     )
@@ -53,7 +54,7 @@ def _ready_copy(audience: str, lang: str, level: str) -> str:
             f"🎉 Профиль готов!\n"
             f"{AUDIENCE_LABELS.get(audience, audience)} · "
             f"{LANGUAGE_LABELS.get(lang, lang)} · {LEVEL_LABELS.get(level, level)}\n\n"
-            "Илья уже ждёт тебя — можно писать в чат или нажать синюю кнопку "
+            "Елена уже ждёт тебя — можно писать в чат или нажать синюю кнопку "
             "«Учитель — общение» и поговорить вслух. Давай играть словами!"
         )
     if audience == "teen":
@@ -69,7 +70,7 @@ def _ready_copy(audience: str, lang: str, level: str) -> str:
         f"{AUDIENCE_LABELS.get(audience, audience)} · "
         f"{LANGUAGE_LABELS.get(lang, lang)} · {LEVEL_LABELS.get(level, level)}\n\n"
         "Пишите в чат или откройте синюю кнопку «Учитель — общение» — "
-        "голосовой 3D-репетитор Илья для переговоров, путешествий и точности речи."
+        "голосовой 3D-репетитор Елена для переговоров, путешествий и точности речи."
     )
 
 
@@ -95,8 +96,9 @@ async def cmd_start(message: Message, state: FSMContext, session: AsyncSession) 
             f"Язык: {LANGUAGE_LABELS.get(user.language.value, user.language.value)}\n"
             f"Уровень: {LEVEL_LABELS.get(user.level.value, user.level.value)}\n\n"
             "• Чат — текст и голосовые\n"
-            "• Синяя кнопка «Учитель — общение» — 3D-учитель Илья\n"
+            "• Синяя кнопка «Учитель — общение» — 3D-учитель Елена\n"
             "• /review — слова на сегодня (FSRS)\n"
+            "• /test — мини-тест уровня на русском + программа (/program)\n"
             "• /progress — ваш прогресс и CEFR",
             reply_markup=premium_menu_keyboard(),
         )
@@ -115,9 +117,10 @@ async def cmd_help(message: Message) -> None:
         "✦ <b>Opus 5 · как заниматься</b>\n\n"
         "1. <b>Чат</b> — пишите или отправляйте голосовые\n"
         "2. <b>Учитель — общение</b> — синяя кнопка: 3D-учитель говорит губами в реальном времени\n"
-        "3. <b>/review</b> — повторить слова (FSRS, spaced repetition)\n"
-        "4. <b>/progress</b> — прогресс, CEFR и словарь\n"
-        "5. <b>/settings</b> — сменить аудиторию, язык или уровень\n\n"
+        "3. <b>/review</b> — повторить слова (FSRS)\n"
+        "4. <b>/test</b> — мини-тест уровня на русском, затем <b>/program</b>\n"
+        "5. <b>/progress</b> — прогресс и CEFR\n"
+        "6. <b>/settings</b> — сменить профиль\n\n"
         "Ребёнку — игры и сказки. Взрослому — точность и деловой тон."
     )
 
@@ -174,9 +177,34 @@ async def choose_language(callback: CallbackQuery, state: FSMContext, session: A
     await callback.answer()
 
 
+@router.callback_query(F.data == "level:discover")
+async def choose_level_discover(
+    callback: CallbackQuery, state: FSMContext, session: AsyncSession
+) -> None:
+    from database.enums import ProficiencyLevel
+
+    user = await user_service.get_or_create(session, telegram_id=callback.from_user.id)
+    await user_service.set_level(session, user, ProficiencyLevel.BEGINNER)
+    await user_service.complete_onboarding(session, user)
+
+    await state.set_state(OnboardingStates.placement_test)
+    await callback.message.edit_text(
+        "🤔 Не знаете уровень? Отлично — сначала короткий тест на русском.\n\n"
+        + PLACEMENT_INTRO.replace("<b>", "").replace("</b>", ""),
+    )
+    await callback.answer()
+    await callback.message.answer(
+        "Напишите в чат, например: «Не знаю уровень, хочу учить язык» — "
+        "и я задам первый вопрос."
+    )
+
+
 @router.callback_query(F.data.startswith("level:"))
 async def choose_level(callback: CallbackQuery, state: FSMContext, session: AsyncSession) -> None:
     level_value = callback.data.split(":", 1)[1]
+    if level_value == "discover":
+        await callback.answer()
+        return
 
     user = await user_service.get_or_create(session, telegram_id=callback.from_user.id)
     from database.enums import ProficiencyLevel
@@ -201,7 +229,7 @@ async def choose_level(callback: CallbackQuery, state: FSMContext, session: Asyn
 async def menu_voice_hint(callback: CallbackQuery) -> None:
     await callback.message.answer(
         "🎙 Нажмите синюю кнопку «Учитель — общение» слева от поля ввода — "
-        "откроется 3D-учитель Илья. Удерживайте микрофон и говорите."
+        "откроется 3D-учитель Елена. Удерживайте микрофон и говорите."
     )
     await callback.answer()
 

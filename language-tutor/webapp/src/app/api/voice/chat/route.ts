@@ -27,7 +27,7 @@ async function localChat(message: string, name: string): Promise<Response> {
       },
       body: JSON.stringify({
         model: process.env.ANTHROPIC_MODEL || "claude-sonnet-5",
-        max_tokens: 300,
+        max_tokens: 1024,
         system,
         messages: [{ role: "user", content: message }],
       }),
@@ -46,7 +46,7 @@ async function localChat(message: string, name: string): Promise<Response> {
         Authorization: `Bearer ${OPENAI_API_KEY}`,
       },
       body: JSON.stringify({
-        model: process.env.OPENAI_MODEL || "gpt-4o-mini",
+        model: process.env.OPENAI_MODEL || "gpt-4o",
         messages: [
           { role: "system", content: system },
           { role: "user", content: message },

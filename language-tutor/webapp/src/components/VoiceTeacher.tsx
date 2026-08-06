@@ -61,6 +61,8 @@ export default function VoiceTeacher() {
   const [closingSession, setClosingSession] = useState(false);
   const [userTurnCount, setUserTurnCount] = useState(0);
   const [progress, setProgress] = useState<ProgressSnapshot | null>(null);
+  const [chatModel, setChatModel] = useState<string | null>(null);
+  const [hasSpoken, setHasSpoken] = useState(false);
 
   const mediaRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
@@ -84,6 +86,7 @@ export default function VoiceTeacher() {
         if (cancelled) return;
         setTutor(t);
         setProgress(prog);
+        setChatModel(caps.chat_model ?? caps.provider ?? null);
         setUseBrowserStt(!caps.stt);
         if (!caps.llm) {
           setError("Нет LLM ключа (ANTHROPIC/OPENAI). Добавьте в GitHub Secrets и задеплойте Oracle.");
@@ -95,9 +98,9 @@ export default function VoiceTeacher() {
         if (!cancelled) {
           setError(e instanceof Error ? e.message : "Ошибка загрузки");
           setTutor({
-            name: "Илья",
+            name: "Елена",
             slug: "voice-teacher",
-            description: "Премиальный 3D-учитель",
+            description: "Премиальный 3D-репетитор",
             language: null,
             level: null,
             audience: null,
@@ -154,6 +157,7 @@ export default function VoiceTeacher() {
 
   const playReply = useCallback(async (reply: string, audioBase64: string | null) => {
     setLastReply(reply);
+    setHasSpoken(true);
     setStatus("speaking");
 
     try {
@@ -377,6 +381,7 @@ export default function VoiceTeacher() {
             {progress.vocab_total > 0
               ? ` · 📚 ${progress.vocab_total} слов (${progress.vocab_due} на сегодня)`
               : ""}
+            {chatModel ? ` · ${chatModel}` : ""}
           </p>
         )}
         {userTurnCount >= 2 && !sessionSummary && (
@@ -402,14 +407,27 @@ export default function VoiceTeacher() {
         />
 
         <p className="premium-caption">
-          {status === "idle" && tutor.greeting}
           {status === "recording" && (isChild ? "Говори… отпусти кнопку, когда закончишь" : "Говорите… отпустите, когда закончите")}
-          {status === "processing" && (isChild ? "Илья думает…" : "Формирую ответ…")}
-          {status === "speaking" && lastReply}
+          {status === "processing" && (isChild ? "Елена думает…" : "Формирую ответ…")}
+          {status === "speaking" && "Говорю…"}
+          {status === "idle" && !hasSpoken && tutor.greeting}
         </p>
 
-        {lastUser && status === "idle" && (
-          <p className="premium-echo">Вы: {lastUser}</p>
+        {(lastUser || lastReply) && (
+          <div className="premium-transcript" aria-live="polite">
+            {lastUser && (
+              <p className="premium-transcript-user">
+                <span className="premium-transcript-label">Вы</span>
+                {lastUser}
+              </p>
+            )}
+            {lastReply && (
+              <p className="premium-transcript-tutor">
+                <span className="premium-transcript-label">Елена</span>
+                {lastReply}
+              </p>
+            )}
+          </div>
         )}
 
         {error && <p className="premium-error">{error}</p>}

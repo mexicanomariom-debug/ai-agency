@@ -16,6 +16,7 @@ async def setup_bot_ui(bot: Bot) -> None:
         [
             BotCommand(command="start", description="✦ Concierge · начать"),
             BotCommand(command="help", description="📖 Как заниматься"),
+            BotCommand(command="test", description="📋 Мини-тест уровня"),
             BotCommand(command="review", description="📚 Слова на сегодня"),
             BotCommand(command="progress", description="📊 Мой прогресс"),
             BotCommand(command="settings", description="⚙️ Профиль"),

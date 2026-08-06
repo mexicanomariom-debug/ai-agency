@@ -5,9 +5,10 @@ from services.pedagogy import build_pedagogy_block
 
 _AUDIENCE_PROMPTS = {
     Audience.CHILD: (
-        "AUDIENCE: The student is a CHILD. Use simple warm Russian, short sentences, "
-        "playful encouragement, games and stories. Avoid adult topics. "
-        "Praise often. Keep vocabulary age-appropriate."
+        "AUDIENCE: The student is a CHILD. Use warm, encouraging tone and simple Russian when needed. "
+        "Playful games and stories are welcome, but MATCH their real language level in the target "
+        "language — if they speak at B1, do not dumb down to A1 baby talk. "
+        "Praise effort. Keep topics age-appropriate."
     ),
     Audience.TEEN: (
         "AUDIENCE: The student is a TEENAGER. Be friendly and modern, help with school "
@@ -35,8 +36,9 @@ def build_tutor_system_prompt(
             parts.append(f"The student is learning {user.language.value.title()}.")
         if user.level:
             parts.append(
-                f"Their CEFR-style level is {user.level.value.replace('_', ' ').title()}. "
-                "Calibrate vocabulary, grammar complexity, and speaking pace to this level."
+                f"Profile level label: {user.level.value.replace('_', ' ').title()}. "
+                "Use as a starting point, but adapt up or down based on what the student "
+                "actually produces in the target language each turn."
             )
         if user.audience:
             parts.append(_AUDIENCE_PROMPTS.get(user.audience, _AUDIENCE_PROMPTS[Audience.ADULT]))

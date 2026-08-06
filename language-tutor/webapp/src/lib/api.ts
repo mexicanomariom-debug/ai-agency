@@ -176,6 +176,7 @@ export interface VoiceCapabilities {
   stt: boolean;
   tts: boolean;
   provider: string | null;
+  chat_model?: string | null;
 }
 
 export async function fetchVoiceCapabilities(initData?: string): Promise<VoiceCapabilities> {
