@@ -37,7 +37,7 @@ function findAsset(dir) {
   const names = listFiles(dir);
   const gltf = names.find((n) => n.toLowerCase().endsWith(".gltf"));
   if (gltf) return { path: path.join(dir, gltf), kind: "gltf" };
-  const glb = names.find((n) => n.toLowerCase().endsWith(".glb"));
+  const glb = names.find((n) => n.toLowerCase().endsWith(".glb") && !n.includes("child-boy"));
   if (glb) return { path: path.join(dir, glb), kind: "glb" };
   return null;
 }
@@ -50,10 +50,23 @@ function findInputAsset() {
   return null;
 }
 
+function unzipZip(zipPath, destDir) {
+  const zip = path.resolve(zipPath);
+  const dest = path.resolve(destDir);
+  if (process.platform === "win32") {
+    const ps = `Expand-Archive -LiteralPath '${zip.replace(/'/g, "''")}' -DestinationPath '${dest.replace(/'/g, "''")}' -Force`;
+    const cmd = `powershell -NoProfile -ExecutionPolicy Bypass -Command "${ps}"`;
+    console.log(cmd);
+    execSync(cmd, { stdio: "inherit", cwd: root });
+  } else {
+    run(`unzip -o -q "${zip}" -d "${dest}"`);
+  }
+}
+
 function unzipAllZips(dir) {
   for (const name of listFiles(dir)) {
     if (name.toLowerCase().endsWith(".zip")) {
-      run(`unzip -o -q "${path.join(dir, name)}" -d "${dir}"`);
+      unzipZip(path.join(dir, name), dir);
     }
   }
 }
