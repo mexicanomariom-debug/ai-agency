@@ -67,6 +67,9 @@ def level_keyboard(audience: str | None = None) -> InlineKeyboardMarkup:
         [InlineKeyboardButton(text=labels[level], callback_data=f"level:{level.value}")]
         for level in levels
     ]
+    buttons.append(
+        [InlineKeyboardButton(text="🤔 Не знаю уровень — мини-тест", callback_data="level:discover")]
+    )
     return InlineKeyboardMarkup(inline_keyboard=buttons)
 
 
@@ -74,7 +77,7 @@ def premium_menu_keyboard() -> InlineKeyboardMarkup:
     """Quick actions after onboarding — premium feel for kids & adults."""
     return InlineKeyboardMarkup(
         inline_keyboard=[
-            [InlineKeyboardButton(text="🎙 Голосовой учитель Илья", callback_data="menu:voice_hint")],
+            [InlineKeyboardButton(text="🎙 Голосовой репетитор", callback_data="menu:voice_hint")],
             [InlineKeyboardButton(text="📚 Слова на сегодня", callback_data="menu:review")],
             [InlineKeyboardButton(text="📊 Мой прогресс", callback_data="menu:progress")],
             [InlineKeyboardButton(text="✍️ Написать в чат", callback_data="menu:chat_hint")],

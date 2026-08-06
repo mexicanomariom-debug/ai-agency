@@ -7,7 +7,7 @@ class Settings(BaseSettings):
     bot_token: str = ""
     bot_username: str = "All_languages_bot"
     openai_api_key: str = ""
-    openai_model: str = "gpt-4o-mini"
+    openai_model: str = "gpt-4o"
     openai_tts_voice: str = "onyx"
     anthropic_api_key: str = ""
     anthropic_model: str = "claude-sonnet-5"

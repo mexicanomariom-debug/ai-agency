@@ -29,5 +29,10 @@ export async function GET(request: NextRequest) {
       : process.env.OPENAI_API_KEY
         ? "openai"
         : null,
+    chat_model: process.env.ANTHROPIC_API_KEY
+      ? process.env.ANTHROPIC_MODEL || "claude-sonnet-5"
+      : process.env.OPENAI_API_KEY
+        ? process.env.OPENAI_MODEL || "gpt-4o"
+        : null,
   });
 }

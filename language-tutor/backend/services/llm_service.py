@@ -71,7 +71,7 @@ class LLMService:
                 try:
                     kwargs: dict = {
                         "model": model,
-                        "max_tokens": 1024,
+                        "max_tokens": 1536,
                         "system": system_prompt or "",
                         "messages": [
                             {"role": m["role"], "content": m["content"]}
@@ -130,7 +130,7 @@ class LLMService:
                 try:
                     async with self._anthropic.messages.stream(
                         model=model,
-                        max_tokens=1024,
+                        max_tokens=1536,
                         system=system_prompt or "",
                         messages=[
                             {"role": m["role"], "content": m["content"]}

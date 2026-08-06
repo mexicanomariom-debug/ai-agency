@@ -45,18 +45,18 @@ async def get_voice_tutor(
 
     if audience == "child":
         greeting = (
-            f"Привет, {first}! Я Илья — твой учитель. "
-            "Жми микрофон и говори — я отвечу голосом, как настоящий человек!"
+            f"Привет, {first}! Я Елена — твой репетитор. "
+            "Жми микрофон и говори — объясню и покажу примеры, не только короткий ответ."
         )
     elif audience == "teen":
         greeting = (
-            f"Привет, {first}! Я Илья. Держи микрофон и говори — "
-            "разберём язык по-взрослому, без скуки."
+            f"Привет, {first}! Я Елена. Держи микрофон и говори — "
+            "подстроюсь под твой реальный уровень, даже если в профиле другой."
         )
     else:
         greeting = (
-            f"Добро пожаловать, {first}. Я Илья, ваш премиальный репетитор. "
-            "Удерживайте микрофон — отвечу голосом с живой мимикой."
+            f"Добро пожаловать, {first}. Я Елена, ваш репетитор. "
+            "Удерживайте микрофон — отвечу голосом; пояснения останутся на экране."
         )
 
     return VoiceTutorResponse(
@@ -75,11 +75,15 @@ async def voice_capabilities() -> VoiceCapabilitiesResponse:
     has_openai = bool(settings.openai_api_key)
     has_llm = bool(settings.anthropic_api_key or settings.openai_api_key)
     provider = "anthropic" if settings.anthropic_api_key else ("openai" if has_openai else None)
+    chat_model = settings.anthropic_model if settings.anthropic_api_key else (
+        settings.openai_model if has_openai else None
+    )
     return VoiceCapabilitiesResponse(
         llm=has_llm,
         stt=has_openai,
         tts=has_openai,
         provider=provider,
+        chat_model=chat_model,
     )
 
 

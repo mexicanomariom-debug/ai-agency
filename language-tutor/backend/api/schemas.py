@@ -49,6 +49,7 @@ class VoiceCapabilitiesResponse(BaseModel):
     stt: bool
     tts: bool
     provider: str | None = None
+    chat_model: str | None = None
 
 
 class VoiceTutorResponse(BaseModel):
