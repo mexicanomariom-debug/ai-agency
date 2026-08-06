@@ -1,4 +1,5 @@
 import { Features, Footer, Header, Hero, Journey, ProductShowcase } from "@/components/Landing";
+import LandingChildDemo from "@/components/LandingChildDemo";
 
 export default function HomePage() {
   return (
@@ -6,6 +7,7 @@ export default function HomePage() {
       <Header />
       <main>
         <Hero />
+        <LandingChildDemo />
         <ProductShowcase />
         <Journey />
         <Features />

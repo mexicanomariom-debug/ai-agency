@@ -27,6 +27,7 @@ export function Header() {
         </Link>
         <nav className="opus-nav">
           <Link href="#products">Products</Link>
+          <Link href="#kids">Kids</Link>
           <Link href="/pricing">Pricing</Link>
           <a
             href={`https://t.me/${BOT_USERNAME}`}
