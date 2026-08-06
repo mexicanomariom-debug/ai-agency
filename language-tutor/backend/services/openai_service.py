@@ -98,7 +98,7 @@ class OpenAIService:
         if not settings.openai_api_key:
             return None
         response = await self.client.audio.speech.create(
-            model="tts-1",
+            model=settings.openai_tts_model,
             voice=voice or settings.openai_tts_voice,
             input=text[:4096],
             response_format="mp3",

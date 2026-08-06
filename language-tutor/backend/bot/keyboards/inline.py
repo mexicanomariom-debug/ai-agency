@@ -78,8 +78,8 @@ def hub_menu_keyboard() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(
         inline_keyboard=[
             [
-                InlineKeyboardButton(text="⬡ Opus Neural", callback_data="menu:voice_hint"),
-                InlineKeyboardButton(text="💬 Чат", callback_data="menu:chat_hint"),
+                InlineKeyboardButton(text="🎙 Голосом", callback_data="menu:voice_hint"),
+                InlineKeyboardButton(text="💬 Текст", callback_data="menu:chat_hint"),
             ],
             [
                 InlineKeyboardButton(text="📚 Слова", callback_data="menu:review"),

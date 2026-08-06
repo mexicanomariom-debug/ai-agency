@@ -1,4 +1,6 @@
 from aiogram import F, Router
+from aiogram.filters import StateFilter
+from aiogram.fsm.context import FSMContext
 from aiogram.types import Message
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -9,8 +11,13 @@ from services.openai_service import openai_service
 router = Router()
 
 
-@router.message(OnboardingStates.chatting, F.voice)
-async def handle_voice_message(message: Message, session: AsyncSession) -> None:
+@router.message(
+    StateFilter(OnboardingStates.chatting, OnboardingStates.placement_test),
+    F.voice,
+)
+async def handle_voice_message(
+    message: Message, state: FSMContext, session: AsyncSession
+) -> None:
     if not openai_service.has_api_key():
         await message.answer(
             "🎙 Для голосовых сообщений нужен OPENAI_API_KEY на сервере.\n"
@@ -34,4 +41,12 @@ async def handle_voice_message(message: Message, session: AsyncSession) -> None:
         await message.answer("Не расслышал текст. Попробуй говорить чуть громче.")
         return
 
-    await process_user_text(message, session, transcript, from_voice=True)
+    current = await state.get_state()
+    placement_mode = current == OnboardingStates.placement_test.state
+    await process_user_text(
+        message,
+        session,
+        transcript,
+        from_voice=True,
+        placement_mode=placement_mode,
+    )
