@@ -94,14 +94,20 @@ class OpenAIService:
             if delta:
                 yield delta
 
-    async def synthesize_speech(self, text: str, voice: str | None = None) -> bytes | None:
+    async def synthesize_speech(
+        self,
+        text: str,
+        voice: str | None = None,
+        response_format: str = "mp3",
+    ) -> bytes | None:
+        """Synthesize speech. Use response_format="opus" for Telegram voice notes."""
         if not settings.openai_api_key:
             return None
         response = await self.client.audio.speech.create(
             model=settings.openai_tts_model,
             voice=voice or settings.openai_tts_voice,
             input=text[:4096],
-            response_format="mp3",
+            response_format=response_format,
         )
         return response.content
 

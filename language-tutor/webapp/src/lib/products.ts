@@ -1,4 +1,4 @@
-import { BOT_USERNAME, TWA_URL } from "@/lib/api";
+import { BOT_USERNAME } from "@/lib/api";
 
 export type ProductId = "studio" | "lounge" | "telegram" | "path";
 

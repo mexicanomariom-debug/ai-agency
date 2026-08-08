@@ -95,9 +95,13 @@ async def cmd_cancel_test(message: Message, state: FSMContext) -> None:
     await message.answer("Тест отменён. Продолжаем обычный чат или /test снова.")
 
 
-@router.message(OnboardingStates.placement_test)
+@router.message(OnboardingStates.placement_test, F.text, ~F.text.startswith("/"))
 async def placement_chat(message: Message, session: AsyncSession) -> None:
-    if not message.text:
-        await message.answer("В тесте напишите текстовое сообщение или /program для итогов.")
-        return
     await process_user_text(message, session, message.text, placement_mode=True)
+
+
+@router.message(OnboardingStates.placement_test)
+async def placement_unsupported(message: Message) -> None:
+    await message.answer(
+        "В тесте отправьте текст или голосовое сообщение, либо /program для итогов."
+    )

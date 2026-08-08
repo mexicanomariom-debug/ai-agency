@@ -96,8 +96,8 @@ export function ProductShowcase() {
           <p className="opus-kicker">Product suite</p>
           <h2 className="opus-section-title">Four surfaces, one brain</h2>
           <p className="opus-section-lead">
-            Each product shares pedagogy, cognitive profile, and session memory — so Elena in
-            Studio and María in Lounge know the same student.
+            Each product shares pedagogy, cognitive profile, and session memory — so the
+            Telegram coach and María in Lounge know the same student.
           </p>
         </div>
         <div className="product-grid">
@@ -142,14 +142,14 @@ export function Features() {
     },
     {
       icon: Mic,
-      title: "Studio voice",
+      title: "Voice in, voice out",
       description:
-        "Elena in WebGL with lip-sync, transcripts that stay on screen, session CEFR recap.",
+        "Send a voice message in Telegram — Whisper transcribes, the tutor replies in a warm TTS voice.",
     },
     {
       icon: Bot,
       title: "Telegram-native",
-      description: "/test placement in Russian, /review FSRS, /progress dashboard, blue voice TWA.",
+      description: "/test placement in Russian, /review FSRS, /progress dashboard, voice notes.",
     },
   ];
 

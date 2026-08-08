@@ -3,7 +3,7 @@ import VoiceTeacher from "@/components/VoiceTeacher";
 
 export const metadata = {
   title: "Opus Studio — voice lessons",
-  description: "3D voice lessons with Elena — Opus 5 Concierge",
+  description: "3D voice lessons with Opus Neural — Opus 5 Concierge",
 };
 
 export default function VoicePage() {

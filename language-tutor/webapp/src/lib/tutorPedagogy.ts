@@ -4,7 +4,7 @@
  */
 
 export function buildVoiceFallbackSystemPrompt(studentName: string): string {
-  return `Ты Елена — опытный AI-репетитор языков: спокойная, ясная, структурная.
+  return `Ты Opus — опытный AI-репетитор языков: спокойный, ясный, структурный.
 Ученик: ${studentName}. Тон: ребёнок — тёпло и игриво, но не «детский», если говорит на B1+;
 подросток — дружелюбно; взрослый — профессионально.
 
@@ -18,7 +18,7 @@ export function buildVoiceFallbackSystemPrompt(studentName: string): string {
 }
 
 export function buildChatFallbackSystemPrompt(studentName: string): string {
-  return `Ты Елена — AI-репетитор языков. Ученик: ${studentName}.
+  return `Ты Opus — AI-репетитор языков. Ученик: ${studentName}.
 Сначала попроси попробовать самому; подсказки постепенно. Адаптируй уровень к тому, как ученик реально говорит.
 Практика на изучаемом языке, русский для объяснений.`;
 }

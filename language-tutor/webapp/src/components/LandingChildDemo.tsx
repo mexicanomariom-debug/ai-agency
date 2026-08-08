@@ -1,9 +1,17 @@
 "use client";
 
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import dynamic from "next/dynamic";
 import { Bot, Volume2 } from "lucide-react";
-import TalkingAvatar3D, { type TalkingAvatarHandle } from "@/components/TalkingAvatar3D";
+import type { TalkingAvatarHandle } from "@/components/TalkingAvatar3D";
 import { BOT_USERNAME } from "@/lib/api";
+
+// WebGL + TalkingHead + a ~2 MB GLB: keep it off the server render and out of
+// the initial bundle for visitors who never scroll to this section.
+const TalkingAvatar3D = dynamic(() => import("@/components/TalkingAvatar3D"), {
+  ssr: false,
+  loading: () => <div className="landing-child-placeholder" aria-hidden />,
+});
 
 const DEMO_LINES = [
   "Привет! Я Миша. Давай учить язык весело!",
@@ -13,8 +21,30 @@ const DEMO_LINES = [
 
 export default function LandingChildDemo() {
   const avatarRef = useRef<TalkingAvatarHandle | null>(null);
+  const sectionRef = useRef<HTMLElement>(null);
+  const [visible, setVisible] = useState(false);
   const [ready, setReady] = useState(false);
   const [speaking, setSpeaking] = useState(false);
+
+  useEffect(() => {
+    const node = sectionRef.current;
+    if (!node || visible) return;
+    if (typeof IntersectionObserver === "undefined") {
+      setVisible(true);
+      return;
+    }
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((entry) => entry.isIntersecting)) {
+          setVisible(true);
+          observer.disconnect();
+        }
+      },
+      { rootMargin: "200px" },
+    );
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, [visible]);
 
   const playDemo = useCallback(async () => {
     if (!avatarRef.current || !ready) return;
@@ -28,8 +58,10 @@ export default function LandingChildDemo() {
     }
   }, [ready]);
 
+  const status = speaking ? "Говорю…" : ready ? "Готов к демо" : "Загружаю 3D-учителя…";
+
   return (
-    <section className="opus-section theme-child landing-child" id="kids">
+    <section className="opus-section theme-child landing-child" id="kids" ref={sectionRef}>
       <div className="opus-container">
         <div className="landing-child-grid">
           <div className="landing-child-copy">
@@ -44,6 +76,7 @@ export default function LandingChildDemo() {
                 type="button"
                 className="opus-btn opus-btn--primary"
                 disabled={!ready || speaking}
+                aria-busy={speaking}
                 onClick={() => void playDemo()}
               >
                 <Volume2 className="h-5 w-5" />
@@ -59,15 +92,22 @@ export default function LandingChildDemo() {
                 Говорить в Telegram
               </a>
             </div>
+            <p className="landing-child-status" aria-live="polite">
+              {visible ? status : ""}
+            </p>
           </div>
           <div className="landing-child-stage">
-            <TalkingAvatar3D
-              ref={avatarRef}
-              name="Миша"
-              audience="child"
-              isSpeaking={speaking}
-              onReadyChange={setReady}
-            />
+            {visible ? (
+              <TalkingAvatar3D
+                ref={avatarRef}
+                name="Миша"
+                audience="child"
+                isSpeaking={speaking}
+                onReadyChange={setReady}
+              />
+            ) : (
+              <div className="landing-child-placeholder" aria-hidden />
+            )}
           </div>
         </div>
       </div>

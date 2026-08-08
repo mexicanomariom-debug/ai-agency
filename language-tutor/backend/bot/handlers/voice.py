@@ -10,6 +10,10 @@ from services.openai_service import openai_service
 
 router = Router()
 
+# Whisper rejects files above 25 MB; Telegram allows far larger uploads.
+MAX_VOICE_BYTES = 24 * 1024 * 1024
+MAX_VOICE_SECONDS = 300
+
 
 @router.message(
     StateFilter(OnboardingStates.chatting, OnboardingStates.placement_test),
@@ -25,13 +29,24 @@ async def handle_voice_message(
         )
         return
 
+    voice = message.voice
+    if voice.duration and voice.duration > MAX_VOICE_SECONDS:
+        await message.answer("Голосовое слишком длинное. Запишите до 5 минут.")
+        return
+    if voice.file_size and voice.file_size > MAX_VOICE_BYTES:
+        await message.answer("Файл слишком большой. Запишите сообщение покороче.")
+        return
+
     await message.bot.send_chat_action(message.chat.id, "typing")
-    file = await message.bot.get_file(message.voice.file_id)
-    audio_bytes = await message.bot.download_file(file.file_path)
 
     try:
+        file = await message.bot.get_file(voice.file_id)
+        if not file.file_path:
+            await message.answer("Не удалось скачать голосовое. Запишите его ещё раз.")
+            return
+        audio_bytes = await message.bot.download_file(file.file_path)
         transcript = await openai_service.transcribe_voice(
-            audio_bytes.read(), message.voice.mime_type or "audio/ogg"
+            audio_bytes.read(), voice.mime_type or "audio/ogg"
         )
     except Exception:
         await message.answer("Не удалось распознать голосовое. Попробуй записать ещё раз.")
@@ -50,3 +65,8 @@ async def handle_voice_message(
         from_voice=True,
         placement_mode=placement_mode,
     )
+
+
+@router.message(F.voice)
+async def handle_voice_before_onboarding(message: Message) -> None:
+    await message.answer("Сначала настроим профиль — отправьте /start.")

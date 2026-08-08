@@ -98,7 +98,7 @@ export default function VoiceTeacher() {
         if (!cancelled) {
           setError(e instanceof Error ? e.message : "Ошибка загрузки");
           setTutor({
-            name: "Елена",
+            name: "Opus Neural",
             slug: "voice-teacher",
             description: "Премиальный 3D-репетитор",
             language: null,
@@ -367,7 +367,7 @@ export default function VoiceTeacher() {
       <div className="premium-glow" aria-hidden />
       <header className="premium-header">
         <p className="premium-kicker">{isChild ? "Opus Kids · Studio" : "Opus 5 · Concierge"}</p>
-        <h1 className="premium-title">Илья</h1>
+        <h1 className="premium-title">{tutor.name}</h1>
         <p className="premium-sub">
           {user?.first_name ? `${user.first_name}` : "Гость"}
           {tutor.language ? ` · ${tutor.language}` : ""}
@@ -408,7 +408,7 @@ export default function VoiceTeacher() {
 
         <p className="premium-caption">
           {status === "recording" && (isChild ? "Говори… отпусти кнопку, когда закончишь" : "Говорите… отпустите, когда закончите")}
-          {status === "processing" && (isChild ? "Елена думает…" : "Формирую ответ…")}
+          {status === "processing" && (isChild ? `${tutor.name} думает…` : "Формирую ответ…")}
           {status === "speaking" && "Говорю…"}
           {status === "idle" && !hasSpoken && tutor.greeting}
         </p>
@@ -423,7 +423,7 @@ export default function VoiceTeacher() {
             )}
             {lastReply && (
               <p className="premium-transcript-tutor">
-                <span className="premium-transcript-label">Елена</span>
+                <span className="premium-transcript-label">{tutor.name}</span>
                 {lastReply}
               </p>
             )}
