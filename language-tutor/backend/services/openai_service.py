@@ -30,7 +30,14 @@ class OpenAIService:
         )
         return response.data[0].embedding
 
-    async def transcribe_voice(self, audio_bytes: bytes, mime_type: str = "audio/ogg") -> str:
+    async def transcribe_voice(
+        self,
+        audio_bytes: bytes,
+        mime_type: str = "audio/ogg",
+        *,
+        language: str | None = None,
+        prompt: str | None = None,
+    ) -> str:
         if not settings.openai_api_key:
             raise RuntimeError("OPENAI_API_KEY is required for voice transcription")
 
@@ -42,10 +49,19 @@ class OpenAIService:
         elif "mp4" in mime_type or "m4a" in mime_type:
             ext = "m4a"
 
-        response = await self.client.audio.transcriptions.create(
-            model="whisper-1",
-            file=(f"voice.{ext}", audio_bytes, mime_type),
-        )
+        # Bilingual learners mix Russian with the target language. A spelling
+        # prompt reduces Whisper errors like "iiamo" for Spanish "llamo".
+        # Do not force `language=` — auto-detect handles code-switching better.
+        kwargs: dict = {
+            "model": "whisper-1",
+            "file": (f"voice.{ext}", audio_bytes, mime_type),
+        }
+        if prompt:
+            kwargs["prompt"] = prompt
+        if language:
+            kwargs["language"] = language
+
+        response = await self.client.audio.transcriptions.create(**kwargs)
         return response.text
 
     async def chat_completion(
