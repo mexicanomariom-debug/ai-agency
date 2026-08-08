@@ -13,64 +13,17 @@ jobs:
       - uses: webfactory/ssh-agent@v0.9.0
         with:
           ssh-private-key: ${{ secrets.ORACLE_SSH_KEY }}
-
-      - name: Dump newest user transcripts
+      - name: Marat today + prod placement/voice order
         run: |
           HOST="${{ secrets.ORACLE_HOST || '140.84.183.154' }}"
           USER="${{ secrets.ORACLE_SSH_USER || 'ubuntu' }}"
           ssh-keyscan -H "$HOST" >> ~/.ssh/known_hosts 2>/dev/null || true
-          ssh -o StrictHostKeyChecking=no "${USER}@${HOST}" "cd /opt/opus5 && sudo tee /tmp/inspect.sql >/dev/null <<'SQL'
-          SELECT 'USERS' AS section;
-          SELECT id, telegram_id, username, first_name, last_name, language::text, level::text,
-                 audience::text, is_onboarded, created_at
-          FROM users
-          ORDER BY created_at DESC;
-
-          SELECT 'MSG_COUNTS' AS section;
-          SELECT u.id, u.telegram_id, u.username, u.first_name, COUNT(m.id) AS msgs,
-                 MIN(m.created_at) AS first_msg, MAX(m.created_at) AS last_msg
-          FROM users u
-          LEFT JOIN chat_messages m ON m.user_id = u.id
-          GROUP BY u.id
-          ORDER BY u.created_at DESC;
-
-          SELECT 'TRANSCRIPT_USER_4_PHILL' AS section;
-          SELECT m.id, m.created_at, m.role::text, m.content
-          FROM chat_messages m
-          WHERE m.user_id = 4
-          ORDER BY m.created_at ASC, m.id ASC;
-
-          SELECT 'TRANSCRIPT_USER_5_VIKTOR' AS section;
-          SELECT m.id, m.created_at, m.role::text, m.content
-          FROM chat_messages m
-          WHERE m.user_id = 5
-          ORDER BY m.created_at ASC, m.id ASC;
-
-          SELECT 'UNANSWERED_USER_MSGS' AS section;
-          WITH ordered AS (
-            SELECT m.id, m.user_id, u.telegram_id, u.username, u.first_name,
-                   m.created_at, m.role::text AS role, m.content,
-                   LEAD(m.role::text) OVER (PARTITION BY m.user_id ORDER BY m.created_at, m.id) AS next_role
-            FROM chat_messages m
-            JOIN users u ON u.id = m.user_id
-            WHERE u.telegram_id <> 0
-          )
-          SELECT id, user_id, telegram_id, username, first_name, created_at, role,
-                 LEFT(content, 500) AS content, next_role
-          FROM ordered
-          WHERE role = 'user' AND (next_role IS DISTINCT FROM 'assistant')
-          ORDER BY created_at DESC;
-
-          SELECT 'RECENT_BOT_HANDLER_ERRORS' AS section;
-          SQL
-          sudo docker compose -f docker-compose.prod.yml exec -T db \
-            psql -U language_tutor -d language_tutor -f - < /tmp/inspect.sql
-          echo '=== BOT ERRORS / VOICE (filtered) ==='
-          sudo docker compose -f docker-compose.prod.yml logs bot --tail 2000 2>&1 \
-            | grep -E 'ERROR|Exception|Traceback|voice|transcri|ParseMode|Bad Request|CantParse|unhandled|Cause' \
-            | tail -120 || true
-          echo '=== UPDATE TIMELINE (last 80 handled) ==='
-          sudo docker compose -f docker-compose.prod.yml logs bot --tail 2000 2>&1 \
-            | grep -E 'Update id=|Start polling|Menu button' \
-            | tail -80 || true
-          "
+          ssh -o StrictHostKeyChecking=no "${USER}@${HOST}" "cd /opt/opus5 && \
+          echo '=== DISPATCHER ORDER ===' && \
+          sudo docker compose -f docker-compose.prod.yml exec -T bot sed -n '1,80p' /app/bot/dispatcher.py && \
+          echo '=== PLACEMENT CATCHALL ===' && \
+          sudo docker compose -f docker-compose.prod.yml exec -T bot sed -n '90,110p' /app/bot/handlers/placement.py && \
+          echo '=== MARAT TODAY ===' && \
+          sudo docker compose -f docker-compose.prod.yml exec -T db psql -U language_tutor -d language_tutor -At -F '|' -c \"SELECT id, created_at, role, left(replace(content, chr(10), ' / '), 240) FROM chat_messages WHERE user_id=1 AND created_at >= '2026-08-08' ORDER BY id;\" && \
+          echo '=== PHILL AFTER 13:17 ===' && \
+          sudo docker compose -f docker-compose.prod.yml exec -T db psql -U language_tutor -d language_tutor -At -F '|' -c \"SELECT id, created_at, role, left(replace(content, chr(10), ' / '), 240) FROM chat_messages WHERE user_id=4 AND created_at >= '2026-08-08 13:17:00' ORDER BY id;\""
