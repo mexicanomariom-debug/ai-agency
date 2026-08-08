@@ -1,5 +1,9 @@
 /**
  * Build webapp/public/models/child-boy.glb from CGTrader files in assets/child-boy/pack/
+ *
+ * A committed fallback GLB ships in the repo, so this script never fails the
+ * build: without source files (CI, Vercel) it keeps the committed model, and a
+ * broken custom model logs a warning instead of aborting the deploy.
  */
 import { execSync } from "node:child_process";
 import fs from "node:fs";
@@ -57,7 +61,6 @@ function normalizeKey(name) {
 function findAsset(dir) {
   if (!fs.existsSync(dir)) return null;
   const names = listFiles(dir);
-  // Prefer original download gltf, skip our generated model.fixed.gltf
   const gltf = names.find(
     (n) => n.toLowerCase().endsWith(".gltf") && !n.toLowerCase().includes("model.fixed"),
   );
@@ -111,18 +114,14 @@ function findMatchingFile(wantedUri, assets, preferExt) {
   const wantKey = normalizeKey(raw);
   const wantStem = normalizeKey(raw.replace(/\.[^.]+$/, ""));
 
-  // Exact / normalized basename match
   for (const f of assets) {
-    const base = path.basename(f);
-    if (normalizeKey(base) === wantKey) return f;
+    if (normalizeKey(path.basename(f)) === wantKey) return f;
   }
-  // Same stem + preferred extension
   for (const f of assets) {
     const base = path.basename(f);
     if (preferExt && !base.toLowerCase().endsWith(preferExt)) continue;
     if (normalizeKey(base.replace(/\.[^.]+$/, "")) === wantStem) return f;
   }
-  // Fuzzy: stem contained
   for (const f of assets) {
     const base = path.basename(f);
     if (preferExt && !base.toLowerCase().endsWith(preferExt)) continue;
@@ -135,10 +134,8 @@ function findMatchingFile(wantedUri, assets, preferExt) {
 /** CGTrader: textures/bin may be nested; names use + vs spaces. */
 function prepareGltfAssets(gltfPath, searchRoot) {
   const gltfDir = path.dirname(gltfPath);
-  const allFiles = walkFiles(searchRoot);
-  const assets = allFiles.filter((f) => ASSET_EXT.test(f));
+  const assets = walkFiles(searchRoot).filter((f) => ASSET_EXT.test(f));
 
-  // Copy every texture/bin into gltf folder under its own basename
   for (const file of assets) {
     const base = path.basename(file);
     const dest = path.join(gltfDir, base);
@@ -148,11 +145,8 @@ function prepareGltfAssets(gltfPath, searchRoot) {
     }
   }
 
-  // Refresh list after copies
   const localAssets = walkFiles(gltfDir).filter((f) => ASSET_EXT.test(f));
-
   const doc = JSON.parse(fs.readFileSync(gltfPath, "utf8"));
-  let changed = false;
 
   const fixUriList = (list, preferExt, placeholder) => {
     if (!list) return;
@@ -163,16 +157,11 @@ function prepareGltfAssets(gltfPath, searchRoot) {
       if (match) {
         const base = path.basename(match);
         ensureFileBesideGltf(match, base, gltfDir);
-        // Also copy under the exact name the GLTF asked for (spaces vs +)
         if (base !== raw) {
           ensureFileBesideGltf(match, raw, gltfDir);
-          item.uri = raw;
-          changed = true;
           console.log(`Bound: ${raw} ← ${base}`);
-        } else if (item.uri !== raw) {
-          item.uri = raw;
-          changed = true;
         }
+        item.uri = raw;
         continue;
       }
 
@@ -181,12 +170,6 @@ function prepareGltfAssets(gltfPath, searchRoot) {
         fs.writeFileSync(dest, placeholder);
         console.warn(`Missing ${raw} — placeholder`);
         item.uri = raw;
-        changed = true;
-      } else if (!fs.existsSync(dest)) {
-        console.error(`Missing required file: ${raw}`);
-        console.error(
-          `Look in pack/ for a .bin next to the .gltf (name may use + instead of spaces).`,
-        );
       }
     }
   };
@@ -194,7 +177,6 @@ function prepareGltfAssets(gltfPath, searchRoot) {
   fixUriList(doc.images, null, PLACEHOLDER_PNG);
   fixUriList(doc.buffers, ".bin", null);
 
-  // If still no .bin beside gltf — try rename any .bin to what buffer wants
   if (doc.buffers) {
     for (const buf of doc.buffers) {
       if (!buf.uri || buf.uri.startsWith("data:")) continue;
@@ -205,33 +187,15 @@ function prepareGltfAssets(gltfPath, searchRoot) {
       if (anyBin) {
         fs.copyFileSync(anyBin, dest);
         buf.uri = raw;
-        changed = true;
         console.log(`Bound buffer: ${raw} ← ${path.basename(anyBin)}`);
+        continue;
       }
-    }
-  }
-
-  // Fail early with helpful listing if .bin still missing
-  if (doc.buffers) {
-    for (const buf of doc.buffers) {
-      if (!buf.uri || buf.uri.startsWith("data:")) continue;
-      const raw = decodeURIComponent(buf.uri.split(/[/\\]/).pop() || buf.uri);
-      const dest = path.join(gltfDir, raw);
-      if (fs.existsSync(dest)) continue;
-      const bins = walkFiles(searchRoot).filter((f) => f.toLowerCase().endsWith(".bin"));
       const listing = listFiles(gltfDir).join("\n  ");
-      console.error("\n=== ОШИБКА: нет файла геометрии .bin ===");
-      console.error(`Нужен: ${raw}`);
-      console.error(`Папка pack:\n  ${listing || "(пусто)"}`);
-      console.error(
-        bins.length
-          ? `Найдены .bin:\n  ${bins.join("\n  ")}`
-          : "В pack НЕТ ни одного .bin — скачайте на CGTrader файл .gltf ещё раз\n" +
-              "  (рядом с .gltf обычно лежит .bin) и положите оба в:\n" +
-              `  ${gltfDir}`,
+      throw new Error(
+        `Нет файла геометрии .bin (нужен "${raw}").\n` +
+          `Папка pack:\n  ${listing || "(пусто)"}\n` +
+          `Скачайте .bin рядом с .gltf, либо экспортируйте .glb из Blender.`,
       );
-      console.error("Или положите FBX и конвертируйте в Blender → Export glTF (.glb)\n");
-      throw new Error(`Missing .bin: ${raw}`);
     }
   }
 
@@ -243,20 +207,24 @@ function prepareGltfAssets(gltfPath, searchRoot) {
 
 function buildOptimizedGlb(inputPath, outputPath) {
   const q = (p) => `"${p}"`;
-  try {
-    run(
-      `npx --yes @gltf-transform/cli optimize ${q(inputPath)} ${q(outputPath)} --compress meshopt --texture-compress webp`,
-    );
-  } catch {
-    console.warn("WebP optimize failed — retrying without texture compression...");
+  const attempts = [
+    `--compress meshopt --texture-compress webp`,
+    `--compress meshopt --texture-compress false`,
+  ];
+  for (const flags of attempts) {
     try {
-      run(
-        `npx --yes @gltf-transform/cli optimize ${q(inputPath)} ${q(outputPath)} --compress meshopt --texture-compress false`,
-      );
+      run(`npx --yes @gltf-transform/cli optimize ${q(inputPath)} ${q(outputPath)} ${flags}`);
+      return true;
     } catch {
-      console.warn("Optimize failed — plain GLB copy...");
-      run(`npx --yes @gltf-transform/cli copy ${q(inputPath)} ${q(outputPath)}`);
+      console.warn(`optimize failed (${flags}) — retrying...`);
     }
+  }
+  try {
+    run(`npx --yes @gltf-transform/cli copy ${q(inputPath)} ${q(outputPath)}`);
+    return true;
+  } catch {
+    console.warn("gltf-transform unavailable — keeping existing model.");
+    return false;
   }
 }
 
@@ -271,32 +239,48 @@ async function downloadFallback() {
 
 async function main() {
   const asset = findInputAsset();
+
   if (!asset) {
-    console.warn(
-      "No .gltf/.glb in assets/child-boy/pack or source — using TalkingHead vroid fallback.",
-    );
+    if (fs.existsSync(outFile) && fs.statSync(outFile).size > 0) {
+      const mb = fs.statSync(outFile).size / 1e6;
+      console.log(`No custom source — using committed ${path.basename(outFile)} (${mb.toFixed(1)} MB)`);
+      return;
+    }
+    console.warn("No model in pack/ and no committed GLB — downloading fallback...");
     await downloadFallback();
     return;
   }
 
   console.log(`Input: ${asset.path}`);
-  unzipAllZips(asset.dir);
+  try {
+    unzipAllZips(asset.dir);
+    const inputPath =
+      asset.kind === "gltf" ? prepareGltfAssets(asset.path, asset.dir) : asset.path;
 
-  let inputPath = asset.path;
-  if (asset.kind === "gltf") {
-    inputPath = prepareGltfAssets(asset.path, asset.dir);
+    fs.mkdirSync(outDir, { recursive: true });
+    const tmp = path.join(outDir, "child-boy-raw.glb");
+    if (!buildOptimizedGlb(inputPath, tmp)) throw new Error("GLB build failed");
+
+    fs.renameSync(tmp, outFile);
+    const mb = fs.statSync(outFile).size / 1e6;
+    console.log(`Built ${outFile} (${mb.toFixed(1)} MB)`);
+  } catch (err) {
+    console.warn(`\n⚠️  Не удалось собрать модель из pack/: ${err.message}`);
+    if (fs.existsSync(outFile) && fs.statSync(outFile).size > 0) {
+      console.warn("Использую ранее собранную модель — сборка сайта продолжится.\n");
+      return;
+    }
+    console.warn("Скачиваю запасной аватар...\n");
+    await downloadFallback();
   }
-
-  fs.mkdirSync(outDir, { recursive: true });
-  const tmp = path.join(outDir, "child-boy-raw.glb");
-  buildOptimizedGlb(inputPath, tmp);
-
-  fs.renameSync(tmp, outFile);
-  const mb = fs.statSync(outFile).size / 1e6;
-  console.log(`Built ${outFile} (${mb.toFixed(1)} MB)`);
 }
 
 main().catch((e) => {
   console.error(e);
+  // Never break the site build over an optional 3D asset.
+  if (fs.existsSync(outFile) && fs.statSync(outFile).size > 0) {
+    console.warn("Оставляю существующий child-boy.glb.");
+    process.exit(0);
+  }
   process.exit(1);
 });

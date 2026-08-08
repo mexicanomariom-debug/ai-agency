@@ -17,13 +17,13 @@ function fallbackTutor(req: NextRequest) {
   }
 
   return {
-    name: "Елена",
+    name: "Opus Neural",
     slug: "voice-teacher",
-    description: "Премиальный 3D-репетитор",
+    description: "Голосовой AI-репетитор Opus 5",
     language: null,
     level: null,
     audience: null,
-    greeting: `Привет, ${firstName}! Я Елена, ваш репетитор. Жми микрофон и говори — пояснения останутся на экране.`,
+    greeting: `Привет, ${firstName}! Opus Neural на связи. Жми микрофон и говори — пояснения останутся на экране.`,
   };
 }
 

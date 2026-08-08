@@ -89,7 +89,10 @@ def hub_menu_keyboard() -> InlineKeyboardMarkup:
                 InlineKeyboardButton(text="📋 Тест", callback_data="menu:test"),
                 InlineKeyboardButton(text="✦ О продукте", callback_data="menu:product"),
             ],
-            [InlineKeyboardButton(text="⚙️ Профиль", callback_data="menu:settings")],
+            [
+                InlineKeyboardButton(text="✅ Итоги урока", callback_data="menu:finish"),
+                InlineKeyboardButton(text="⚙️ Профиль", callback_data="menu:settings"),
+            ],
         ]
     )
 

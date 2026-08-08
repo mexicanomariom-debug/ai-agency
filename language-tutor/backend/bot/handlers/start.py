@@ -22,6 +22,8 @@ from bot.keyboards.inline import (
     hub_menu_keyboard,
 )
 from bot.states.onboarding import OnboardingStates
+from bot.utils.callbacks import edit_or_send, send_reply, usable_message
+from services.chat_service import process_user_text
 from services.user_service import user_service
 
 router = Router()
@@ -105,10 +107,15 @@ async def cmd_help(message: Message) -> None:
 @router.callback_query(F.data.startswith("audience:"))
 async def choose_audience(callback: CallbackQuery, state: FSMContext, session: AsyncSession) -> None:
     audience_value = callback.data.split(":", 1)[1]
-    user = await user_service.get_or_create(session, telegram_id=callback.from_user.id)
     from database.enums import Audience
 
-    audience = Audience(audience_value)
+    try:
+        audience = Audience(audience_value)
+    except ValueError:
+        await callback.answer("Неизвестный вариант", show_alert=True)
+        return
+
+    user = await user_service.get_or_create(session, telegram_id=callback.from_user.id)
     await user_service.set_audience(session, user, audience)
     await state.update_data(audience=audience_value)
     await state.set_state(OnboardingStates.choosing_language)
@@ -120,7 +127,8 @@ async def choose_audience(callback: CallbackQuery, state: FSMContext, session: A
     else:
         prompt = "Выберите язык обучения:"
 
-    await callback.message.edit_text(
+    await edit_or_send(
+        callback,
         f"{AUDIENCE_LABELS.get(audience_value, audience_value)} ✓\n\n{prompt}",
         reply_markup=language_keyboard(),
     )
@@ -130,11 +138,15 @@ async def choose_audience(callback: CallbackQuery, state: FSMContext, session: A
 @router.callback_query(F.data.startswith("lang:"))
 async def choose_language(callback: CallbackQuery, state: FSMContext, session: AsyncSession) -> None:
     lang_value = callback.data.split(":", 1)[1]
-
-    user = await user_service.get_or_create(session, telegram_id=callback.from_user.id)
     from database.enums import Language
 
-    language = Language(lang_value)
+    try:
+        language = Language(lang_value)
+    except ValueError:
+        await callback.answer("Неизвестный язык", show_alert=True)
+        return
+
+    user = await user_service.get_or_create(session, telegram_id=callback.from_user.id)
     await user_service.set_language(session, user, language)
 
     data = await state.get_data()
@@ -147,7 +159,8 @@ async def choose_language(callback: CallbackQuery, state: FSMContext, session: A
     else:
         level_prompt = "Выберите уровень владения:"
 
-    await callback.message.edit_text(
+    await edit_or_send(
+        callback,
         f"Язык: {LANGUAGE_LABELS.get(lang_value, lang_value)} ✓\n\n{level_prompt}",
         reply_markup=level_keyboard(audience),
     )
@@ -165,14 +178,23 @@ async def choose_level_discover(
     await user_service.complete_onboarding(session, user)
 
     await state.set_state(OnboardingStates.placement_test)
-    await callback.message.edit_text(
+    await edit_or_send(
+        callback,
         "🤔 Не знаете уровень? Сначала короткий тест на русском.\n\n"
         + PLACEMENT_INTRO.replace("<b>", "").replace("</b>", ""),
     )
     await callback.answer()
-    await callback.message.answer(
-        "Напишите в чат, например: «Не знаю уровень» — и задам первый вопрос."
-    )
+
+    # Ask the first question immediately instead of waiting for the student
+    # to type something — matches the /test flow.
+    target = usable_message(callback)
+    if target is not None:
+        await process_user_text(
+            target,
+            session,
+            "Начни мини-тест уровня. Я не знаю свой уровень — задай первый вопрос.",
+            placement_mode=True,
+        )
 
 
 @router.callback_query(F.data.startswith("level:"))
@@ -182,10 +204,15 @@ async def choose_level(callback: CallbackQuery, state: FSMContext, session: Asyn
         await callback.answer()
         return
 
-    user = await user_service.get_or_create(session, telegram_id=callback.from_user.id)
     from database.enums import ProficiencyLevel
 
-    level = ProficiencyLevel(level_value)
+    try:
+        level = ProficiencyLevel(level_value)
+    except ValueError:
+        await callback.answer("Неизвестный уровень", show_alert=True)
+        return
+
+    user = await user_service.get_or_create(session, telegram_id=callback.from_user.id)
     await user_service.set_level(session, user, level)
     await user_service.complete_onboarding(session, user)
 
@@ -194,7 +221,8 @@ async def choose_level(callback: CallbackQuery, state: FSMContext, session: Asyn
     lang = user.language.value if user.language else ""
 
     await state.set_state(OnboardingStates.chatting)
-    await callback.message.edit_text(
+    await edit_or_send(
+        callback,
         _ready_copy(audience, lang, level_value),
         reply_markup=hub_menu_keyboard(),
     )
@@ -203,20 +231,21 @@ async def choose_level(callback: CallbackQuery, state: FSMContext, session: Asyn
 
 @router.callback_query(F.data == "menu:voice_hint")
 async def menu_voice_hint(callback: CallbackQuery) -> None:
-    await callback.message.answer(VOICE_HINT)
+    await send_reply(callback, VOICE_HINT)
     await callback.answer()
 
 
 @router.callback_query(F.data == "menu:chat_hint")
 async def menu_chat_hint(callback: CallbackQuery) -> None:
-    await callback.message.answer(CHAT_HINT)
+    await send_reply(callback, CHAT_HINT)
     await callback.answer()
 
 
 @router.callback_query(F.data == "menu:settings")
 async def menu_settings(callback: CallbackQuery, state: FSMContext, session: AsyncSession) -> None:
     await _reset_settings(callback.from_user.id, state, session)
-    await callback.message.answer(
+    await send_reply(
+        callback,
         "⚙️ Профиль сброшен. Для кого занятия?",
         reply_markup=audience_keyboard(),
     )

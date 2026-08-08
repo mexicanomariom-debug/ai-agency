@@ -1,4 +1,5 @@
 from aiogram import F, Router
+from aiogram.filters import StateFilter
 from aiogram.types import Message
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -8,9 +9,28 @@ from services.chat_service import process_user_text
 router = Router()
 
 
-@router.message(OnboardingStates.chatting, F.text)
+@router.message(OnboardingStates.chatting, F.text, ~F.text.startswith("/"))
 async def handle_chat(message: Message, session: AsyncSession) -> None:
     await process_user_text(message, session, message.text)
+
+
+@router.message(OnboardingStates.chatting, F.text)
+async def handle_unknown_command(message: Message) -> None:
+    await message.answer(
+        "Не знаю такую команду. Доступно: /help · /review · /progress · /test · /product"
+    )
+
+
+@router.message(
+    StateFilter(
+        OnboardingStates.choosing_audience,
+        OnboardingStates.choosing_language,
+        OnboardingStates.choosing_level,
+    ),
+    F.text,
+)
+async def handle_during_onboarding(message: Message) -> None:
+    await message.answer("Выберите вариант кнопкой выше или начните заново: /start")
 
 
 @router.message(F.text)

@@ -11,7 +11,7 @@ const PLANS = [
     description: "Telegram onboarding and daily practice.",
     features: [
       "Telegram bot + placement test",
-      "Default tutor Elena",
+      "Default tutor Opus",
       "Basic chat practice",
       "/progress snapshot",
     ],

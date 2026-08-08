@@ -8,6 +8,7 @@ from services.cognitive_profiler import cognitive_profiler
 from services.llm_service import llm_service
 from services.personas import persona_service
 from services.placement_service import build_placement_program_block
+from services.telegram_text import answer_model_text
 from services.tutor_context import build_tutor_system_prompt
 from services.telegram_voice import send_voice_reply
 from services.user_service import user_service
@@ -63,7 +64,7 @@ async def process_user_text(
     if from_voice:
         sent_voice = await send_voice_reply(message, response)
         if not sent_voice:
-            await message.answer(f"🎙 {response}")
+            await answer_model_text(message, response, prefix="🎙 ")
     else:
-        await message.answer(response)
+        await answer_model_text(message, response)
     return response
