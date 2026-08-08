@@ -13,17 +13,15 @@ jobs:
       - uses: webfactory/ssh-agent@v0.9.0
         with:
           ssh-private-key: ${{ secrets.ORACLE_SSH_KEY }}
-      - name: Marat today + prod placement/voice order
+      - name: Verify prod voice fix deployed
         run: |
           HOST="${{ secrets.ORACLE_HOST || '140.84.183.154' }}"
           USER="${{ secrets.ORACLE_SSH_USER || 'ubuntu' }}"
           ssh-keyscan -H "$HOST" >> ~/.ssh/known_hosts 2>/dev/null || true
           ssh -o StrictHostKeyChecking=no "${USER}@${HOST}" "cd /opt/opus5 && \
-          echo '=== DISPATCHER ORDER ===' && \
-          sudo docker compose -f docker-compose.prod.yml exec -T bot sed -n '1,80p' /app/bot/dispatcher.py && \
-          echo '=== PLACEMENT CATCHALL ===' && \
-          sudo docker compose -f docker-compose.prod.yml exec -T bot sed -n '90,110p' /app/bot/handlers/placement.py && \
-          echo '=== MARAT TODAY ===' && \
-          sudo docker compose -f docker-compose.prod.yml exec -T db psql -U language_tutor -d language_tutor -At -F '|' -c \"SELECT id, created_at, role, left(replace(content, chr(10), ' / '), 240) FROM chat_messages WHERE user_id=1 AND created_at >= '2026-08-08' ORDER BY id;\" && \
-          echo '=== PHILL AFTER 13:17 ===' && \
-          sudo docker compose -f docker-compose.prod.yml exec -T db psql -U language_tutor -d language_tutor -At -F '|' -c \"SELECT id, created_at, role, left(replace(content, chr(10), ' / '), 240) FROM chat_messages WHERE user_id=4 AND created_at >= '2026-08-08 13:17:00' ORDER BY id;\""
+          echo '=== CONTAINERS ===' && sudo docker compose -f docker-compose.prod.yml ps && \
+          echo '=== DISPATCHER ===' && sudo docker compose -f docker-compose.prod.yml exec -T bot sed -n '20,45p' /app/bot/dispatcher.py && \
+          echo '=== PLACEMENT ===' && sudo docker compose -f docker-compose.prod.yml exec -T bot sed -n '110,130p' /app/bot/handlers/placement.py && \
+          echo '=== WHISPER PROMPT MODULE ===' && (sudo docker compose -f docker-compose.prod.yml exec -T bot test -f /app/services/whisper_prompt.py && echo present || echo MISSING) && \
+          echo '=== VOICE ECHO ===' && sudo docker compose -f docker-compose.prod.yml exec -T bot grep -n 'whisper_prompt_for\|📝' /app/bot/handlers/voice.py | head -20 && \
+          echo '=== HEALTH ===' && curl -sS http://127.0.0.1:8000/health"
