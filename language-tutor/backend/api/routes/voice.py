@@ -172,7 +172,13 @@ async def voice_talk(
     mime = audio.content_type or "audio/webm"
 
     try:
-        transcript = await openai_service.transcribe_voice(audio_bytes, mime)
+        from services.whisper_prompt import whisper_prompt_for
+
+        transcript = await openai_service.transcribe_voice(
+            audio_bytes,
+            mime,
+            prompt=whisper_prompt_for(user.language),
+        )
     except Exception as exc:
         return VoiceTalkResponse(
             transcript="",
