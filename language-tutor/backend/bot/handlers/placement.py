@@ -1,3 +1,5 @@
+import logging
+
 from aiogram import F, Router
 from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
@@ -5,10 +7,13 @@ from aiogram.types import CallbackQuery, Message
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from bot.states.onboarding import OnboardingStates
+from bot.utils.callbacks import usable_message
 from database.enums import ProficiencyLevel
 from services.chat_service import process_user_text
 from services.placement_service import PLACEMENT_INTRO, placement_service
 from services.user_service import user_service
+
+logger = logging.getLogger(__name__)
 
 router = Router()
 
@@ -38,8 +43,10 @@ async def cmd_test(message: Message, state: FSMContext, session: AsyncSession) -
 
 @router.callback_query(F.data == "menu:test")
 async def menu_test(callback: CallbackQuery, state: FSMContext, session: AsyncSession) -> None:
-    await _start_placement_test(callback.message, state, session)
+    target = usable_message(callback)
     await callback.answer()
+    if target is not None:
+        await _start_placement_test(target, state, session)
 
 
 @router.message(OnboardingStates.placement_test, Command("program"))
@@ -66,7 +73,18 @@ async def _finish_placement(
         await message.answer("Нужен /start")
         return
 
-    result = await placement_service.finalize(session, user)
+    await message.bot.send_chat_action(message.chat.id, "typing")
+    try:
+        result = await placement_service.finalize(session, user)
+    except Exception:
+        # LLM timeouts and malformed JSON must not strand the user in test mode.
+        logger.exception("Placement finalize failed")
+        await state.set_state(OnboardingStates.chatting)
+        await message.answer(
+            "Не получилось собрать программу. Попробуйте /program ещё раз через минуту."
+        )
+        return
+
     await session.commit()
     await state.set_state(OnboardingStates.chatting)
 

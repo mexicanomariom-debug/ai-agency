@@ -3,6 +3,7 @@ from aiogram.filters import Command
 from aiogram.types import CallbackQuery, Message
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from bot.utils.callbacks import usable_message
 from services.progress_service import progress_service
 from services.user_service import user_service
 
@@ -26,5 +27,7 @@ async def cmd_progress(message: Message, session: AsyncSession) -> None:
 
 @router.callback_query(F.data == "menu:progress")
 async def menu_progress(callback: CallbackQuery, session: AsyncSession) -> None:
-    await _send_progress(callback.message, session, callback.from_user.id)
+    target = usable_message(callback)
     await callback.answer()
+    if target is not None:
+        await _send_progress(target, session, callback.from_user.id)

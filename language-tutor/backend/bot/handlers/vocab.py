@@ -5,6 +5,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from bot.keyboards.inline import vocab_rating_keyboard
+from bot.utils.callbacks import edit_or_send, usable_message
 from database.models import VocabularyCard
 from services.user_service import user_service
 from services.vocabulary_service import vocabulary_service
@@ -65,8 +66,10 @@ async def cmd_review(message: Message, session: AsyncSession) -> None:
 
 @router.callback_query(F.data == "menu:review")
 async def menu_review(callback: CallbackQuery, session: AsyncSession) -> None:
-    await _send_review_session(callback.message, session, callback.from_user.id)
+    target = usable_message(callback)
     await callback.answer()
+    if target is not None:
+        await _send_review_session(target, session, callback.from_user.id)
 
 
 @router.callback_query(F.data.startswith("vocab:rate:"))
@@ -76,8 +79,12 @@ async def vocab_rate(callback: CallbackQuery, session: AsyncSession) -> None:
         await callback.answer("Ошибка")
         return
 
-    card_id = int(parts[2])
-    rating_value = int(parts[3])
+    try:
+        card_id = int(parts[2])
+        rating_value = int(parts[3])
+    except ValueError:
+        await callback.answer("Ошибка")
+        return
 
     user = await user_service.get_by_telegram_id(session, callback.from_user.id)
     if not user:
@@ -100,7 +107,8 @@ async def vocab_rate(callback: CallbackQuery, session: AsyncSession) -> None:
     if remaining > 0:
         next_card = await vocabulary_service.get_next_due(session, user)
         if next_card:
-            await callback.message.edit_text(
+            await edit_or_send(
+                callback,
                 f"📚 Повторение · осталось ~{remaining}\n\n{_format_card(next_card)}",
                 reply_markup=vocab_rating_keyboard(next_card.id),
             )
@@ -108,8 +116,9 @@ async def vocab_rate(callback: CallbackQuery, session: AsyncSession) -> None:
         return
 
     total = await vocabulary_service.count_total(session, user)
-    await callback.message.edit_text(
+    await edit_or_send(
+        callback,
         f"🎉 Сессия завершена!\n\n"
-        f"Все слова на сегодня повторены. В словаре {total} слов."
+        f"Все слова на сегодня повторены. В словаре {total} слов.",
     )
     await callback.answer("Готово!")
