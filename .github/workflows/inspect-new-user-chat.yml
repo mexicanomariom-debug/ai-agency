@@ -1,0 +1,102 @@
+name: Inspect New User Chat
+
+on:
+  push:
+    branches:
+      - cursor/inspect-new-user-chat-c023
+  workflow_dispatch:
+
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.ORACLE_SSH_KEY }}
+
+      - name: Dump bot logs and recent chat history
+        run: |
+          HOST="${{ secrets.ORACLE_HOST || '140.84.183.154' }}"
+          USER="${{ secrets.ORACLE_SSH_USER || 'ubuntu' }}"
+          ssh-keyscan -H "$HOST" >> ~/.ssh/known_hosts 2>/dev/null || true
+          ssh -o StrictHostKeyChecking=no "${USER}@${HOST}" 'bash -s' <<'REMOTE'
+          set -euo pipefail
+          cd /opt/opus5
+          echo "=== CONTAINERS ==="
+          sudo docker compose -f docker-compose.prod.yml ps -a || true
+          echo
+          echo "=== BOT LOGS (tail 500) ==="
+          sudo docker compose -f docker-compose.prod.yml logs bot --tail 500 || true
+          echo
+          echo "=== API LOGS (tail 120) ==="
+          sudo docker compose -f docker-compose.prod.yml logs api --tail 120 || true
+          echo
+          echo "=== NEWEST USERS ==="
+          sudo docker compose -f docker-compose.prod.yml exec -T db \
+            psql -U language_tutor -d language_tutor -c "
+              SELECT id, telegram_id, username, first_name, last_name, language, level,
+                     audience, is_onboarded, created_at
+              FROM users
+              ORDER BY created_at DESC
+              LIMIT 15;
+            " || true
+          echo
+          echo "=== MESSAGE COUNTS BY USER ==="
+          sudo docker compose -f docker-compose.prod.yml exec -T db \
+            psql -U language_tutor -d language_tutor -c "
+              SELECT u.id, u.telegram_id, u.username, u.first_name, COUNT(m.id) AS msgs,
+                     MAX(m.created_at) AS last_msg
+              FROM users u
+              LEFT JOIN chat_messages m ON m.user_id = u.id
+              GROUP BY u.id
+              ORDER BY COALESCE(MAX(m.created_at), u.created_at) DESC
+              LIMIT 15;
+            " || true
+          echo
+          echo "=== RECENT CHAT MESSAGES (newest 80) ==="
+          sudo docker compose -f docker-compose.prod.yml exec -T db \
+            psql -U language_tutor -d language_tutor -c "
+              SELECT m.id, m.user_id, u.telegram_id, u.username, u.first_name,
+                     m.role, LEFT(m.content, 400) AS content, m.created_at
+              FROM chat_messages m
+              JOIN users u ON u.id = m.user_id
+              WHERE u.telegram_id <> 0
+              ORDER BY m.created_at DESC
+              LIMIT 80;
+            " || true
+          echo
+          echo "=== FULL TRANSCRIPT FOR NEWEST NON-DEMO USER ==="
+          sudo docker compose -f docker-compose.prod.yml exec -T db \
+            psql -U language_tutor -d language_tutor -c "
+              WITH newest AS (
+                SELECT id FROM users
+                WHERE telegram_id <> 0
+                ORDER BY created_at DESC
+                LIMIT 1
+              )
+              SELECT m.created_at, m.role, m.content
+              FROM chat_messages m
+              WHERE m.user_id = (SELECT id FROM newest)
+              ORDER BY m.created_at ASC;
+            " || true
+          echo
+          echo "=== USER/ASSISTANT PAIR GAPS (possible unanswered) ==="
+          sudo docker compose -f docker-compose.prod.yml exec -T db \
+            psql -U language_tutor -d language_tutor -c "
+              WITH ordered AS (
+                SELECT m.*, u.telegram_id, u.username, u.first_name,
+                       LEAD(m.role) OVER (PARTITION BY m.user_id ORDER BY m.created_at, m.id) AS next_role,
+                       LEAD(m.created_at) OVER (PARTITION BY m.user_id ORDER BY m.created_at, m.id) AS next_at
+                FROM chat_messages m
+                JOIN users u ON u.id = m.user_id
+                WHERE u.telegram_id <> 0
+              )
+              SELECT user_id, telegram_id, username, first_name, created_at, role,
+                     LEFT(content, 300) AS content, next_role, next_at
+              FROM ordered
+              WHERE role = 'user'
+                AND (next_role IS DISTINCT FROM 'assistant')
+              ORDER BY created_at DESC
+              LIMIT 30;
+            " || true
+          REMOTE
