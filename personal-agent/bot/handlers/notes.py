@@ -13,6 +13,7 @@ from bot.copy import (
     NOTE_VIEW,
 )
 from bot.keyboards.inline import note_list_keyboard
+from bot.utils.html import h
 from bot.utils.messages import answer_menu
 from services.note_service import note_service
 from services.user_service import user_service
@@ -36,7 +37,7 @@ async def cmd_notes(message: Message, session: AsyncSession) -> None:
 
     lines = [NOTE_LIST_HEADER.format(count=len(notes))]
     for note in notes:
-        preview = note.content[:80] + ("…" if len(note.content) > 80 else "")
+        preview = h(note.content[:80] + ("…" if len(note.content) > 80 else ""))
         lines.append(f"#{note.id} — {preview}")
     await answer_menu(
         message,
@@ -84,7 +85,7 @@ async def cmd_note_delete(message: Message, session: AsyncSession) -> None:
     await answer_menu(message, NOTE_DELETED.format(note_id=note_id))
 
 
-@router.callback_query(F.data.regexp(r"^note:view:\d+$"))
+@router.callback_query(lambda c: c.data and c.data.startswith("note:view:"))
 async def cb_note_view(callback: CallbackQuery, session: AsyncSession) -> None:
     note_id = int(callback.data.split(":")[-1])
     user = await user_service.get_or_create(
@@ -100,11 +101,11 @@ async def cb_note_view(callback: CallbackQuery, session: AsyncSession) -> None:
     await callback.answer()
     if callback.message:
         await callback.message.answer(
-            NOTE_VIEW.format(note_id=note.id, content=note.content)
+            NOTE_VIEW.format(note_id=note.id, content=h(note.content))
         )
 
 
-@router.callback_query(F.data.regexp(r"^note:delete:\d+$"))
+@router.callback_query(lambda c: c.data and c.data.startswith("note:delete:"))
 async def cb_note_delete(callback: CallbackQuery, session: AsyncSession) -> None:
     note_id = int(callback.data.split(":")[-1])
     user = await user_service.get_or_create(

@@ -53,21 +53,21 @@ def task_edit_keyboard(task_id: int) -> InlineKeyboardMarkup:
     )
 
 
-def task_list_edit_keyboard(tasks: list[Task], *, max_buttons: int = 12) -> InlineKeyboardMarkup:
+def task_list_edit_keyboard(tasks: list[Task], *, max_buttons: int = 10) -> InlineKeyboardMarkup:
     rows: list[list[InlineKeyboardButton]] = []
-    row: list[InlineKeyboardButton] = []
     for task in tasks[:max_buttons]:
-        row.append(
-            InlineKeyboardButton(
-                text=f"✏️ #{task.id}",
-                callback_data=f"task:edit:{task.id}",
-            )
+        rows.append(
+            [
+                InlineKeyboardButton(
+                    text=f"✏️ #{task.id}",
+                    callback_data=f"task:edit:{task.id}",
+                ),
+                InlineKeyboardButton(
+                    text=f"✅ #{task.id}",
+                    callback_data=f"task:done:{task.id}",
+                ),
+            ]
         )
-        if len(row) == 3:
-            rows.append(row)
-            row = []
-    if row:
-        rows.append(row)
     return InlineKeyboardMarkup(inline_keyboard=rows)
 
 

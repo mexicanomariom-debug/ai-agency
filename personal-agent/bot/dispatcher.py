@@ -13,14 +13,17 @@ logger = logging.getLogger(__name__)
 
 async def on_handler_error(event: ErrorEvent) -> bool:
     logger.exception("Handler error for update %s", event.update.update_id, exc_info=event.exception)
-    if event.update.message:
-        try:
+    try:
+        if event.update.message:
             await answer_menu(
                 event.update.message,
                 "❌ Что-то пошло не так. Попробуйте ещё раз или напишите /help",
             )
-        except Exception:
-            logger.exception("Failed to send error reply")
+        elif event.update.callback_query:
+            cq = event.update.callback_query
+            await cq.answer("Ошибка. Попробуйте ещё раз или /help", show_alert=True)
+    except Exception:
+        logger.exception("Failed to send error reply")
     return True
 
 

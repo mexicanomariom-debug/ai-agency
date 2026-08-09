@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import logging
+
 from datetime import datetime
 
 from aiogram import F, Router
@@ -20,12 +22,14 @@ from bot.copy import (
 )
 from bot.keyboards.inline import task_edit_keyboard, task_list_edit_keyboard
 from bot.states.task_edit import TaskEditStates
+from bot.utils.html import h
 from bot.utils.messages import answer_menu
 from services.task_editor import TaskEditChanges, task_editor
 from services.task_flow import apply_task_edit, format_due_at, format_notify_types
 from services.user_service import task_service, user_service
 
 router = Router()
+logger = logging.getLogger(__name__)
 
 
 async def _start_edit_session(
@@ -51,7 +55,7 @@ async def _start_edit_session(
         message,
         TASK_EDIT_PROMPT.format(
             task_id=task.id,
-            title=task.title,
+            title=h(task.title),
             due_at=format_due_at(task.due_at, user.timezone),
             notify_types=format_notify_types(
                 task.notify_message, task.notify_call, task.notify_phone
@@ -88,7 +92,7 @@ async def process_task_edit_message(
         message,
         TASK_EDIT_SUCCESS.format(
             task_id=updated.id,
-            title=updated.title,
+            title=h(updated.title),
             due_at=format_due_at(updated.due_at, user.timezone),
             notify_types=format_notify_types(
                 updated.notify_message, updated.notify_call, updated.notify_phone
@@ -177,12 +181,31 @@ async def cb_task_edit_cancel(callback: CallbackQuery, state: FSMContext) -> Non
         await callback.message.answer(TASK_EDIT_EXIT)
 
 
-@router.callback_query(F.data.regexp(r"^task:edit:\d+$"))
+def _is_task_edit_callback(data: str | None) -> bool:
+    return bool(
+        data
+        and data.startswith("task:edit:")
+        and not data.startswith("task:edit_cancel:")
+    )
+
+
+@router.callback_query(lambda c: _is_task_edit_callback(c.data))
 async def cb_task_edit(callback: CallbackQuery, session: AsyncSession, state: FSMContext) -> None:
-    task_id = int(callback.data.split(":")[-1])
+    if not callback.data or not callback.message:
+        await callback.answer("Нет данных", show_alert=True)
+        return
+    try:
+        task_id = int(callback.data.rsplit(":", 1)[-1])
+    except ValueError:
+        await callback.answer("Неверный ID", show_alert=True)
+        return
+
     await callback.answer()
-    if callback.message:
+    try:
         await _start_edit_session(callback.message, session, state, task_id)
+    except Exception:
+        logger.exception("task:edit callback failed for %s", callback.data)
+        raise
 
 
 async def try_one_shot_edit(

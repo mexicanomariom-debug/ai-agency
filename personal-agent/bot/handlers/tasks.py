@@ -34,6 +34,7 @@ from bot.copy import (
     TIMEZONE_UPDATED,
 )
 from bot.keyboards.inline import task_list_edit_keyboard
+from bot.utils.html import h
 from bot.utils.messages import answer_menu
 from config import settings
 from database.models import TaskStatus
@@ -128,6 +129,7 @@ async def cmd_tasks(message: Message, session: AsyncSession) -> None:
         return
 
     lines = [TASK_LIST_HEADER.format(count=len(tasks))]
+    lines.append("<i>Кнопки ниже: ✏️ изменить · ✅ выполнить</i>")
     for task in tasks:
         recurrence = ""
         if task.recurrence_rule:
@@ -135,7 +137,7 @@ async def cmd_tasks(message: Message, session: AsyncSession) -> None:
         lines.append(
             TASK_ITEM.format(
                 id=task.id,
-                title=task.title,
+                title=h(task.title),
                 due_at=format_due_at(task.due_at, user.timezone),
                 notify_types=format_notify_types(
                     task.notify_message, task.notify_call, task.notify_phone
@@ -170,7 +172,7 @@ async def cmd_today(message: Message, session: AsyncSession) -> None:
         lines.append(
             TASK_ITEM.format(
                 id=task.id,
-                title=task.title,
+                title=h(task.title),
                 due_at=format_due_at(task.due_at, user.timezone),
                 notify_types=format_notify_types(
                     task.notify_message, task.notify_call, task.notify_phone
@@ -309,6 +311,9 @@ async def cmd_restore(message: Message, session: AsyncSession) -> None:
 
 @router.callback_query(F.data.startswith("task:done:"))
 async def cb_task_done(callback: CallbackQuery, session: AsyncSession) -> None:
+    if not callback.data:
+        await callback.answer()
+        return
     task_id = int(callback.data.split(":")[-1])
     user = await user_service.get_or_create(
         session,
@@ -326,14 +331,14 @@ async def cb_task_done(callback: CallbackQuery, session: AsyncSession) -> None:
         await callback.answer("Задача выполнена")
         await callback.message.edit_reply_markup(reply_markup=None)
         await callback.message.answer(
-            f"✅ Задача #{task.id} «{task.title}» <b>выполнена</b>.{suffix}"
+            f"✅ Задача #{task.id} «{h(task.title)}» <b>выполнена</b>.{suffix}"
         )
         return
 
     await callback.answer("Задача выполнена")
     await callback.message.edit_reply_markup(reply_markup=None)
     await callback.message.answer(
-        f"✅ Задача #{task.id} «{task.title}» отмечена <b>выполненной</b>.\n"
+        f"✅ Задача #{task.id} «{h(task.title)}» отмечена <b>выполненной</b>.\n"
         "Она убрана из активных, но не удалена навсегда."
         + suffix
     )
