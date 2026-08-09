@@ -125,8 +125,9 @@ CALENDAR_NOT_CONFIGURED = (
 CALENDAR_NOT_CONNECTED = (
     "📅 Подключите Google Calendar (один раз):\n"
     '<a href="{url}">Авторизоваться в Google</a>\n\n'
-    "После авторизации вернитесь в Telegram — придёт «Google Calendar подключён».\n"
-    "Повторно входить не нужно, пока статус «подключён ✅»."
+    "1. Нажмите ссылку и войдите в Google\n"
+    "2. Вернитесь в Telegram — должно прийти «Google Calendar подключён»\n"
+    "3. Если бот молчит — на странице Google нажмите «Скопировать команду» и отправьте боту"
 )
 CALENDAR_CONNECTED = "✅ Google Calendar подключён!"
 CALENDAR_ENABLED = "✅ Синхронизация с Google Calendar включена."

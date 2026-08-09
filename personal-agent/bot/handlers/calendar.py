@@ -21,6 +21,7 @@ from services.calendar_sync import (
     count_calendar_sync_state,
     sync_user_calendar_by_telegram_id,
 )
+from services.google_oauth import connect_google_calendar, extract_google_auth_code
 from services.google_calendar import google_calendar_service
 from services.user_service import user_service
 
@@ -147,6 +148,44 @@ async def cmd_calendar(message: Message, session: AsyncSession) -> None:
 
     auth_url = google_calendar_service.build_auth_url(message.from_user.id)
     await answer_menu(message, CALENDAR_NOT_CONNECTED.format(url=auth_url))
+
+
+@router.message(Command("google_code"))
+async def cmd_google_code(message: Message, session: AsyncSession) -> None:
+    code = extract_google_auth_code(message.text or "")
+    if not code:
+        await answer_menu(
+            message,
+            "Использование:\n/google_code КОД_ИЗ_GOOGLE\n\n"
+            "Код показывается на странице после входа в Google (кнопка «Скопировать команду»).",
+        )
+        return
+
+    user = await user_service.get_or_create(
+        session,
+        telegram_id=message.from_user.id,
+        username=message.from_user.username,
+        first_name=message.from_user.first_name,
+    )
+    ok, text = await connect_google_calendar(session, user, code)
+    await answer_menu(message, text)
+
+
+@router.message(F.text.regexp(r"(?i)(?:code=4/|^4/0A)"))
+async def msg_google_code_paste(message: Message, session: AsyncSession) -> None:
+    if message.text and message.text.startswith("/calendar"):
+        return
+    code = extract_google_auth_code(message.text or "")
+    if not code:
+        return
+    user = await user_service.get_or_create(
+        session,
+        telegram_id=message.from_user.id,
+        username=message.from_user.username,
+        first_name=message.from_user.first_name,
+    )
+    ok, text = await connect_google_calendar(session, user, code)
+    await answer_menu(message, text)
 
 
 @router.message(Command("calendar_on"))

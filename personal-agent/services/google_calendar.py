@@ -48,14 +48,23 @@ class GoogleCalendarService:
 
     async def exchange_code(self, code: str) -> str | None:
         try:
-            flow = Flow.from_client_config(CLIENT_CONFIG, scopes=SCOPES)
-            flow.redirect_uri = settings.google_redirect_uri
-            flow.fetch_token(code=code)
-            credentials = flow.credentials
-            if not credentials.refresh_token:
-                logger.error("Google OAuth: no refresh_token in response (re-auth with prompt=consent)")
-                return None
-            return credentials.refresh_token
+            def _exchange() -> str | None:
+                flow = Flow.from_client_config(CLIENT_CONFIG, scopes=SCOPES)
+                flow.redirect_uri = settings.google_redirect_uri
+                flow.fetch_token(code=code)
+                credentials = flow.credentials
+                if not credentials.refresh_token:
+                    logger.error("Google OAuth: no refresh_token in response")
+                    return None
+                return credentials.refresh_token
+
+            return await asyncio.wait_for(
+                asyncio.to_thread(_exchange),
+                timeout=GOOGLE_API_TIMEOUT_SEC,
+            )
+        except TimeoutError:
+            logger.error("Google OAuth code exchange timed out")
+            return None
         except Exception:
             logger.exception("Google OAuth token exchange failed")
             return None

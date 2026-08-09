@@ -4,6 +4,7 @@ import json
 import logging
 
 from aiohttp import web
+from aiohttp.web_middlewares import middleware
 from aiogram import Bot
 from sqlalchemy import select
 
@@ -14,6 +15,22 @@ from services.calendar_sync import sync_user_calendar_by_telegram_id
 from services.google_calendar import google_calendar_service
 
 logger = logging.getLogger(__name__)
+
+VERCEL_ORIGIN = "https://ai-agency-drab.vercel.app"
+
+
+@middleware
+async def cors_middleware(request: web.Request, handler):
+    if request.method == "OPTIONS":
+        response = web.Response()
+    else:
+        response = await handler(request)
+    origin = request.headers.get("Origin", "")
+    if origin == VERCEL_ORIGIN or origin.endswith(".vercel.app"):
+        response.headers["Access-Control-Allow-Origin"] = origin
+        response.headers["Access-Control-Allow-Methods"] = "POST, OPTIONS"
+        response.headers["Access-Control-Allow-Headers"] = "Content-Type, X-Internal-Secret"
+    return response
 
 
 async def google_oauth_callback(request: web.Request) -> web.Response:
@@ -58,8 +75,17 @@ async def internal_google_token(request: web.Request) -> web.Response:
 
     telegram_id = data.get("telegram_id")
     refresh_token = data.get("refresh_token")
-    if not isinstance(telegram_id, int) or not refresh_token:
-        return web.json_response({"error": "missing fields"}, status=400)
+    code = data.get("code")
+
+    if not isinstance(telegram_id, int):
+        return web.json_response({"error": "missing telegram_id"}, status=400)
+
+    if isinstance(code, str) and code.strip():
+        refresh_token = await google_calendar_service.exchange_code(code.strip())
+        if not refresh_token:
+            return web.json_response({"error": "code exchange failed"}, status=400)
+    elif not refresh_token:
+        return web.json_response({"error": "missing code or refresh_token"}, status=400)
 
     saved = await _save_google_token(telegram_id, refresh_token)
     if not saved:
@@ -121,12 +147,17 @@ async def health(request: web.Request) -> web.Response:
 
 
 def create_oauth_app(bot: Bot) -> web.Application:
-    app = web.Application()
+    app = web.Application(middlewares=[cors_middleware])
     app["bot"] = bot
     app.router.add_get("/health", health)
     app.router.add_get("/oauth/google/callback", google_oauth_callback)
+    app.router.add_route("OPTIONS", "/internal/google-token", _options_internal)
     app.router.add_post("/internal/google-token", internal_google_token)
     return app
+
+
+async def _options_internal(_request: web.Request) -> web.Response:
+    return web.Response()
 
 
 async def start_oauth_server(bot: Bot) -> web.AppRunner | None:
