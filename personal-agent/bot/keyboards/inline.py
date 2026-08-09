@@ -184,6 +184,22 @@ def recon_sources_keyboard(sources) -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(inline_keyboard=rows)
 
 
+def recon_interest_prompt_keyboard(source_id: int) -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [
+                InlineKeyboardButton(
+                    text="⏭ Без фильтра",
+                    callback_data=f"recon:interest_skip:{source_id}",
+                ),
+            ],
+            [
+                InlineKeyboardButton(text="❌ Отмена", callback_data="recon:cancel"),
+            ],
+        ]
+    )
+
+
 def recon_source_actions_keyboard(source_id: int, *, enabled: bool) -> InlineKeyboardMarkup:
     toggle = "⏸ Выкл" if enabled else "✅ Вкл"
     return InlineKeyboardMarkup(

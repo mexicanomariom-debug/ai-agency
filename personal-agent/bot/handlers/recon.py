@@ -12,6 +12,7 @@ from aiogram.types import CallbackQuery, Message
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from bot.keyboards.inline import (
+    recon_interest_prompt_keyboard,
     recon_menu_keyboard,
     recon_source_actions_keyboard,
     recon_sources_keyboard,
@@ -238,8 +239,9 @@ async def _add_source_from_text(
         f"✅ Источник #{source.id} добавлен\n"
         f"{type_label}: <b>{label or url}</b>{probe}\n\n"
         "🎯 <b>Что вас интересует в этом источнике?</b>\n"
-        "Например: <code>решения FOMC, инфляция CPI, ставка ЦБ</code>\n"
-        "Или <code>-</code> — без фильтра (все изменения).",
+        "Напишите темы текстом или нажмите кнопку ниже.\n"
+        "Например: <code>решения FOMC, инфляция CPI, ставка ЦБ</code>",
+        reply_markup=recon_interest_prompt_keyboard(source.id),
         parse_mode="HTML",
     )
 
@@ -360,6 +362,32 @@ async def msg_recon_interest(message: Message, session: AsyncSession, state: FSM
     await answer_menu(message, reply, reply_markup=recon_menu_keyboard(), parse_mode="HTML")
 
 
+@router.callback_query(F.data.startswith("recon:interest_skip:"))
+async def cb_recon_interest_skip(callback: CallbackQuery, session: AsyncSession, state: FSMContext) -> None:
+    if not callback.data or not callback.from_user:
+        await callback.answer()
+        return
+    source_id = int(callback.data.split(":")[-1])
+    user = await user_service.get_or_create(
+        session,
+        telegram_id=callback.from_user.id,
+        username=callback.from_user.username,
+        first_name=callback.from_user.first_name,
+    )
+    source = await recon_service.update_filter(session, user, source_id, filter_query=None)
+    await state.clear()
+    await callback.answer("Без фильтра")
+    if callback.message:
+        name = source.label or source.url_or_handle if source else f"#{source_id}"
+        await callback.message.answer(
+            f"#{source_id} <b>{name}</b>\n"
+            "Фильтр не задан — буду присылать все изменения.\n"
+            "Позже можно задать интерес: кнопка 🎯 Фильтр в карточке источника.",
+            reply_markup=recon_menu_keyboard(),
+            parse_mode="HTML",
+        )
+
+
 @router.callback_query(F.data.startswith("recon:filter:"))
 async def cb_recon_filter(callback: CallbackQuery, state: FSMContext) -> None:
     if not callback.data:
@@ -373,8 +401,9 @@ async def cb_recon_filter(callback: CallbackQuery, state: FSMContext) -> None:
         await callback.message.answer(
             f"🎯 <b>Интерес для #{source_id}</b>\n\n"
             "Опишите, что именно вас интересует в этом источнике.\n"
-            "Например: <code>IPO, отчётность, сделки M&A</code>\n"
-            "Или <code>-</code> — снять фильтр.",
+            "Например: <code>IPO, отчётность, сделки M&A</code>\n\n"
+            "Или нажмите ⏭ Без фильтра, если нужны все изменения.",
+            reply_markup=recon_interest_prompt_keyboard(source_id),
             parse_mode="HTML",
         )
 
