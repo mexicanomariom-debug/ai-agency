@@ -41,6 +41,44 @@ RECON_BUTTON = "🔍 Разведка и Вериф"
 _SKIP_INTEREST = {"-", "skip", "всё", "все", "всё подряд", "без фильтра", "нет"}
 
 
+async def apply_recon_interest(
+    message: Message,
+    session: AsyncSession,
+    state: FSMContext,
+    text: str,
+) -> bool:
+    """Save interest filter for a recon source. Returns False if state is invalid."""
+    if not message.from_user:
+        return False
+
+    data = await state.get_data()
+    source_id = data.get("recon_source_id")
+    if not source_id:
+        await state.clear()
+        return False
+
+    user = await user_service.get_or_create(
+        session,
+        telegram_id=message.from_user.id,
+        username=message.from_user.username,
+        first_name=message.from_user.first_name,
+    )
+    cleaned = text.strip()
+    if cleaned.lower() in _SKIP_INTEREST:
+        await recon_service.update_filter(session, user, int(source_id), filter_query=None)
+        reply = "Без фильтра — буду присылать все изменения в источнике."
+    else:
+        await recon_service.update_filter(session, user, int(source_id), filter_query=cleaned)
+        reply = (
+            f"🎯 Сохранено: <b>{html_escape(cleaned)}</b>\n"
+            "Буду присылать только подходящие сообщения."
+        )
+
+    await state.clear()
+    await answer_menu(message, reply, reply_markup=recon_menu_keyboard(), parse_mode="HTML")
+    return True
+
+
 def _panel_text(sources_count: int, enabled_count: int) -> str:
     return (
         "🔍 <b>Разведка и Вериф</b>\n\n"
@@ -358,29 +396,30 @@ async def msg_recon_interest(message: Message, session: AsyncSession, state: FSM
     if message.text in MENU_BUTTONS and message.text != RECON_BUTTON:
         await state.clear()
         return
+    await apply_recon_interest(message, session, state, message.text)
 
-    data = await state.get_data()
-    source_id = data.get("recon_source_id")
-    if not source_id:
-        await state.clear()
+
+@router.message(ReconSetupStates.waiting_interest, F.voice)
+async def msg_recon_interest_voice(message: Message, session: AsyncSession, state: FSMContext) -> None:
+    from bot.handlers.voice import transcribe_for_user
+
+    await message.bot.send_chat_action(message.chat.id, "typing")
+    text = await transcribe_for_user(message, in_translator=False)
+    if text:
+        await apply_recon_interest(message, session, state, text)
+
+
+@router.message(ReconSetupStates.waiting_url, F.voice)
+async def msg_recon_url_voice(message: Message, session: AsyncSession, state: FSMContext) -> None:
+    from bot.handlers.voice import transcribe_for_user
+
+    await message.bot.send_chat_action(message.chat.id, "typing")
+    text = await transcribe_for_user(message, in_translator=False)
+    if not text:
         return
-
-    user = await user_service.get_or_create(
-        session,
-        telegram_id=message.from_user.id,
-        username=message.from_user.username,
-        first_name=message.from_user.first_name,
-    )
-    text = message.text.strip()
-    if text.lower() in _SKIP_INTEREST:
-        await recon_service.update_filter(session, user, int(source_id), filter_query=None)
-        reply = "Без фильтра — буду присылать все изменения в источнике."
-    else:
-        await recon_service.update_filter(session, user, int(source_id), filter_query=text)
-        reply = f"🎯 Сохранено: <b>{text}</b>\nБуду присылать только подходящие сообщения."
-
-    await state.clear()
-    await answer_menu(message, reply, reply_markup=recon_menu_keyboard(), parse_mode="HTML")
+    data = await state.get_data()
+    source_type = data.get("recon_source_type")
+    await _add_source_from_text(message, session, state, text.strip(), source_type=source_type)
 
 
 @router.callback_query(F.data.startswith("recon:interest_skip:"))

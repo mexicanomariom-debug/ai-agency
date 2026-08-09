@@ -5,6 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from bot.copy import VOICE_FAILED, VOICE_HINT, VOICE_TRANSCRIBED
 from bot.states.notebook import NotebookStates
+from bot.states.recon import ReconSetupStates
 from bot.states.task_edit import TaskEditStates
 from bot.states.translator import TranslatorStates
 from bot.utils.messages import answer_menu
@@ -78,6 +79,27 @@ async def handle_voice(message: Message, session: AsyncSession, state: FSMContex
             first_name=message.from_user.first_name,
         )
         await capture_notebook_message(message, session, user, text)
+        return
+
+    if current_state == ReconSetupStates.waiting_interest.state:
+        from bot.handlers.recon import apply_recon_interest
+
+        await message.bot.send_chat_action(message.chat.id, "typing")
+        text = await transcribe_for_user(message, in_translator=False)
+        if text:
+            await apply_recon_interest(message, session, state, text)
+        return
+
+    if current_state == ReconSetupStates.waiting_url.state:
+        from bot.handlers.recon import _add_source_from_text
+
+        await message.bot.send_chat_action(message.chat.id, "typing")
+        text = await transcribe_for_user(message, in_translator=False)
+        if not text:
+            return
+        data = await state.get_data()
+        source_type = data.get("recon_source_type")
+        await _add_source_from_text(message, session, state, text.strip(), source_type=source_type)
         return
 
     from bot.handlers.assistant import process_user_message
