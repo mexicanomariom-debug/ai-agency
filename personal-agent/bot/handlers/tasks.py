@@ -1,7 +1,13 @@
 from __future__ import annotations
 
-import re
 from datetime import datetime, timedelta
+
+from services.time_utils import (
+    TIMEZONE_TEXT,
+    extract_timezone_argument,
+    is_standalone_timezone_alias,
+    normalize_timezone_text,
+)
 from zoneinfo import ZoneInfo
 
 from aiogram import F, Router
@@ -37,10 +43,6 @@ from services.user_service import task_service, user_service
 
 router = Router()
 
-TIMEZONE_TEXT = re.compile(
-    r"(?i)^(?:/)?(?:timezone|таймзон|тайм\s*зон|часовой\s+пояс|пояс)\s+(.+)$"
-)
-
 
 def _calendar_removal_suffix(removed: bool, had_event: bool) -> str:
     if removed:
@@ -48,6 +50,63 @@ def _calendar_removal_suffix(removed: bool, had_event: bool) -> str:
     if had_event:
         return CALENDAR_REMOVE_FAILED_LINE
     return ""
+
+
+async def _apply_timezone_change(
+    message: Message,
+    session: AsyncSession,
+    timezone_input: str,
+) -> None:
+    user = await user_service.get_or_create(
+        session,
+        telegram_id=message.from_user.id,
+        username=message.from_user.username,
+        first_name=message.from_user.first_name,
+    )
+    ok = await user_service.set_timezone(session, user, timezone_input)
+    if not ok:
+        await answer_menu(message, INVALID_TIMEZONE.format(input=timezone_input))
+        return
+    await answer_menu(
+        message,
+        TIMEZONE_UPDATED.format(timezone=user.timezone)
+        + "\n\nЕсли подключён Google Calendar — выполните /calendar_resync",
+    )
+
+
+@router.message(Command("timezone"))
+async def cmd_timezone(message: Message, session: AsyncSession) -> None:
+    timezone_input = extract_timezone_argument(message.text or "")
+    if not timezone_input:
+        user = await user_service.get_or_create(
+            session,
+            telegram_id=message.from_user.id,
+            username=message.from_user.username,
+            first_name=message.from_user.first_name,
+        )
+        now = format_due_at(datetime.now(ZoneInfo("UTC")), user.timezone)
+        await answer_menu(
+            message,
+            f"Сейчас у вас: <b>{user.timezone}</b>\n"
+            f"Локальное время: {now}\n\n"
+            "Сменить (у каждого пользователя свой пояс):\n"
+            + TIMEZONE_HELP_EXAMPLES,
+        )
+        return
+    await _apply_timezone_change(message, session, timezone_input)
+
+
+@router.message(F.text.func(lambda text: is_standalone_timezone_alias(text or "")))
+async def msg_timezone_alias(message: Message, session: AsyncSession) -> None:
+    await _apply_timezone_change(message, session, normalize_timezone_text(message.text or ""))
+
+
+@router.message(F.text.regexp(TIMEZONE_TEXT))
+async def msg_timezone_natural(message: Message, session: AsyncSession) -> None:
+    timezone_input = extract_timezone_argument(message.text or "")
+    if not timezone_input:
+        return
+    await _apply_timezone_change(message, session, timezone_input)
 
 
 @router.message(Command("tasks"))
@@ -163,46 +222,6 @@ async def cmd_cancel(message: Message, session: AsyncSession) -> None:
     await answer_menu(
         message,
         TASK_CANCELLED.format(task_id=task_id) + _calendar_removal_suffix(removed, had_event),
-    )
-
-
-@router.message(Command("timezone"))
-@router.message(F.text.regexp(TIMEZONE_TEXT))
-async def cmd_timezone(message: Message, session: AsyncSession) -> None:
-    user = await user_service.get_or_create(
-        session,
-        telegram_id=message.from_user.id,
-        username=message.from_user.username,
-        first_name=message.from_user.first_name,
-    )
-
-    text = message.text or ""
-    match = TIMEZONE_TEXT.match(text)
-    if match:
-        timezone_input = match.group(1).strip()
-    else:
-        parts = text.split(maxsplit=1)
-        timezone_input = parts[1].strip() if len(parts) > 1 else ""
-
-    if not timezone_input:
-        now = format_due_at(datetime.now(ZoneInfo("UTC")), user.timezone)
-        await answer_menu(
-            message,
-            f"Сейчас у вас: <b>{user.timezone}</b>\n"
-            f"Локальное время: {now}\n\n"
-            "Сменить (у каждого пользователя свой пояс):\n"
-            + TIMEZONE_HELP_EXAMPLES,
-        )
-        return
-
-    ok = await user_service.set_timezone(session, user, timezone_input)
-    if not ok:
-        await answer_menu(message, INVALID_TIMEZONE)
-        return
-    await answer_menu(
-        message,
-        TIMEZONE_UPDATED.format(timezone=user.timezone)
-        + "\n\nЕсли подключён Google Calendar — выполните /calendar_resync",
     )
 
 

@@ -121,8 +121,9 @@ TIMEZONE_UPDATED = (
     "Все новые задачи будут в этом времени."
 )
 INVALID_TIMEZONE = (
-    "Не понял часовой пояс.\n"
+    "Не понял часовой пояс: <b>{input}</b>\n\n"
     + TIMEZONE_HELP_EXAMPLES
+    + "\n\nМожно просто написать: <code>плая</code> или <code>playa</code>"
 )
 
 NOTIFY_MESSAGE = "сообщение"

@@ -1,7 +1,16 @@
 from __future__ import annotations
 
+import re
+import unicodedata
 from datetime import datetime
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
+
+INVISIBLE_CHARS_RE = re.compile(r"[\u200b-\u200d\ufeff]")
+
+TIMEZONE_TEXT = re.compile(
+    r"(?i)^/?(?:timezone|таймзон|тайм\s*зон|часовой\s+пояс|пояс)(?:@\w+)?\s+(.+)$"
+)
+CMD_TIMEZONE_RE = re.compile(r"(?i)^/timezone(?:@\w+)?\s+(.+)$")
 
 # Friendly names -> IANA timezone (per-user; each user sets their own)
 TIMEZONE_ALIASES: dict[str, str] = {
@@ -86,9 +95,38 @@ TIMEZONE_ALIASES: dict[str, str] = {
 }
 
 
+def normalize_timezone_text(text: str) -> str:
+    text = INVISIBLE_CHARS_RE.sub("", text)
+    text = unicodedata.normalize("NFKC", text)
+    return " ".join(text.strip().split())
+
+
+def extract_timezone_argument(text: str) -> str | None:
+    cleaned = normalize_timezone_text(text)
+    if not cleaned:
+        return None
+    for pattern in (TIMEZONE_TEXT, CMD_TIMEZONE_RE):
+        match = pattern.match(cleaned)
+        if match:
+            return match.group(1).strip()
+    return None
+
+
+def is_standalone_timezone_alias(text: str) -> bool:
+    cleaned = normalize_timezone_text(text)
+    if not cleaned or cleaned.startswith("/"):
+        return False
+    if len(cleaned) > 40:
+        return False
+    key = cleaned.lower()
+    if key in TIMEZONE_ALIASES:
+        return True
+    return "/" in cleaned and resolve_timezone(cleaned) is not None
+
+
 def resolve_timezone(name: str) -> str | None:
     """Resolve IANA timezone or friendly alias."""
-    raw = name.strip()
+    raw = normalize_timezone_text(name)
     if not raw:
         return None
 
@@ -96,6 +134,7 @@ def resolve_timezone(name: str) -> str | None:
 
     for prefix in (
         "/timezone ",
+        "/timezone@",
         "timezone ",
         "таймзон ",
         "тайм зон ",
@@ -103,7 +142,10 @@ def resolve_timezone(name: str) -> str | None:
         "пояс ",
     ):
         if key.startswith(prefix):
-            return resolve_timezone(key[len(prefix) :])
+            tail = key[len(prefix) :]
+            if prefix == "/timezone@" and " " in tail:
+                tail = tail.split(" ", 1)[1]
+            return resolve_timezone(tail)
 
     if key in TIMEZONE_ALIASES:
         return TIMEZONE_ALIASES[key]
