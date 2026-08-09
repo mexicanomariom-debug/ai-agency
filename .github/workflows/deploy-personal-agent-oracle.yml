@@ -106,6 +106,20 @@ jobs:
             ./oracle-redeploy.sh
           "
 
+      - name: Fail if bot container not running
+        run: |
+          HOST="${{ secrets.ORACLE_HOST || '140.84.183.154' }}"
+          USER="${{ secrets.ORACLE_SSH_USER || 'ubuntu' }}"
+          ssh -o StrictHostKeyChecking=no "${USER}@${HOST}" '
+            STATUS=$(sudo docker inspect -f "{{.State.Status}}" personal-agent-bot 2>/dev/null || echo missing)
+            if [ "$STATUS" != "running" ]; then
+              echo "Bot container status: $STATUS"
+              sudo docker logs personal-agent-bot --tail 80 2>&1 || true
+              exit 1
+            fi
+            echo "Bot container running"
+          '
+
       - name: Open OAuth port on VM firewall
         run: |
           HOST="${{ secrets.ORACLE_HOST || '140.84.183.154' }}"
