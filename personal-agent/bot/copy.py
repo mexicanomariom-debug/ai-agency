@@ -119,7 +119,14 @@ CALENDAR_NOT_CONNECTED = (
 CALENDAR_CONNECTED = "✅ Google Calendar подключён!"
 CALENDAR_ENABLED = "✅ Синхронизация с Google Calendar включена."
 CALENDAR_DISABLED = "Синхронизация с Google Calendar отключена."
-CALENDAR_STATUS = "📅 Календарь: {status}\n\nСинхронизировать задачи: /calendar_sync"
+CALENDAR_STATUS = (
+    "📅 Календарь: {status}\n"
+    "Часовой пояс бота: <b>{timezone}</b>\n\n"
+    "В Google Calendar время должно совпадать, если там выбран тот же часовой пояс.\n"
+    "Настройки Google → Общие → Часовой пояс\n\n"
+    "Синхронизировать: /calendar_sync\n"
+    "Пересоздать события: /calendar_resync"
+)
 
 PHONE_SAVED = "📞 Номер сохранён: <b>{phone}</b>\nТеперь можно использовать «на телефон» в задачах."
 PHONE_CURRENT = "📞 Ваш номер: <b>{phone}</b>\nИзменить: /phone +79991234567\nУдалить: /phone удалить"

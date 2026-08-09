@@ -123,10 +123,9 @@ async def cmd_calendar(message: Message, session: AsyncSession) -> None:
         await answer_menu(message, 
             CALENDAR_STATUS.format(
                 status="подключён ✅",
-                redirect=settings.google_redirect_uri,
+                timezone=user.timezone,
             )
             + stats
-            + "\n\n/calendar_sync — синхронизировать\n/calendar_resync — пересоздать события"
         )
         return
 

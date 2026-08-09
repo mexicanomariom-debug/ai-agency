@@ -2,8 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
-from datetime import datetime
-from zoneinfo import ZoneInfo
+from datetime import timedelta
 
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
@@ -12,6 +11,7 @@ from googleapiclient.discovery import build
 
 from config import settings
 from database.models import Task, User
+from services.time_utils import ensure_utc, format_google_datetime
 
 logger = logging.getLogger(__name__)
 
@@ -88,17 +88,18 @@ class GoogleCalendarService:
         if not creds:
             return None
         try:
-            start = task.due_at.astimezone(ZoneInfo(user.timezone))
-            end_minute = start.minute + 30
-            if end_minute >= 60:
-                end = start.replace(hour=start.hour + 1, minute=end_minute - 60)
-            else:
-                end = start.replace(minute=end_minute)
+            end_at = ensure_utc(task.due_at) + timedelta(minutes=30)
             body = {
                 "summary": task.title,
                 "description": task.description or "Создано Personal Agent",
-                "start": {"dateTime": start.isoformat(), "timeZone": user.timezone},
-                "end": {"dateTime": end.isoformat(), "timeZone": user.timezone},
+                "start": {
+                    "dateTime": format_google_datetime(task.due_at, user.timezone),
+                    "timeZone": user.timezone,
+                },
+                "end": {
+                    "dateTime": format_google_datetime(end_at, user.timezone),
+                    "timeZone": user.timezone,
+                },
             }
 
             def _insert() -> dict:

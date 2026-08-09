@@ -1,10 +1,11 @@
 from __future__ import annotations
 
 from datetime import datetime
-from zoneinfo import ZoneInfo
 
 from aiogram.types import Message
 from sqlalchemy.ext.asyncio import AsyncSession
+
+from services.time_utils import format_user_datetime
 
 from bot.copy import (
     CALENDAR_NOT_SYNCED_LINE,
@@ -42,8 +43,7 @@ def format_notify_types(notify_message: bool, notify_call: bool, notify_phone: b
 
 
 def format_due_at(due_at: datetime, timezone: str) -> str:
-    local = due_at.astimezone(ZoneInfo(timezone))
-    return local.strftime("%d.%m.%Y %H:%M")
+    return format_user_datetime(due_at, timezone)
 
 
 async def create_tasks_from_parsed(
