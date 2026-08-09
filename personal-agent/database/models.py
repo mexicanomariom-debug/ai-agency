@@ -38,6 +38,13 @@ class User(Base):
     night_enabled: Mapped[bool] = mapped_column(Boolean, default=True)
     night_hour: Mapped[int] = mapped_column(default=21)
     night_last_sent: Mapped[str | None] = mapped_column(String(10))
+    traffic_enabled: Mapped[bool] = mapped_column(Boolean, default=False)
+    traffic_origin: Mapped[str | None] = mapped_column(Text)
+    traffic_destination: Mapped[str | None] = mapped_column(Text)
+    traffic_threshold_min: Mapped[int] = mapped_column(default=15)
+    traffic_check_start: Mapped[str | None] = mapped_column(String(5))
+    traffic_check_end: Mapped[str | None] = mapped_column(String(5))
+    traffic_last_alert: Mapped[str | None] = mapped_column(String(16))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
     tasks: Mapped[list[Task]] = relationship(back_populates="user", cascade="all, delete-orphan")

@@ -2,14 +2,12 @@ from __future__ import annotations
 
 import logging
 
-from datetime import datetime
-
 from aiogram import F, Router
+from aiogram.exceptions import TelegramBadRequest
 from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery, Message
 from sqlalchemy.ext.asyncio import AsyncSession
-from zoneinfo import ZoneInfo
 
 from bot.copy import (
     TASK_EDIT_EMPTY_CHANGES,
@@ -30,6 +28,17 @@ from services.user_service import task_service, user_service
 
 router = Router()
 logger = logging.getLogger(__name__)
+
+
+def _edit_prompt(task, user) -> str:
+    return TASK_EDIT_PROMPT.format(
+        task_id=task.id,
+        title=h(task.title),
+        due_at=format_due_at(task.due_at, user.timezone),
+        notify_types=format_notify_types(
+            task.notify_message, task.notify_call, task.notify_phone
+        ),
+    )
 
 
 async def _start_edit_session(
@@ -53,15 +62,61 @@ async def _start_edit_session(
     await state.update_data(task_id=task_id)
     await answer_menu(
         message,
-        TASK_EDIT_PROMPT.format(
-            task_id=task.id,
-            title=h(task.title),
-            due_at=format_due_at(task.due_at, user.timezone),
-            notify_types=format_notify_types(
-                task.notify_message, task.notify_call, task.notify_phone
-            ),
-        ),
+        _edit_prompt(task, user),
         reply_markup=task_edit_keyboard(task_id),
+    )
+
+
+async def _start_edit_from_callback(
+    callback: CallbackQuery,
+    session: AsyncSession,
+    state: FSMContext,
+    task_id: int,
+) -> None:
+    if not callback.from_user:
+        await callback.answer("Ошибка", show_alert=True)
+        return
+
+    user = await user_service.get_or_create(
+        session,
+        telegram_id=callback.from_user.id,
+        username=callback.from_user.username,
+        first_name=callback.from_user.first_name,
+    )
+    task = await task_service.get_pending(session, user, task_id)
+    if not task:
+        await callback.answer(
+            TASK_EDIT_NOT_FOUND.format(task_id=task_id),
+            show_alert=True,
+        )
+        return
+
+    await callback.answer()
+    await state.set_state(TaskEditStates.waiting_changes)
+    await state.update_data(task_id=task_id)
+
+    prompt = _edit_prompt(task, user)
+    markup = task_edit_keyboard(task_id)
+
+    if callback.message:
+        try:
+            await callback.message.edit_text(
+                prompt,
+                reply_markup=markup,
+                parse_mode="HTML",
+            )
+            return
+        except TelegramBadRequest as e:
+            logger.warning("edit_text failed for task %s: %s", task_id, e)
+
+        await callback.message.answer(prompt, reply_markup=markup, parse_mode="HTML")
+        return
+
+    await callback.bot.send_message(
+        user.telegram_id,
+        prompt,
+        reply_markup=markup,
+        parse_mode="HTML",
     )
 
 
@@ -177,21 +232,16 @@ async def cb_task_edit_cancel(callback: CallbackQuery, state: FSMContext) -> Non
     await state.clear()
     await callback.answer("Редактирование отменено")
     if callback.message:
-        await callback.message.edit_reply_markup(reply_markup=None)
+        try:
+            await callback.message.edit_reply_markup(reply_markup=None)
+        except TelegramBadRequest:
+            pass
         await callback.message.answer(TASK_EDIT_EXIT)
 
 
-def _is_task_edit_callback(data: str | None) -> bool:
-    return bool(
-        data
-        and data.startswith("task:edit:")
-        and not data.startswith("task:edit_cancel:")
-    )
-
-
-@router.callback_query(lambda c: _is_task_edit_callback(c.data))
+@router.callback_query(F.data.regexp(r"^task:edit:\d+$"))
 async def cb_task_edit(callback: CallbackQuery, session: AsyncSession, state: FSMContext) -> None:
-    if not callback.data or not callback.message:
+    if not callback.data:
         await callback.answer("Нет данных", show_alert=True)
         return
     try:
@@ -200,12 +250,11 @@ async def cb_task_edit(callback: CallbackQuery, session: AsyncSession, state: FS
         await callback.answer("Неверный ID", show_alert=True)
         return
 
-    await callback.answer()
     try:
-        await _start_edit_session(callback.message, session, state, task_id)
+        await _start_edit_from_callback(callback, session, state, task_id)
     except Exception:
         logger.exception("task:edit callback failed for %s", callback.data)
-        raise
+        await callback.answer("Ошибка. Попробуйте /edit", show_alert=True)
 
 
 async def try_one_shot_edit(

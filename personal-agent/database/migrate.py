@@ -21,6 +21,13 @@ USER_COLUMNS = {
     "night_enabled": "BOOLEAN DEFAULT 1",
     "night_hour": "INTEGER DEFAULT 21",
     "night_last_sent": "VARCHAR(10)",
+    "traffic_enabled": "BOOLEAN DEFAULT 0",
+    "traffic_origin": "TEXT",
+    "traffic_destination": "TEXT",
+    "traffic_threshold_min": "INTEGER DEFAULT 15",
+    "traffic_check_start": "VARCHAR(5)",
+    "traffic_check_end": "VARCHAR(5)",
+    "traffic_last_alert": "VARCHAR(16)",
 }
 
 TASK_COLUMNS = {

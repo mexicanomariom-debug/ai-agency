@@ -39,6 +39,14 @@ class Settings(BaseSettings):
     twilio_auth_token: str = ""
     twilio_from_number: str = ""
 
+    google_maps_api_key: str = Field(
+        default="",
+        validation_alias=AliasChoices(
+            "GOOGLE_MAPS_API_KEY",
+            "GOOGLE_DIRECTIONS_API_KEY",
+        ),
+    )
+
     @property
     def has_openai(self) -> bool:
         return bool(self.openai_api_key)
@@ -50,6 +58,10 @@ class Settings(BaseSettings):
     @property
     def has_twilio(self) -> bool:
         return bool(self.twilio_account_sid and self.twilio_auth_token and self.twilio_from_number)
+
+    @property
+    def has_google_maps(self) -> bool:
+        return bool(self.google_maps_api_key)
 
 
 settings = Settings()

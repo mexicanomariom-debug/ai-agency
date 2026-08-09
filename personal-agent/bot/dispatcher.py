@@ -3,7 +3,19 @@ import logging
 from aiogram import Dispatcher
 from aiogram.types import ErrorEvent
 
-from bot.handlers import assistant, calendar, journal, notes, phone, start, task_edit, tasks, translator, voice
+from bot.handlers import (
+    assistant,
+    calendar,
+    journal,
+    notes,
+    phone,
+    start,
+    task_edit,
+    tasks,
+    traffic,
+    translator,
+    voice,
+)
 from bot.middlewares.db import DbSessionMiddleware
 from bot.middlewares.translator import ClearTranslatorOnMenuMiddleware
 from bot.utils.messages import answer_menu
@@ -32,9 +44,10 @@ def setup_dispatcher(dp: Dispatcher) -> None:
     dp.update.middleware(DbSessionMiddleware())
     dp.update.middleware(ClearTranslatorOnMenuMiddleware())
     dp.include_router(start.router)
-    dp.include_router(tasks.router)
-    dp.include_router(journal.router)
     dp.include_router(task_edit.router)
+    dp.include_router(tasks.router)
+    dp.include_router(traffic.router)
+    dp.include_router(journal.router)
     dp.include_router(calendar.router)
     dp.include_router(notes.router)
     dp.include_router(phone.router)

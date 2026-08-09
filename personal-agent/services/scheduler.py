@@ -38,6 +38,13 @@ class ReminderScheduler:
                 id="agent_pulse",
                 replace_existing=True,
             )
+            self._scheduler.add_job(
+                self._run_traffic,
+                trigger="cron",
+                minute="0,30",
+                id="traffic_monitor",
+                replace_existing=True,
+            )
             logger.info("Reminder scheduler started")
 
     async def _run_pulse(self) -> None:
@@ -45,6 +52,13 @@ class ReminderScheduler:
 
         if pulse_service:
             await pulse_service.run_hourly()
+
+    async def _run_traffic(self) -> None:
+        from services.traffic import get_traffic_monitor
+
+        monitor = get_traffic_monitor()
+        if monitor:
+            await monitor.run_checks()
 
     def shutdown(self) -> None:
         if self._scheduler.running:
