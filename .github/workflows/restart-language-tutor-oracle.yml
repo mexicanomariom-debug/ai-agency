@@ -1,0 +1,97 @@
+name: Restart Language Tutor on Oracle
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [cursor/personal-agent-task-scheduler-64cf, main]
+    paths:
+      - '.github/workflows/restart-language-tutor-oracle.yml'
+
+concurrency:
+  group: deploy-language-tutor-oracle
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup SSH agent
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.ORACLE_SSH_KEY }}
+
+      - name: Add Oracle host key
+        run: |
+          HOST="${{ secrets.ORACLE_HOST || '140.84.183.154' }}"
+          ssh-keyscan -H "$HOST" >> ~/.ssh/known_hosts 2>/dev/null || true
+
+      - name: Create production .env
+        env:
+          BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD || 'opus5_prod_secret_2026' }}
+          API_SECRET_KEY: ${{ secrets.API_SECRET_KEY || 'opus5-api-secret-2026' }}
+        run: |
+          if [ -z "$BOT_TOKEN" ]; then
+            echo "::error::BOT_TOKEN secret is required for @All_languages_bot"
+            exit 1
+          fi
+          cat > language-tutor/.env <<EOF
+          BOT_TOKEN=${BOT_TOKEN}
+          BOT_USERNAME=All_languages_bot
+          OPENAI_API_KEY=${OPENAI_API_KEY}
+          OPENAI_MODEL=gpt-4o
+          OPENAI_TTS_VOICE=shimmer
+          OPENAI_TTS_MODEL=tts-1-hd
+          ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+          ANTHROPIC_MODEL=claude-sonnet-5
+          POSTGRES_USER=language_tutor
+          POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+          POSTGRES_DB=language_tutor
+          DATABASE_URL=postgresql+asyncpg://language_tutor:${POSTGRES_PASSWORD}@db:5432/language_tutor
+          TWA_URL=https://webapp-bay-three-75.vercel.app
+          WEBAPP_URL=https://webapp-bay-three-75.vercel.app
+          CORS_ORIGINS=https://webapp-bay-three-75.vercel.app
+          API_HOST=0.0.0.0
+          API_PORT=8000
+          API_SECRET_KEY=${API_SECRET_KEY}
+          DEMO_MODE=true
+          ENVIRONMENT=production
+          EOF
+          sed -i 's/^          //' language-tutor/.env
+
+      - name: Deploy language-tutor to Oracle
+        run: |
+          HOST="${{ secrets.ORACLE_HOST || '140.84.183.154' }}"
+          USER="${{ secrets.ORACLE_SSH_USER || 'ubuntu' }}"
+          REMOTE_DIR="/opt/opus5"
+
+          tar -czf /tmp/opus5-deploy.tar.gz \
+            --exclude=node_modules --exclude=.next --exclude=__pycache__ --exclude=.venv --exclude=.git \
+            -C language-tutor .
+
+          scp -o StrictHostKeyChecking=no /tmp/opus5-deploy.tar.gz "$USER@$HOST:/tmp/opus5-deploy.tar.gz"
+          ssh -o StrictHostKeyChecking=no "$USER@$HOST" "sudo mkdir -p $REMOTE_DIR && sudo chown -R \$(whoami):\$(whoami) $REMOTE_DIR"
+          scp -o StrictHostKeyChecking=no language-tutor/.env "$USER@$HOST:$REMOTE_DIR/.env"
+          ssh -o StrictHostKeyChecking=no "$USER@$HOST" "
+            cd $REMOTE_DIR
+            tar -xzf /tmp/opus5-deploy.tar.gz
+            rm -f /tmp/opus5-deploy.tar.gz
+            chmod +x oracle-redeploy.sh oracle-setup.sh
+            ./oracle-redeploy.sh
+          "
+
+      - name: Verify language-tutor bot is running
+        run: |
+          HOST="${{ secrets.ORACLE_HOST || '140.84.183.154' }}"
+          USER="${{ secrets.ORACLE_SSH_USER || 'ubuntu' }}"
+          ssh -o StrictHostKeyChecking=no "${USER}@${HOST}" '
+            cd /opt/opus5
+            sudo docker compose -f docker-compose.prod.yml ps
+            STATUS=$(sudo docker compose -f docker-compose.prod.yml ps --format json bot 2>/dev/null | head -1)
+            echo "$STATUS"
+            sudo docker compose -f docker-compose.prod.yml logs bot --tail 25
+          '
