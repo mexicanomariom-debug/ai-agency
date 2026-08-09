@@ -14,6 +14,13 @@
 
 ## Быстрый старт
 
+### Windows (самый простой способ)
+
+1. Скопируйте `env.example` → `.env` и вставьте `BOT_TOKEN`
+2. **Дважды кликните** `start-bot.bat`
+
+### Вручную
+
 ```bash
 cd personal-agent
 pip install -r requirements.txt
