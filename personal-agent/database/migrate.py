@@ -38,6 +38,12 @@ TASK_COLUMNS = {
     "recurrence_rule": "VARCHAR(32)",
 }
 
+RECON_SOURCE_COLUMNS = {
+    "filter_query": "TEXT",
+    "keywords": "TEXT",
+    "last_seen_item_ids": "TEXT",
+}
+
 
 async def migrate(engine: AsyncEngine) -> None:
     async with engine.begin() as conn:
@@ -103,5 +109,12 @@ async def migrate(engine: AsyncEngine) -> None:
                 )
                 sync_conn.execute(text("CREATE INDEX ix_recon_events_source_id ON recon_events (source_id)"))
                 logger.info("Created table recon_events")
+
+            if "recon_sources" in tables:
+                existing = {c["name"] for c in inspector.get_columns("recon_sources")}
+                for name, ddl in RECON_SOURCE_COLUMNS.items():
+                    if name not in existing:
+                        sync_conn.execute(text(f"ALTER TABLE recon_sources ADD COLUMN {name} {ddl}"))
+                        logger.info("Added column recon_sources.%s", name)
 
         await conn.run_sync(_migrate)

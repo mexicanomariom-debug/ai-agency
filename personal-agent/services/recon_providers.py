@@ -6,7 +6,7 @@ import hashlib
 import logging
 import re
 import xml.etree.ElementTree as ET
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from html import unescape
 from urllib.parse import urlparse
 
@@ -18,6 +18,14 @@ logger = logging.getLogger(__name__)
 
 _TAG_RE = re.compile(r"<[^>]+>")
 _WS_RE = re.compile(r"\s+")
+_INTEREST_RE = re.compile(r"(?:\s|^)(?:интерес|interest)\s*:\s*(.+)$", re.I)
+
+
+@dataclass
+class ContentItem:
+    item_id: str
+    text: str
+    title: str | None = None
 
 
 @dataclass
@@ -25,6 +33,7 @@ class FetchResult:
     title: str
     content: str
     content_hash: str
+    items: list[ContentItem] = field(default_factory=list)
 
 
 def _normalize_text(text: str, *, limit: int = 4000) -> str:
@@ -35,6 +44,11 @@ def _normalize_text(text: str, *, limit: int = 4000) -> str:
 
 def _hash_content(content: str) -> str:
     return hashlib.sha256(content.encode("utf-8")).hexdigest()[:16]
+
+
+def _item_id(*parts: str) -> str:
+    raw = "|".join(p.strip() for p in parts if p and p.strip())
+    return hashlib.sha256(raw.encode("utf-8")).hexdigest()[:16]
 
 
 def _normalize_telegram_handle(value: str) -> str:
@@ -64,9 +78,20 @@ def _detect_source_type(text: str) -> str | None:
     return None
 
 
-def _parse_source_input(text: str, source_type: str | None = None) -> tuple[str, str, str | None]:
-    """Return (source_type, url_or_handle, label)."""
+def _strip_interest_suffix(text: str) -> tuple[str, str | None]:
+    match = _INTEREST_RE.search(text.strip())
+    if not match:
+        return text.strip(), None
+    interest = match.group(1).strip()
+    base = text[: match.start()].strip()
+    return base, interest or None
+
+
+def _parse_source_input(text: str, source_type: str | None = None) -> tuple[str, str, str | None, str | None]:
+    """Return (source_type, url_or_handle, label, filter_query)."""
     raw = text.strip()
+    raw, filter_query = _strip_interest_suffix(raw)
+
     label = None
     if "|" in raw:
         raw, label_part = [p.strip() for p in raw.split("|", 1)]
@@ -77,14 +102,13 @@ def _parse_source_input(text: str, source_type: str | None = None) -> tuple[str,
         detected = ReconSourceType.WEBSITE.value
 
     if detected == ReconSourceType.ECON_CALENDAR.value:
-        return detected, "ff_calendar_thisweek", label or "Экономический календарь"
+        return detected, "ff_calendar_thisweek", label or "Экономический календарь", filter_query
 
     if detected == ReconSourceType.TELEGRAM.value:
         handle = _normalize_telegram_handle(raw)
-        return detected, handle, label or f"@{handle}"
+        return detected, handle, label or f"@{handle}", filter_query
 
-    return detected, raw, label
-
+    return detected, raw, label, filter_query
 
 
 async def fetch_source_content(source_type: str, url_or_handle: str) -> FetchResult | None:
@@ -99,6 +123,21 @@ async def fetch_source_content(source_type: str, url_or_handle: str) -> FetchRes
     if not fetcher:
         return None
     return await fetcher(url_or_handle)
+
+
+def _build_result(title: str, items: list[ContentItem]) -> FetchResult | None:
+    if not items:
+        return None
+    content = "\n".join(item.text for item in items if item.text)
+    content = _normalize_text(content)
+    if not content:
+        return None
+    return FetchResult(
+        title=title,
+        content=content,
+        content_hash=_hash_content(content),
+        items=items,
+    )
 
 
 async def _fetch_website(url: str) -> FetchResult | None:
@@ -125,7 +164,8 @@ async def _fetch_website(url: str) -> FetchResult | None:
         return None
     title_match = re.search(r"<title[^>]*>(.*?)</title>", body, re.I | re.S)
     title = _normalize_text(title_match.group(1), limit=200) if title_match else urlparse(target).netloc
-    return FetchResult(title=title, content=content, content_hash=_hash_content(content))
+    item = ContentItem(item_id=_item_id(target, content), text=content, title=title)
+    return FetchResult(title=title, content=content, content_hash=_hash_content(content), items=[item])
 
 
 def _parse_rss(body: str, source: str) -> FetchResult | None:
@@ -134,32 +174,50 @@ def _parse_rss(body: str, source: str) -> FetchResult | None:
     except ET.ParseError:
         return None
 
-    items: list[str] = []
+    items: list[ContentItem] = []
     title = source
     channel = root.find("channel")
     if channel is not None:
         ch_title = channel.findtext("title")
         if ch_title:
             title = ch_title.strip()
-        for item in channel.findall("item")[:8]:
+        for item in channel.findall("item")[:12]:
             parts = [item.findtext("title") or "", item.findtext("description") or ""]
-            items.append(" — ".join(p.strip() for p in parts if p and p.strip()))
+            text = " — ".join(p.strip() for p in parts if p and p.strip())
+            if not text:
+                continue
+            guid = item.findtext("guid") or item.findtext("link") or text
+            items.append(
+                ContentItem(
+                    item_id=_item_id(source, guid),
+                    text=_normalize_text(text, limit=800),
+                    title=_normalize_text(parts[0], limit=200) if parts[0] else None,
+                )
+            )
     else:
         ns = {"a": "http://www.w3.org/2005/Atom"}
         feed_title = root.findtext("a:title", default="", namespaces=ns)
         if feed_title:
             title = feed_title.strip()
-        for entry in root.findall("a:entry", ns)[:8]:
+        for entry in root.findall("a:entry", ns)[:12]:
             parts = [
                 entry.findtext("a:title", default="", namespaces=ns),
                 entry.findtext("a:summary", default="", namespaces=ns),
             ]
-            items.append(" — ".join(p.strip() for p in parts if p and p.strip()))
+            text = " — ".join(p.strip() for p in parts if p and p.strip())
+            if not text:
+                continue
+            link_el = entry.find("a:link", ns)
+            link = link_el.get("href") if link_el is not None else text
+            items.append(
+                ContentItem(
+                    item_id=_item_id(source, link),
+                    text=_normalize_text(text, limit=800),
+                    title=_normalize_text(parts[0], limit=200) if parts[0] else None,
+                )
+            )
 
-    content = _normalize_text("\n".join(items))
-    if not content:
-        return None
-    return FetchResult(title=title, content=content, content_hash=_hash_content(content))
+    return _build_result(title, items)
 
 
 async def _fetch_telegram(handle: str) -> FetchResult | None:
@@ -176,34 +234,43 @@ async def _fetch_telegram(handle: str) -> FetchResult | None:
         logger.exception("Telegram fetch failed for %s", handle)
         return None
 
-    messages = re.findall(
-        r'<div class="tgme_widget_message_text[^"]*"[^>]*>(.*?)</div>',
+    items: list[ContentItem] = []
+    for post_id, raw_html in re.findall(
+        r'data-post="([^"]+)"[^>]*>.*?tgme_widget_message_text[^"]*"[^>]*>(.*?)</div>',
         html,
         re.S | re.I,
-    )
-    if not messages:
-        # Fallback: strip tags from whole page preview area
-        block = re.search(r'tgme_channel_history.*?tgme_footer', html, re.S | re.I)
+    ):
+        text = _normalize_text(raw_html, limit=800)
+        if text:
+            items.append(ContentItem(item_id=_item_id("tg", post_id), text=text))
+
+    if not items:
+        messages = re.findall(
+            r'<div class="tgme_widget_message_text[^"]*"[^>]*>(.*?)</div>',
+            html,
+            re.S | re.I,
+        )
+        for idx, raw_html in enumerate(messages[-8:]):
+            text = _normalize_text(raw_html, limit=800)
+            if text:
+                items.append(ContentItem(item_id=_item_id("tg", channel, text), text=text))
+
+    if not items:
+        block = re.search(r"tgme_channel_history.*?tgme_footer", html, re.S | re.I)
         if block:
             content = _normalize_text(block.group(0))
             if len(content) > 80:
+                item = ContentItem(item_id=_item_id("tg", channel, content), text=content)
                 return FetchResult(
                     title=f"Telegram @{channel}",
                     content=content,
                     content_hash=_hash_content(content),
+                    items=[item],
                 )
         logger.warning("Telegram channel @%s: no messages in HTML", channel)
         return None
 
-    texts = [_normalize_text(m, limit=500) for m in messages[-6:]]
-    content = "\n".join(t for t in texts if t)
-    if not content:
-        return None
-    return FetchResult(
-        title=f"Telegram @{channel}",
-        content=content,
-        content_hash=_hash_content(content),
-    )
+    return _build_result(f"Telegram @{channel}", items)
 
 
 async def _fetch_social_stub(url: str) -> FetchResult | None:
@@ -212,10 +279,12 @@ async def _fetch_social_stub(url: str) -> FetchResult | None:
     if not target.startswith("http"):
         target = f"https://{target}"
     content = f"Мониторинг {target}: публичный API недоступен. Перешлите пост боту для верификации."
+    item = ContentItem(item_id=_item_id(target), text=content)
     return FetchResult(
         title=urlparse(target).netloc or target,
         content=content,
         content_hash=_hash_content(target),
+        items=[item],
     )
 
 
@@ -231,8 +300,8 @@ async def _fetch_econ_calendar(_: str) -> FetchResult | None:
         logger.exception("Economic calendar fetch failed")
         return None
 
-    lines: list[str] = []
-    for event in root.findall(".//event")[:30]:
+    items: list[ContentItem] = []
+    for event in root.findall(".//event")[:40]:
         parts = [
             event.findtext("title") or "",
             event.findtext("country") or "",
@@ -243,13 +312,12 @@ async def _fetch_econ_calendar(_: str) -> FetchResult | None:
         ]
         line = " | ".join(p.strip() for p in parts if p and p.strip())
         if line:
-            lines.append(line)
+            items.append(
+                ContentItem(
+                    item_id=_item_id("econ", parts[0] or "", parts[2] or ""),
+                    text=_normalize_text(line, limit=400),
+                    title=_normalize_text(parts[0], limit=120) if parts[0] else None,
+                )
+            )
 
-    content = _normalize_text("\n".join(lines))
-    if not content:
-        return None
-    return FetchResult(
-        title="Экономический календарь (неделя)",
-        content=content,
-        content_hash=_hash_content(content),
-    )
+    return _build_result("Экономический календарь (неделя)", items)

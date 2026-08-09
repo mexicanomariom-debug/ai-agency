@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import json
+
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
@@ -23,6 +25,38 @@ VERDICT_LABELS = {
     "unknown": "❓ Неизвестно",
     "info": "ℹ️ Информация",
 }
+
+_MAX_SEEN_IDS = 120
+
+
+def parse_seen_item_ids(raw: str | None) -> set[str]:
+    if not raw:
+        return set()
+    try:
+        data = json.loads(raw)
+        if isinstance(data, list):
+            return {str(x) for x in data if x}
+    except json.JSONDecodeError:
+        pass
+    return set()
+
+
+def dump_seen_item_ids(ids: set[str]) -> str:
+    ordered = list(ids)
+    if len(ordered) > _MAX_SEEN_IDS:
+        ordered = ordered[-_MAX_SEEN_IDS:]
+    return json.dumps(ordered, ensure_ascii=False)
+
+
+def keyword_prefilter(text: str, keywords: str | None) -> bool:
+    if not keywords or not keywords.strip():
+        return True
+    lowered = text.lower()
+    for kw in keywords.split(","):
+        kw = kw.strip().lower()
+        if kw and kw in lowered:
+            return True
+    return False
 
 
 class ReconService:
@@ -48,6 +82,8 @@ class ReconService:
         source_type: str,
         url_or_handle: str,
         label: str | None = None,
+        filter_query: str | None = None,
+        keywords: str | None = None,
         check_interval_min: int = 60,
     ) -> ReconSource:
         source = ReconSource(
@@ -55,12 +91,31 @@ class ReconService:
             source_type=source_type,
             url_or_handle=url_or_handle.strip(),
             label=label.strip() if label else None,
+            filter_query=filter_query.strip() if filter_query else None,
+            keywords=keywords.strip() if keywords else None,
             check_interval_min=check_interval_min,
             enabled=True,
             verify_enabled=True,
         )
         session.add(source)
         await session.flush()
+        return source
+
+    async def update_filter(
+        self,
+        session: AsyncSession,
+        user: User,
+        source_id: int,
+        *,
+        filter_query: str | None,
+        keywords: str | None = None,
+    ) -> ReconSource | None:
+        source = await self.get_source(session, user, source_id)
+        if not source:
+            return None
+        source.filter_query = filter_query.strip() if filter_query else None
+        if keywords is not None:
+            source.keywords = keywords.strip() if keywords.strip() else None
         return source
 
     async def delete_source(self, session: AsyncSession, user: User, source_id: int) -> bool:

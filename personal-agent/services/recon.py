@@ -11,8 +11,15 @@ from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 
 from database.models import ReconEvent, ReconSource
-from services.recon_providers import fetch_source_content
-from services.recon_service import SOURCE_TYPE_LABELS, VERDICT_LABELS, recon_service
+from services.recon_providers import ContentItem, FetchResult, fetch_source_content
+from services.recon_service import (
+    SOURCE_TYPE_LABELS,
+    VERDICT_LABELS,
+    dump_seen_item_ids,
+    keyword_prefilter,
+    parse_seen_item_ids,
+    recon_service,
+)
 from services.recon_verifier import recon_verifier
 
 if TYPE_CHECKING:
@@ -37,6 +44,8 @@ def format_event_message(source: ReconSource, event: ReconEvent) -> str:
         f"{type_label}: <b>{_source_label(source)}</b>",
         f"{verdict} ({conf})",
     ]
+    if source.filter_query:
+        lines.append(f"🎯 {source.filter_query[:120]}")
     if event.title:
         lines.append(f"📌 {event.title}")
     if event.summary:
@@ -52,7 +61,9 @@ class ReconMonitor:
         self.bot = bot
         self.session_factory = session_factory
 
-    async def check_source(self, source: ReconSource, *, force: bool = False) -> ReconEvent | None:
+    async def check_source(
+        self, source: ReconSource, *, force: bool = False
+    ) -> ReconEvent | list[ReconEvent] | None:
         now = datetime.now(ZoneInfo("UTC"))
         if not force and source.last_checked_at:
             delta = now - source.last_checked_at.replace(tzinfo=ZoneInfo("UTC"))
@@ -70,45 +81,121 @@ class ReconMonitor:
                 await session.commit()
                 return None
 
-            if not db_source.last_content_hash:
-                db_source.last_content_hash = fetched.content_hash
-                db_source.last_preview = fetched.content[:500]
-                await session.commit()
-                return None
-
-            changed = db_source.last_content_hash != fetched.content_hash
-            db_source.last_content_hash = fetched.content_hash
             db_source.last_preview = fetched.content[:500]
 
-            if not changed and not force:
+            if db_source.filter_query:
+                events = await self._check_filtered_items(session, db_source, fetched)
                 await session.commit()
+                if not events:
+                    return None
+                return events[0] if len(events) == 1 else events
+
+            event = await self._check_aggregate_change(session, db_source, fetched, force=force)
+            await session.commit()
+            return event
+
+    async def _check_aggregate_change(
+        self,
+        session: "AsyncSession",
+        db_source: ReconSource,
+        fetched: FetchResult,
+        *,
+        force: bool,
+    ) -> ReconEvent | None:
+        if not db_source.last_content_hash:
+            db_source.last_content_hash = fetched.content_hash
+            return None
+
+        changed = db_source.last_content_hash != fetched.content_hash
+        db_source.last_content_hash = fetched.content_hash
+
+        if not changed and not force:
+            return None
+
+        old_preview = db_source.last_preview
+        verification = None
+        if db_source.verify_enabled:
+            verification = await recon_verifier.verify_change(
+                source_label=_source_label(db_source),
+                old_preview=old_preview,
+                new_content=fetched.content,
+                source_type=db_source.source_type,
+            )
+            if verification and not verification.notify:
                 return None
+
+        event = ReconEvent(
+            source_id=db_source.id,
+            title=fetched.title,
+            excerpt=fetched.content[:1000],
+            verdict=verification.verdict if verification else "info",
+            confidence=verification.confidence if verification else None,
+            summary=verification.summary if verification else "Обновление в источнике.",
+            notified=False,
+        )
+        session.add(event)
+        await session.flush()
+        return event
+
+    async def _check_filtered_items(
+        self,
+        session: "AsyncSession",
+        db_source: ReconSource,
+        fetched: FetchResult,
+    ) -> list[ReconEvent]:
+        seen = parse_seen_item_ids(db_source.last_seen_item_ids)
+        items = fetched.items or []
+        new_items = [item for item in items if item.item_id not in seen]
+
+        if not seen and items:
+            for item in items:
+                seen.add(item.item_id)
+            db_source.last_seen_item_ids = dump_seen_item_ids(seen)
+            return []
+
+        if not new_items:
+            return []
+
+        events: list[ReconEvent] = []
+        for item in new_items:
+            seen.add(item.item_id)
+            if not keyword_prefilter(item.text, db_source.keywords):
+                continue
+
+            interest = await recon_verifier.matches_interest(
+                filter_query=db_source.filter_query or "",
+                text=item.text,
+                source_label=_source_label(db_source),
+            )
+            if not interest.relevant:
+                continue
 
             verification = None
             if db_source.verify_enabled:
                 verification = await recon_verifier.verify_change(
                     source_label=_source_label(db_source),
-                    old_preview=source.last_preview,
-                    new_content=fetched.content,
+                    old_preview=None,
+                    new_content=item.text,
                     source_type=db_source.source_type,
                 )
                 if verification and not verification.notify:
-                    await session.commit()
-                    return None
+                    continue
 
             event = ReconEvent(
                 source_id=db_source.id,
-                title=fetched.title,
-                excerpt=fetched.content[:1000],
+                title=item.title or fetched.title,
+                excerpt=item.text[:1000],
                 verdict=verification.verdict if verification else "info",
-                confidence=verification.confidence if verification else None,
-                summary=verification.summary if verification else "Обновление в источнике.",
+                confidence=verification.confidence if verification else interest.confidence,
+                summary=verification.summary if verification else interest.summary or "Совпадение с вашим интересом.",
                 notified=False,
             )
             session.add(event)
-            await session.commit()
-            await session.refresh(event)
-            return event
+            await session.flush()
+            events.append(event)
+
+        db_source.last_seen_item_ids = dump_seen_item_ids(seen)
+        return events
 
     async def run_checks(self) -> None:
         async with self.session_factory() as session:
@@ -121,8 +208,11 @@ class ReconMonitor:
 
         for source in sources:
             try:
-                event = await self.check_source(source)
-                if event and source.user:
+                result = await self.check_source(source)
+                if not result or not source.user:
+                    continue
+                events = result if isinstance(result, list) else [result]
+                for event in events:
                     await self._notify_user(source.user.telegram_id, source, event)
             except Exception:
                 logger.exception("Recon check failed for source %s", source.id)

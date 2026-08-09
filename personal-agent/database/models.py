@@ -84,6 +84,9 @@ class ReconSource(Base):
     last_checked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     last_content_hash: Mapped[str | None] = mapped_column(String(64))
     last_preview: Mapped[str | None] = mapped_column(Text)
+    filter_query: Mapped[str | None] = mapped_column(Text)
+    keywords: Mapped[str | None] = mapped_column(Text)
+    last_seen_item_ids: Mapped[str | None] = mapped_column(Text)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
     user: Mapped[User] = relationship(back_populates="recon_sources")

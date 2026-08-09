@@ -22,7 +22,12 @@ from bot.states.recon import ReconSetupStates
 from bot.utils.messages import answer_menu
 from services.recon import format_event_message, get_recon_monitor
 from services.recon_providers import _parse_source_input, fetch_source_content
-from services.recon_service import SOURCE_TYPE_LABELS, VERDICT_LABELS, recon_service
+from services.recon_service import (
+    SOURCE_TYPE_LABELS,
+    VERDICT_LABELS,
+    dump_seen_item_ids,
+    recon_service,
+)
 from services.recon_verifier import recon_verifier
 from services.user_service import user_service
 
@@ -31,18 +36,39 @@ logger = logging.getLogger(__name__)
 router = Router(name="recon")
 
 RECON_BUTTON = "🔍 Разведка и Вериф"
+_SKIP_INTEREST = {"-", "skip", "всё", "все", "всё подряд", "без фильтра", "нет"}
 
 
 def _panel_text(sources_count: int, enabled_count: int) -> str:
     return (
         "🔍 <b>Разведка и Вериф</b>\n\n"
         "Мониторинг сайтов, Telegram, эко-календаря и соцсетей.\n"
-        "При изменениях — AI-верификация достоверности.\n\n"
+        "Укажите <b>интерес</b> — бот пришлёт только подходящие сообщения, а не весь канал подряд.\n\n"
         f"Источников: {sources_count} (активных: {enabled_count})\n\n"
-        "<b>Добавить:</b> ➕ Источник → 📢 Telegram → <code>@канал</code>\n"
-        "Или сразу: <code>/recon add @канал</code>\n"
-        "<b>Верифицировать текст:</b> /recon verify ваш текст\n"
-        "или перешлите сообщение с подписью <code>вериф:</code>"
+        "<b>Добавить:</b> ➕ Источник → <code>@канал</code>\n"
+        "С интересом сразу: <code>/recon add @канал интерес: решения FOMC, CPI</code>\n"
+        "<b>Фильтр:</b> <code>/recon filter 3 ваш интерес</code>\n"
+        "<b>Верификация:</b> /recon verify ваш текст"
+    )
+
+
+def _source_detail_text(source) -> str:
+    type_label = SOURCE_TYPE_LABELS.get(source.source_type, source.source_type)
+    preview = (source.last_preview or "ещё не проверялся")[:300]
+    filter_line = (
+        f"🎯 <b>Интерес:</b> {source.filter_query}"
+        if source.filter_query
+        else "🎯 <b>Интерес:</b> не задан — приходят все изменения"
+    )
+    if source.keywords:
+        filter_line += f"\n🔑 Ключевые слова: {source.keywords}"
+    return (
+        f"#{source.id} <b>{source.label or source.url_or_handle}</b>\n"
+        f"{type_label}\n"
+        f"Интервал: {source.check_interval_min} мин\n"
+        f"Верификация: {'вкл' if source.verify_enabled else 'выкл'}\n"
+        f"{filter_line}\n\n"
+        f"<i>{preview}</i>"
     )
 
 
@@ -78,6 +104,10 @@ async def cmd_recon(message: Message, session: AsyncSession, state: FSMContext) 
 
     if sub == "add" and len(parts) > 2:
         await _add_source_from_text(message, session, state, " ".join(parts[2:]))
+        return
+
+    if sub == "filter" and len(parts) > 2:
+        await _set_filter_from_command(message, session, parts[2])
         return
 
     if sub == "list":
@@ -124,13 +154,22 @@ async def _show_sources(message: Message, session: AsyncSession) -> None:
         type_label = SOURCE_TYPE_LABELS.get(src.source_type, src.source_type)
         name = src.label or src.url_or_handle
         status = "✅" if src.enabled else "⏸"
-        lines.append(f"{status} #{src.id} {type_label}: {name[:50]}")
+        interest = " 🎯" if src.filter_query else ""
+        lines.append(f"{status} #{src.id} {type_label}: {name[:50]}{interest}")
     await answer_menu(
         message,
         "\n".join(lines),
         reply_markup=recon_sources_keyboard(sources),
         parse_mode="HTML",
     )
+
+
+async def _seed_source_baseline(source, fetched) -> None:
+    source.last_preview = fetched.content[:500]
+    source.last_content_hash = fetched.content_hash
+    if fetched.items:
+        ids = {item.item_id for item in fetched.items}
+        source.last_seen_item_ids = dump_seen_item_ids(ids)
 
 
 async def _add_source_from_text(
@@ -141,7 +180,7 @@ async def _add_source_from_text(
     *,
     source_type: str | None = None,
 ) -> None:
-    parsed_type, url, label = _parse_source_input(text, source_type)
+    parsed_type, url, label, filter_query = _parse_source_input(text, source_type)
     if not url:
         await answer_menu(message, "Укажите адрес, @канал или ссылку.")
         return
@@ -152,7 +191,6 @@ async def _add_source_from_text(
         username=message.from_user.username,
         first_name=message.from_user.first_name,
     )
-    await state.clear()
     await answer_menu(message, "⏳ Добавляю источник и проверяю…")
 
     source = await recon_service.add_source(
@@ -161,15 +199,15 @@ async def _add_source_from_text(
         source_type=parsed_type,
         url_or_handle=url,
         label=label,
+        filter_query=filter_query,
     )
 
     fetched = await fetch_source_content(parsed_type, url)
     probe = ""
     if fetched:
-        source.last_preview = fetched.content[:500]
-        source.last_content_hash = fetched.content_hash
+        await _seed_source_baseline(source, fetched)
         preview = fetched.content[:200].replace("<", "").replace(">", "")
-        probe = f"\n\n✅ Пробное чтение OK ({len(fetched.content)} симв.):\n<i>{preview}…</i>"
+        probe = f"\n\n✅ Пробное чтение OK ({len(fetched.items or [])} элементов):\n<i>{preview}…</i>"
     else:
         hints = {
             "telegram": (
@@ -181,13 +219,59 @@ async def _add_source_from_text(
         probe = hints.get(parsed_type, "\n\n⚠️ Источник добавлен, но данные пока не получены.")
 
     type_label = SOURCE_TYPE_LABELS.get(parsed_type, parsed_type)
+    if filter_query:
+        await state.clear()
+        await answer_menu(
+            message,
+            f"✅ Источник #{source.id} добавлен\n"
+            f"{type_label}: <b>{label or url}</b>\n"
+            f"🎯 Интерес: <b>{filter_query}</b>{probe}",
+            reply_markup=recon_menu_keyboard(),
+            parse_mode="HTML",
+        )
+        return
+
+    await state.set_state(ReconSetupStates.waiting_interest)
+    await state.update_data(recon_source_id=source.id)
     await answer_menu(
         message,
         f"✅ Источник #{source.id} добавлен\n"
-        f"{type_label}: <b>{label or url}</b>{probe}",
-        reply_markup=recon_menu_keyboard(),
+        f"{type_label}: <b>{label or url}</b>{probe}\n\n"
+        "🎯 <b>Что вас интересует в этом источнике?</b>\n"
+        "Например: <code>решения FOMC, инфляция CPI, ставка ЦБ</code>\n"
+        "Или <code>-</code> — без фильтра (все изменения).",
         parse_mode="HTML",
     )
+
+
+async def _set_filter_from_command(message: Message, session: AsyncSession, args: str) -> None:
+    parts = args.strip().split(maxsplit=1)
+    if len(parts) < 2:
+        await answer_menu(message, "Формат: <code>/recon filter 3 ваш интерес</code>", parse_mode="HTML")
+        return
+    try:
+        source_id = int(parts[0].lstrip("#"))
+    except ValueError:
+        await answer_menu(message, "Укажите номер источника: <code>/recon filter 3 …</code>", parse_mode="HTML")
+        return
+
+    user = await user_service.get_or_create(
+        session,
+        telegram_id=message.from_user.id,
+        username=message.from_user.username,
+        first_name=message.from_user.first_name,
+    )
+    query = parts[1].strip()
+    if query.lower() in _SKIP_INTEREST:
+        source = await recon_service.update_filter(session, user, source_id, filter_query=None)
+        text = "Фильтр снят — снова все изменения."
+    else:
+        source = await recon_service.update_filter(session, user, source_id, filter_query=query)
+        text = f"🎯 Интерес сохранён: <b>{query}</b>"
+    if not source:
+        await answer_menu(message, "Источник не найден.")
+        return
+    await answer_menu(message, f"#{source_id}: {text}", parse_mode="HTML")
 
 
 @router.callback_query(F.data == "recon:add")
@@ -202,7 +286,7 @@ async def cb_recon_add(callback: CallbackQuery, state: FSMContext) -> None:
             "• <code>@канал</code>\n"
             "• <code>https://t.me/канал</code>\n"
             "• <code>https://site.com/feed.xml</code>\n\n"
-            "Быстро: <code>/recon add @канал</code>",
+            "С интересом: <code>@канал интерес: ваши темы</code>",
             reply_markup=recon_type_keyboard(),
             parse_mode="HTML",
         )
@@ -220,7 +304,7 @@ async def cb_recon_type(callback: CallbackQuery, state: FSMContext) -> None:
 
     hints = {
         "website": "Отправьте URL сайта или RSS:\n• https://example.com/feed.xml",
-        "telegram": "Отправьте публичный канал:\n• @channelname\n• https://t.me/channelname",
+        "telegram": "Отправьте публичный канал:\n• @channelname\n• @channel интерес: ваши темы",
         "instagram": "Ссылка Instagram:\n• https://instagram.com/username",
         "tiktok": "Ссылка TikTok:\n• https://tiktok.com/@username",
         "econ_calendar": "Напишите <code>auto</code> или любой текст — подключу календарь на неделю",
@@ -242,6 +326,57 @@ async def msg_recon_url(message: Message, session: AsyncSession, state: FSMConte
     data = await state.get_data()
     source_type = data.get("recon_source_type")
     await _add_source_from_text(message, session, state, message.text.strip(), source_type=source_type)
+
+
+@router.message(ReconSetupStates.waiting_interest, F.text)
+async def msg_recon_interest(message: Message, session: AsyncSession, state: FSMContext) -> None:
+    if not message.text or not message.from_user:
+        return
+    if message.text in MENU_BUTTONS and message.text != RECON_BUTTON:
+        await state.clear()
+        return
+
+    data = await state.get_data()
+    source_id = data.get("recon_source_id")
+    if not source_id:
+        await state.clear()
+        return
+
+    user = await user_service.get_or_create(
+        session,
+        telegram_id=message.from_user.id,
+        username=message.from_user.username,
+        first_name=message.from_user.first_name,
+    )
+    text = message.text.strip()
+    if text.lower() in _SKIP_INTEREST:
+        await recon_service.update_filter(session, user, int(source_id), filter_query=None)
+        reply = "Без фильтра — буду присылать все изменения в источнике."
+    else:
+        await recon_service.update_filter(session, user, int(source_id), filter_query=text)
+        reply = f"🎯 Сохранено: <b>{text}</b>\nБуду присылать только подходящие сообщения."
+
+    await state.clear()
+    await answer_menu(message, reply, reply_markup=recon_menu_keyboard(), parse_mode="HTML")
+
+
+@router.callback_query(F.data.startswith("recon:filter:"))
+async def cb_recon_filter(callback: CallbackQuery, state: FSMContext) -> None:
+    if not callback.data:
+        await callback.answer()
+        return
+    source_id = int(callback.data.split(":")[-1])
+    await state.set_state(ReconSetupStates.waiting_interest)
+    await state.update_data(recon_source_id=source_id)
+    await callback.answer()
+    if callback.message:
+        await callback.message.answer(
+            f"🎯 <b>Интерес для #{source_id}</b>\n\n"
+            "Опишите, что именно вас интересует в этом источнике.\n"
+            "Например: <code>IPO, отчётность, сделки M&A</code>\n"
+            "Или <code>-</code> — снять фильтр.",
+            parse_mode="HTML",
+        )
 
 
 @router.callback_query(F.data == "recon:list")
@@ -270,15 +405,7 @@ async def cb_recon_src(callback: CallbackQuery, session: AsyncSession) -> None:
         await callback.answer("Не найден", show_alert=True)
         return
     await callback.answer()
-    type_label = SOURCE_TYPE_LABELS.get(source.source_type, source.source_type)
-    preview = (source.last_preview or "ещё не проверялся")[:300]
-    text = (
-        f"#{source.id} <b>{source.label or source.url_or_handle}</b>\n"
-        f"{type_label}\n"
-        f"Интервал: {source.check_interval_min} мин\n"
-        f"Верификация: {'вкл' if source.verify_enabled else 'выкл'}\n\n"
-        f"<i>{preview}</i>"
-    )
+    text = _source_detail_text(source)
     try:
         await callback.message.edit_text(
             text,
@@ -310,31 +437,26 @@ async def cb_recon_check_one(callback: CallbackQuery, session: AsyncSession) -> 
         await callback.answer("Не найден", show_alert=True)
         return
     await callback.answer("Проверяю…")
+    monitor = get_recon_monitor()
+    if monitor:
+        result = await monitor.check_source(source, force=True)
+        if result:
+            events = result if isinstance(result, list) else [result]
+            for event in events:
+                await callback.message.answer(
+                    format_event_message(source, event),
+                    parse_mode="HTML",
+                )
+            return
+
     fetched = await fetch_source_content(source.source_type, source.url_or_handle)
     if not fetched:
         await callback.message.answer("Не удалось получить данные из источника.")
         return
-
-    if source.verify_enabled:
-        verification = await recon_verifier.verify_change(
-            source_label=source.label or source.url_or_handle,
-            old_preview=source.last_preview,
-            new_content=fetched.content,
-            source_type=source.source_type,
-        )
-        verdict = VERDICT_LABELS.get(verification.verdict, verification.verdict)
-        text = (
-            f"🔍 <b>{fetched.title}</b>\n\n"
-            f"{verdict} ({int(verification.confidence * 100)}%)\n"
-            f"{verification.summary}\n\n"
-            f"<i>{fetched.content[:500]}…</i>"
-        )
-    else:
-        text = f"🔍 <b>{fetched.title}</b>\n\n<i>{fetched.content[:600]}…</i>"
-
-    source.last_preview = fetched.content[:500]
-    source.last_content_hash = fetched.content_hash
-    await callback.message.answer(text, parse_mode="HTML")
+    await callback.message.answer(
+        f"🔍 <b>{fetched.title}</b>\n\n<i>{fetched.content[:600]}…</i>",
+        parse_mode="HTML",
+    )
 
 
 @router.callback_query(F.data == "recon:check_all")
@@ -359,15 +481,18 @@ async def cb_recon_check_all(callback: CallbackQuery, session: AsyncSession) -> 
         return
     checked = 0
     for source in sources:
-        event = await monitor.check_source(source, force=True)
-        if event:
+        result = await monitor.check_source(source, force=True)
+        if not result:
+            continue
+        events = result if isinstance(result, list) else [result]
+        for event in events:
             checked += 1
             await callback.message.answer(
                 format_event_message(source, event),
                 parse_mode="HTML",
             )
     if not checked:
-        await callback.message.answer("Изменений не обнаружено.")
+        await callback.message.answer("Новых совпадений не найдено.")
 
 
 @router.callback_query(F.data.startswith("recon:toggle:"))
@@ -390,15 +515,7 @@ async def cb_recon_toggle(callback: CallbackQuery, session: AsyncSession) -> Non
     status = "Включён" if source.enabled else "Выключен"
     await callback.answer(status)
     if callback.message:
-        type_label = SOURCE_TYPE_LABELS.get(source.source_type, source.source_type)
-        preview = (source.last_preview or "ещё не проверялся")[:300]
-        text = (
-            f"#{source.id} <b>{source.label or source.url_or_handle}</b>\n"
-            f"{type_label}\n"
-            f"Интервал: {source.check_interval_min} мин\n"
-            f"Верификация: {'вкл' if source.verify_enabled else 'выкл'}\n\n"
-            f"<i>{preview}</i>"
-        )
+        text = _source_detail_text(source)
         try:
             await callback.message.edit_text(
                 text,

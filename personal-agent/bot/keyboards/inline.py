@@ -190,10 +190,13 @@ def recon_source_actions_keyboard(source_id: int, *, enabled: bool) -> InlineKey
         inline_keyboard=[
             [
                 InlineKeyboardButton(text="🔄 Проверить", callback_data=f"recon:check:{source_id}"),
-                InlineKeyboardButton(text=toggle, callback_data=f"recon:toggle:{source_id}"),
+                InlineKeyboardButton(text="🎯 Фильтр", callback_data=f"recon:filter:{source_id}"),
             ],
             [
+                InlineKeyboardButton(text=toggle, callback_data=f"recon:toggle:{source_id}"),
                 InlineKeyboardButton(text="🗑 Удалить", callback_data=f"recon:delete:{source_id}"),
+            ],
+            [
                 InlineKeyboardButton(text="◀️ Назад", callback_data="recon:list"),
             ],
         ]

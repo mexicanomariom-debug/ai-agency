@@ -21,6 +21,13 @@ class VerificationResult:
     notify: bool
 
 
+@dataclass
+class InterestResult:
+    relevant: bool
+    summary: str
+    confidence: float
+
+
 class ReconVerifier:
     def __init__(self) -> None:
         self._openai = AsyncOpenAI(api_key=settings.openai_api_key) if settings.has_openai else None
@@ -81,6 +88,59 @@ class ReconVerifier:
                 summary="Не удалось верифицировать автоматически.",
                 notify=True,
             )
+
+    async def matches_interest(
+        self,
+        *,
+        filter_query: str,
+        text: str,
+        source_label: str,
+    ) -> InterestResult:
+        if not filter_query.strip():
+            return InterestResult(relevant=True, summary="Фильтр не задан.", confidence=1.0)
+
+        if not self._openai:
+            lowered_query = filter_query.lower()
+            relevant = any(word in text.lower() for word in lowered_query.split() if len(word) > 3)
+            return InterestResult(
+                relevant=relevant,
+                summary="Совпадение по ключевым словам (без AI)." if relevant else "Не совпало с интересом.",
+                confidence=0.4 if relevant else 0.2,
+            )
+
+        prompt = (
+            f"Источник: {source_label}\n"
+            f"Интерес пользователя: {filter_query}\n\n"
+            f"Сообщение/новость:\n{text[:2000]}\n\n"
+            "Это сообщение относится к интересу пользователя? "
+            "Ответ JSON: "
+            '{"relevant":true|false,"confidence":0.0-1.0,"summary":"кратко по-русски почему да/нет"}'
+        )
+        try:
+            response = await self._openai.chat.completions.create(
+                model=settings.openai_model,
+                messages=[
+                    {
+                        "role": "system",
+                        "content": (
+                            "Ты фильтр OSINT-алертов. relevant=true только если сообщение явно про интерес пользователя. "
+                            "Игнорируй рекламу, оффтоп и общие новости не по теме."
+                        ),
+                    },
+                    {"role": "user", "content": prompt},
+                ],
+                response_format={"type": "json_object"},
+                temperature=0.1,
+            )
+            data = json.loads(response.choices[0].message.content or "{}")
+            return InterestResult(
+                relevant=bool(data.get("relevant")),
+                summary=str(data.get("summary") or ""),
+                confidence=float(data.get("confidence") or 0.5),
+            )
+        except Exception:
+            logger.exception("Interest match failed")
+            return InterestResult(relevant=False, summary="Не удалось оценить релевантность.", confidence=0.0)
 
     async def verify_claim(self, claim: str) -> VerificationResult:
         if not self._openai:
