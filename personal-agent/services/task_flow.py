@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime
+from zoneinfo import ZoneInfo
 
 from aiogram.types import Message
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -19,8 +20,10 @@ from bot.copy import (
 )
 from bot.utils.messages import answer_menu
 from database.models import Task, User
+from services.calendar_sync import update_task_in_calendar
 from services.google_calendar import google_calendar_service
 from services.scheduler import reminder_scheduler
+from services.task_editor import TaskEditChanges
 from services.task_parser import ParseResult
 from services.user_service import task_service
 
@@ -114,3 +117,34 @@ async def reply_with_created_tasks(
     tasks = await create_tasks_from_parsed(session, user, parsed)
     reply = build_task_reply(user, tasks, parsed)
     await answer_menu(message, reply)
+
+
+async def apply_task_edit(
+    session: AsyncSession,
+    user: User,
+    task: Task,
+    changes: TaskEditChanges,
+) -> Task:
+    if changes.title:
+        task.title = changes.title
+    if changes.due_at:
+        task.due_at = changes.due_at
+        task.reminded_at = None
+    if changes.notify_message is not None:
+        task.notify_message = changes.notify_message
+    if changes.notify_call is not None:
+        task.notify_call = changes.notify_call
+    if changes.notify_phone is not None:
+        task.notify_phone = changes.notify_phone
+
+    calendar_updated = await update_task_in_calendar(user, task)
+    task._calendar_updated = calendar_updated  # type: ignore[attr-defined]
+
+    if reminder_scheduler:
+        if task.due_at > datetime.now(ZoneInfo("UTC")):
+            reminder_scheduler.schedule_task(task.id, task.due_at)
+        else:
+            reminder_scheduler.cancel_task(task.id)
+
+    await session.flush()
+    return task

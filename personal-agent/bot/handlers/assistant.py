@@ -5,6 +5,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from bot.copy import NOTE_CREATED, PARSE_FAILED
 from bot.handlers.tasks import cmd_tasks, cmd_today
+from bot.handlers.task_edit import try_one_shot_edit
+from bot.states.task_edit import TaskEditStates
 from bot.states.translator import TranslatorStates
 from bot.utils.messages import answer_menu
 from database.models import User
@@ -24,6 +26,9 @@ async def process_user_message(
     user: User,
     text: str,
 ) -> None:
+    if await try_one_shot_edit(message, session, user, text):
+        return
+
     parsed = await task_parser.parse(text, user.timezone)
     if parsed.tasks:
         await reply_with_created_tasks(message, session, user, parsed)
@@ -71,6 +76,9 @@ async def handle_text(message: Message, session: AsyncSession, state: FSMContext
         return
 
     if await state.get_state() == TranslatorStates.waiting_text.state:
+        return
+
+    if await state.get_state() == TaskEditStates.waiting_changes.state:
         return
 
     quick_buttons = {

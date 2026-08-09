@@ -58,6 +58,7 @@ HELP_TEXT = (
     "/translate_off — выйти из переводчика\n\n"
     "<b>Команды задач</b>\n"
     "/tasks — все активные\n"
+    "/edit &lt;id&gt; — изменить задачу (время, название)\n"
     "/tasks_done — завершённые и отменённые\n"
     "/restore &lt;id&gt; — вернуть задачу в активные\n"
     "/done &lt;id&gt; · /cancel &lt;id&gt;\n"
@@ -101,6 +102,36 @@ TASK_ARCHIVED_HEADER = "<b>Завершённые задачи (последни
 TASK_ARCHIVED_EMPTY = "Нет завершённых или отменённых задач."
 TASK_ARCHIVED_ITEM = "#{id} — <b>{title}</b> ({status})\n⏰ {due_at}"
 TASK_RESTORED = "↩️ Задача #{task_id} «{title}» снова в активных."
+
+TASK_EDIT_NEED_ID = (
+    "Использование: <code>/edit ID</code>\n"
+    "Пример: <code>/edit 5</code>\n\n"
+    "Или напишите: «перенеси задачу 5 на завтра в 10:00»"
+)
+TASK_EDIT_NOT_FOUND = "Задача #{task_id} не найдена или уже завершена."
+TASK_EDIT_PROMPT = (
+    "✏️ <b>Редактирование задачи #{task_id}</b>\n"
+    "<b>{title}</b>\n"
+    "⏰ {due_at} · {notify_types}\n\n"
+    "Напишите что изменить:\n"
+    "• время: «завтра в 15:00» или «через 2 часа»\n"
+    "• название: «позвонить маме»\n"
+    "• оба: «завтра в 9 позвонить маме»\n\n"
+    "Выйти: <code>/edit_off</code> или кнопка ❌"
+)
+TASK_EDIT_SUCCESS = (
+    "✏️ Задача #{task_id} обновлена\n"
+    "<b>{title}</b>\n"
+    "⏰ {due_at}\n"
+    "🔔 {notify_types}"
+)
+TASK_EDIT_EMPTY_CHANGES = (
+    "Не понял, что изменить. Примеры:\n"
+    "• «завтра в 10:00»\n"
+    "• «купить хлеб»\n"
+    "• «только время — через 3 часа»"
+)
+TASK_EDIT_EXIT = "✏️ Редактирование завершено."
 
 REMINDER_MESSAGE = "⏰ <b>Напоминание</b>\n{title}"
 REMINDER_ACTIONS_HINT = (

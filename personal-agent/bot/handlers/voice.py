@@ -4,6 +4,7 @@ from aiogram.types import Message
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from bot.copy import VOICE_FAILED, VOICE_HINT, VOICE_TRANSCRIBED
+from bot.states.task_edit import TaskEditStates
 from bot.states.translator import TranslatorStates
 from bot.utils.messages import answer_menu
 from services.stt import stt_service
@@ -35,6 +36,29 @@ async def transcribe_for_user(message: Message, *, in_translator: bool = False) 
 async def handle_voice(message: Message, session: AsyncSession, state: FSMContext) -> None:
     current_state = await state.get_state()
     if current_state == TranslatorStates.waiting_text.state:
+        return
+    if current_state == TaskEditStates.waiting_changes.state:
+        from bot.handlers.task_edit import process_task_edit_message
+        from services.user_service import user_service
+
+        data = await state.get_data()
+        task_id = data.get("task_id")
+        if not task_id:
+            return
+
+        await message.bot.send_chat_action(message.chat.id, "typing")
+        text = await transcribe_for_user(message, in_translator=False)
+        if not text:
+            return
+
+        user = await user_service.get_or_create(
+            session,
+            telegram_id=message.from_user.id,
+            username=message.from_user.username,
+            first_name=message.from_user.first_name,
+        )
+        if await process_task_edit_message(message, session, user, text, task_id=task_id):
+            await state.clear()
         return
 
     from bot.handlers.assistant import process_user_message

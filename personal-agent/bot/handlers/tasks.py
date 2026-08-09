@@ -33,6 +33,7 @@ from bot.copy import (
     TIMEZONE_HELP_EXAMPLES,
     TIMEZONE_UPDATED,
 )
+from bot.keyboards.inline import task_list_edit_keyboard
 from bot.utils.messages import answer_menu
 from config import settings
 from database.models import TaskStatus
@@ -137,7 +138,11 @@ async def cmd_tasks(message: Message, session: AsyncSession) -> None:
                 ),
             )
         )
-    await answer_menu(message, "\n\n".join(lines))
+    await answer_menu(
+        message,
+        "\n\n".join(lines),
+        reply_markup=task_list_edit_keyboard(tasks) if tasks else None,
+    )
 
 
 @router.message(lambda m: m.text == "📆 Сегодня")
