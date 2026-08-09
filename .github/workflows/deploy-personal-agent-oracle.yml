@@ -31,10 +31,10 @@ jobs:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
           GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
+          PERSONAL_AGENT_INTERNAL_SECRET: ${{ secrets.PERSONAL_AGENT_INTERNAL_SECRET || 'personal-agent-internal-2026' }}
           TWILIO_ACCOUNT_SID: ${{ secrets.TWILIO_ACCOUNT_SID }}
           TWILIO_AUTH_TOKEN: ${{ secrets.TWILIO_AUTH_TOKEN }}
           TWILIO_FROM_NUMBER: ${{ secrets.TWILIO_FROM_NUMBER }}
-          ORACLE_HOST: ${{ secrets.ORACLE_HOST || '140.84.183.154' }}
         run: |
           if [ -z "$BOT_TOKEN" ]; then
             echo "::error::Set PERSONAL_AGENT_BOT_TOKEN (or BOT_TOKEN) in GitHub Secrets"
@@ -43,27 +43,46 @@ jobs:
           if [ -z "$OPENAI_API_KEY" ]; then
             echo "::warning::OPENAI_API_KEY empty — voice and AI disabled"
           fi
-          cat > personal-agent/.env <<EOF
-          BOT_TOKEN=${BOT_TOKEN}
-          OPENAI_API_KEY=${OPENAI_API_KEY}
-          OPENAI_MODEL=gpt-4o-mini
-          OPENAI_WHISPER_MODEL=whisper-1
-          DEFAULT_TIMEZONE=Europe/Moscow
-          DATABASE_URL=sqlite+aiosqlite:///./data/agent.db
-          SCHEDULER_DATABASE_URL=sqlite:///./data/scheduler.db
-          TTS_VOICE=ru-RU-DmitryNeural
-          ENVIRONMENT=production
-          GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
-          GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
-          GOOGLE_REDIRECT_URI=https://ai-agency-drab.vercel.app/api/google/oauth/callback
-          OAUTH_SERVER_PORT=8080
-          OAUTH_HOST_PORT=8081
-          PERSONAL_AGENT_INTERNAL_SECRET=${{ secrets.PERSONAL_AGENT_INTERNAL_SECRET || 'personal-agent-internal-2026' }}
-          TWILIO_ACCOUNT_SID=${TWILIO_ACCOUNT_SID}
-          TWILIO_AUTH_TOKEN=${TWILIO_AUTH_TOKEN}
-          TWILIO_FROM_NUMBER=${TWILIO_FROM_NUMBER}
-          EOF
-          sed -i 's/^          //' personal-agent/.env
+          if [ -z "$GOOGLE_CLIENT_ID" ] || [ -z "$GOOGLE_CLIENT_SECRET" ]; then
+            echo "::error::GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET must be set in GitHub Secrets"
+            exit 1
+          fi
+          python3 - <<'PY'
+          import os
+          from pathlib import Path
+
+          def line(key: str, value: str) -> str:
+              return f"{key}={value}"
+
+          env = {
+              "BOT_TOKEN": os.environ["BOT_TOKEN"],
+              "OPENAI_API_KEY": os.environ.get("OPENAI_API_KEY", ""),
+              "OPENAI_MODEL": "gpt-4o-mini",
+              "OPENAI_WHISPER_MODEL": "whisper-1",
+              "DEFAULT_TIMEZONE": "Europe/Moscow",
+              "DATABASE_URL": "sqlite+aiosqlite:///./data/agent.db",
+              "SCHEDULER_DATABASE_URL": "sqlite:///./data/scheduler.db",
+              "TTS_VOICE": "ru-RU-DmitryNeural",
+              "ENVIRONMENT": "production",
+              "GOOGLE_CLIENT_ID": os.environ["GOOGLE_CLIENT_ID"],
+              "GOOGLE_CLIENT_SECRET": os.environ["GOOGLE_CLIENT_SECRET"],
+              "GOOGLE_REDIRECT_URI": "https://ai-agency-drab.vercel.app/api/google/oauth/callback",
+              "OAUTH_SERVER_PORT": "8080",
+              "OAUTH_HOST_PORT": "8081",
+              "PERSONAL_AGENT_INTERNAL_SECRET": os.environ.get(
+                  "PERSONAL_AGENT_INTERNAL_SECRET", "personal-agent-internal-2026"
+              ),
+              "TWILIO_ACCOUNT_SID": os.environ.get("TWILIO_ACCOUNT_SID", ""),
+              "TWILIO_AUTH_TOKEN": os.environ.get("TWILIO_AUTH_TOKEN", ""),
+              "TWILIO_FROM_NUMBER": os.environ.get("TWILIO_FROM_NUMBER", ""),
+          }
+          Path("personal-agent/.env").write_text(
+              "\n".join(line(k, v) for k, v in env.items()) + "\n",
+              encoding="utf-8",
+          )
+          print(f"GOOGLE_CLIENT_ID length: {len(env['GOOGLE_CLIENT_ID'])}")
+          print(f"GOOGLE_CLIENT_SECRET length: {len(env['GOOGLE_CLIENT_SECRET'])}")
+          PY
 
       - name: Deploy to Oracle
         run: |
@@ -103,6 +122,17 @@ jobs:
           USER="${{ secrets.ORACLE_SSH_USER || 'ubuntu' }}"
           ssh -o StrictHostKeyChecking=no "${USER}@${HOST}" "
             cd /opt/personal-agent
+            echo '--- Google env on server (lengths only) ---'
+            python3 - <<'PY'
+          from pathlib import Path
+          vals = {}
+          for raw in Path('.env').read_text(encoding='utf-8').splitlines():
+              if '=' in raw and raw.split('=', 1)[0] in {'GOOGLE_CLIENT_ID', 'GOOGLE_CLIENT_SECRET'}:
+                  k, v = raw.split('=', 1)
+                  vals[k] = len(v)
+          print('GOOGLE_CLIENT_ID chars:', vals.get('GOOGLE_CLIENT_ID', 0))
+          print('GOOGLE_CLIENT_SECRET chars:', vals.get('GOOGLE_CLIENT_SECRET', 0))
+          PY
             sudo docker compose -f docker-compose.prod.yml ps
             sudo docker compose -f docker-compose.prod.yml logs bot --tail 40
           "

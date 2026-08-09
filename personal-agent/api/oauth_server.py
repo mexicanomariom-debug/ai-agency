@@ -94,21 +94,35 @@ async def _save_google_token(telegram_id: int, refresh_token: str) -> bool:
     return True
 
 
+async def health(request: web.Request) -> web.Response:
+    return web.json_response(
+        {
+            "ok": True,
+            "google_calendar": google_calendar_service.available,
+        }
+    )
+
+
 def create_oauth_app(bot: Bot) -> web.Application:
     app = web.Application()
     app["bot"] = bot
+    app.router.add_get("/health", health)
     app.router.add_get("/oauth/google/callback", google_oauth_callback)
     app.router.add_post("/internal/google-token", internal_google_token)
     return app
 
 
 async def start_oauth_server(bot: Bot) -> web.AppRunner | None:
-    if not google_calendar_service.available:
-        return None
     app = create_oauth_app(bot)
     runner = web.AppRunner(app)
     await runner.setup()
     site = web.TCPSite(runner, "0.0.0.0", settings.oauth_server_port)
     await site.start()
-    logger.info("OAuth server listening on port %s", settings.oauth_server_port)
+    if google_calendar_service.available:
+        logger.info("OAuth server listening on port %s (Google Calendar enabled)", settings.oauth_server_port)
+    else:
+        logger.warning(
+            "OAuth server listening on port %s (Google Calendar disabled — set GOOGLE_CLIENT_ID/SECRET)",
+            settings.oauth_server_port,
+        )
     return runner
