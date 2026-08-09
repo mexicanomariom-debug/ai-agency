@@ -7,10 +7,7 @@ from bot.copy import VOICE_FAILED, VOICE_HINT, VOICE_TRANSCRIBED
 from bot.handlers.translator import _translate_and_reply
 from bot.states.translator import TranslatorStates
 from bot.utils.messages import answer_menu
-from services.assistant import Intent, assistant_service
 from services.stt import stt_service
-from services.task_parser import task_parser
-from services.task_flow import reply_with_created_tasks
 from services.user_service import user_service
 
 router = Router()
@@ -42,13 +39,6 @@ async def handle_voice(message: Message, session: AsyncSession, state: FSMContex
         return
 
     await answer_menu(message, VOICE_TRANSCRIBED.format(text=text))
-
-    intent = await assistant_service.classify_intent(text, user.timezone)
-    if intent == Intent.CREATE_TASK:
-        parsed = await task_parser.parse(text, user.timezone)
-        if parsed.tasks:
-            await reply_with_created_tasks(message, session, user, parsed)
-            return
 
     from bot.handlers.assistant import process_user_message
 

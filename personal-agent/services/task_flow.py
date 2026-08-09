@@ -70,6 +70,7 @@ async def create_tasks_from_parsed(
         if reminder_scheduler:
             reminder_scheduler.schedule_task(task.id, task.due_at)
         created.append(task)
+    await session.flush()
     return created
 
 

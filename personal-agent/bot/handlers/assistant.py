@@ -2,15 +2,16 @@ from aiogram import F, Router
 from aiogram.types import Message
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from bot.copy import NOTE_CREATED, PARSE_FAILED, TASK_LIST_EMPTY, TASK_TODAY_HEADER
+from bot.copy import NOTE_CREATED, PARSE_FAILED
+from bot.handlers.tasks import cmd_tasks, cmd_today
 from bot.utils.messages import answer_menu
 from database.models import User
 from services.assistant import Intent, assistant_service
 from services.chat_history import chat_history_service
 from services.note_service import note_service
-from services.task_flow import format_due_at, format_notify_types, reply_with_created_tasks
+from services.task_flow import reply_with_created_tasks
 from services.task_parser import task_parser
-from services.user_service import task_service, user_service
+from services.user_service import user_service
 
 router = Router()
 
@@ -21,13 +22,14 @@ async def process_user_message(
     user: User,
     text: str,
 ) -> None:
+    parsed = await task_parser.parse(text, user.timezone)
+    if parsed.tasks:
+        await reply_with_created_tasks(message, session, user, parsed)
+        return
+
     intent = await assistant_service.classify_intent(text, user.timezone)
 
     if intent == Intent.CREATE_TASK:
-        parsed = await task_parser.parse(text, user.timezone)
-        if parsed.tasks:
-            await reply_with_created_tasks(message, session, user, parsed)
-            return
         await answer_menu(message, PARSE_FAILED)
         return
 
@@ -46,19 +48,12 @@ async def process_user_message(
         await cmd_notes(message, session)
         return
 
+    if intent == Intent.LIST_TASKS_TODAY:
+        await cmd_today(message, session)
+        return
+
     if intent == Intent.LIST_TASKS:
-        tasks = await task_service.list_today(session, user)
-        if not tasks:
-            await answer_menu(message, TASK_LIST_EMPTY)
-            return
-        lines = [TASK_TODAY_HEADER.format(count=len(tasks))]
-        for task in tasks:
-            lines.append(
-                f"#{task.id} — <b>{task.title}</b>\n"
-                f"⏰ {format_due_at(task.due_at, user.timezone)} · "
-                f"{format_notify_types(task.notify_message, task.notify_call, task.notify_phone)}"
-            )
-        await answer_menu(message, "\n\n".join(lines))
+        await cmd_tasks(message, session)
         return
 
     history = await chat_history_service.get_recent(session, user)
