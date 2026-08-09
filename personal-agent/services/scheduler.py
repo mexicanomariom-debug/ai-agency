@@ -45,6 +45,13 @@ class ReminderScheduler:
                 id="traffic_monitor",
                 replace_existing=True,
             )
+            self._scheduler.add_job(
+                self._run_recon,
+                trigger="cron",
+                minute="15,45",
+                id="recon_monitor",
+                replace_existing=True,
+            )
             logger.info("Reminder scheduler started")
 
     async def _run_pulse(self) -> None:
@@ -57,6 +64,13 @@ class ReminderScheduler:
         from services.traffic import get_traffic_monitor
 
         monitor = get_traffic_monitor()
+        if monitor:
+            await monitor.run_checks()
+
+    async def _run_recon(self) -> None:
+        from services.recon import get_recon_monitor
+
+        monitor = get_recon_monitor()
         if monitor:
             await monitor.run_checks()
 

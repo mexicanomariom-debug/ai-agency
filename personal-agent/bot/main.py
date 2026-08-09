@@ -12,6 +12,7 @@ from config import settings
 from database.session import async_session_factory, init_db
 from services.notifier import init_notifier
 from services.pulse import init_pulse_service
+from services.recon import init_recon_monitor
 from services.scheduler import init_scheduler
 from services.traffic import init_traffic_monitor
 
@@ -42,6 +43,7 @@ async def main() -> None:
     notifier = init_notifier(bot, async_session_factory)
     init_pulse_service(bot, async_session_factory)
     init_traffic_monitor(bot, async_session_factory)
+    init_recon_monitor(bot, async_session_factory)
     scheduler = init_scheduler(async_session_factory, notifier)
     scheduler.start()
     try:

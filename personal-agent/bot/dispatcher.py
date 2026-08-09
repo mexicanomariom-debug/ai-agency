@@ -9,6 +9,7 @@ from bot.handlers import (
     journal,
     notes,
     phone,
+    recon,
     start,
     task_edit,
     tasks,
@@ -47,6 +48,7 @@ def setup_dispatcher(dp: Dispatcher) -> None:
     dp.include_router(journal.router)
     dp.include_router(task_edit.router)
     dp.include_router(traffic.router)
+    dp.include_router(recon.router)
     dp.include_router(tasks.router)
     dp.include_router(calendar.router)
     dp.include_router(notes.router)

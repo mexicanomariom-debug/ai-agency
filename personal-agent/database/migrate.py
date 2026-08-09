@@ -59,4 +59,49 @@ async def migrate(engine: AsyncEngine) -> None:
                         sync_conn.execute(text(f"ALTER TABLE tasks ADD COLUMN {name} {ddl}"))
                         logger.info("Added column tasks.%s", name)
 
+            if "recon_sources" not in tables:
+                sync_conn.execute(
+                    text(
+                        """
+                        CREATE TABLE recon_sources (
+                            id INTEGER PRIMARY KEY AUTOINCREMENT,
+                            user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                            source_type VARCHAR(32) NOT NULL,
+                            url_or_handle TEXT NOT NULL,
+                            label VARCHAR(255),
+                            enabled BOOLEAN DEFAULT 1,
+                            verify_enabled BOOLEAN DEFAULT 1,
+                            check_interval_min INTEGER DEFAULT 60,
+                            last_checked_at DATETIME,
+                            last_content_hash VARCHAR(64),
+                            last_preview TEXT,
+                            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                        )
+                        """
+                    )
+                )
+                sync_conn.execute(text("CREATE INDEX ix_recon_sources_user_id ON recon_sources (user_id)"))
+                logger.info("Created table recon_sources")
+
+            if "recon_events" not in tables:
+                sync_conn.execute(
+                    text(
+                        """
+                        CREATE TABLE recon_events (
+                            id INTEGER PRIMARY KEY AUTOINCREMENT,
+                            source_id INTEGER NOT NULL REFERENCES recon_sources(id) ON DELETE CASCADE,
+                            detected_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                            title VARCHAR(500),
+                            excerpt TEXT,
+                            verdict VARCHAR(32),
+                            confidence REAL,
+                            summary TEXT,
+                            notified BOOLEAN DEFAULT 0
+                        )
+                        """
+                    )
+                )
+                sync_conn.execute(text("CREATE INDEX ix_recon_events_source_id ON recon_events (source_id)"))
+                logger.info("Created table recon_events")
+
         await conn.run_sync(_migrate)

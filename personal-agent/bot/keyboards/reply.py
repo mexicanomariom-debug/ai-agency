@@ -12,6 +12,9 @@ def main_menu_keyboard() -> ReplyKeyboardMarkup:
                 KeyboardButton(text="💡 Блокнот-Идеи"),
             ],
             [
+                KeyboardButton(text="🔍 Разведка и Вериф"),
+            ],
+            [
                 KeyboardButton(text="🚗 Монитор траффика"),
                 KeyboardButton(text="🌐 Переводчик"),
             ],

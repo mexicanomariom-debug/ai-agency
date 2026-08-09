@@ -132,6 +132,74 @@ def traffic_provider_keyboard() -> InlineKeyboardMarkup:
     )
 
 
+def recon_menu_keyboard() -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [
+                InlineKeyboardButton(text="➕ Источник", callback_data="recon:add"),
+                InlineKeyboardButton(text="📋 Список", callback_data="recon:list"),
+            ],
+            [
+                InlineKeyboardButton(text="🔄 Проверить всё", callback_data="recon:check_all"),
+            ],
+        ]
+    )
+
+
+def recon_type_keyboard() -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [
+                InlineKeyboardButton(text="🌐 Сайт/RSS", callback_data="recon:type:website"),
+                InlineKeyboardButton(text="📢 Telegram", callback_data="recon:type:telegram"),
+            ],
+            [
+                InlineKeyboardButton(text="📊 Эко-календарь", callback_data="recon:type:econ_calendar"),
+            ],
+            [
+                InlineKeyboardButton(text="📸 Instagram", callback_data="recon:type:instagram"),
+                InlineKeyboardButton(text="🎵 TikTok", callback_data="recon:type:tiktok"),
+            ],
+            [
+                InlineKeyboardButton(text="❌ Отмена", callback_data="recon:cancel"),
+            ],
+        ]
+    )
+
+
+def recon_sources_keyboard(sources) -> InlineKeyboardMarkup:
+    rows: list[list[InlineKeyboardButton]] = []
+    for src in sources[:10]:
+        label = (src.label or src.url_or_handle)[:28]
+        status = "✅" if src.enabled else "⏸"
+        rows.append(
+            [
+                InlineKeyboardButton(
+                    text=f"{status} #{src.id} {label}",
+                    callback_data=f"recon:src:{src.id}",
+                ),
+            ]
+        )
+    rows.append([InlineKeyboardButton(text="❌ Закрыть", callback_data="recon:cancel")])
+    return InlineKeyboardMarkup(inline_keyboard=rows)
+
+
+def recon_source_actions_keyboard(source_id: int, *, enabled: bool) -> InlineKeyboardMarkup:
+    toggle = "⏸ Выкл" if enabled else "✅ Вкл"
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [
+                InlineKeyboardButton(text="🔄 Проверить", callback_data=f"recon:check:{source_id}"),
+                InlineKeyboardButton(text=toggle, callback_data=f"recon:toggle:{source_id}"),
+            ],
+            [
+                InlineKeyboardButton(text="🗑 Удалить", callback_data=f"recon:delete:{source_id}"),
+                InlineKeyboardButton(text="◀️ Назад", callback_data="recon:list"),
+            ],
+        ]
+    )
+
+
 def note_list_keyboard(notes) -> InlineKeyboardMarkup:
     rows: list[list[InlineKeyboardButton]] = []
     for note in notes[:12]:

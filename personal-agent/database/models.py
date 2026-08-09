@@ -57,6 +57,55 @@ class User(Base):
     journal_entries: Mapped[list[JournalEntry]] = relationship(
         back_populates="user", cascade="all, delete-orphan"
     )
+    recon_sources: Mapped[list["ReconSource"]] = relationship(
+        back_populates="user", cascade="all, delete-orphan"
+    )
+
+
+class ReconSourceType(str, enum.Enum):
+    WEBSITE = "website"
+    TELEGRAM = "telegram"
+    INSTAGRAM = "instagram"
+    TIKTOK = "tiktok"
+    ECON_CALENDAR = "econ_calendar"
+
+
+class ReconSource(Base):
+    __tablename__ = "recon_sources"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    source_type: Mapped[str] = mapped_column(String(32), index=True)
+    url_or_handle: Mapped[str] = mapped_column(Text)
+    label: Mapped[str | None] = mapped_column(String(255))
+    enabled: Mapped[bool] = mapped_column(Boolean, default=True)
+    verify_enabled: Mapped[bool] = mapped_column(Boolean, default=True)
+    check_interval_min: Mapped[int] = mapped_column(default=60)
+    last_checked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    last_content_hash: Mapped[str | None] = mapped_column(String(64))
+    last_preview: Mapped[str | None] = mapped_column(Text)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+    user: Mapped[User] = relationship(back_populates="recon_sources")
+    events: Mapped[list["ReconEvent"]] = relationship(
+        back_populates="source", cascade="all, delete-orphan"
+    )
+
+
+class ReconEvent(Base):
+    __tablename__ = "recon_events"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    source_id: Mapped[int] = mapped_column(ForeignKey("recon_sources.id", ondelete="CASCADE"), index=True)
+    detected_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    title: Mapped[str | None] = mapped_column(String(500))
+    excerpt: Mapped[str | None] = mapped_column(Text)
+    verdict: Mapped[str | None] = mapped_column(String(32))
+    confidence: Mapped[float | None] = mapped_column()
+    summary: Mapped[str | None] = mapped_column(Text)
+    notified: Mapped[bool] = mapped_column(Boolean, default=False)
+
+    source: Mapped[ReconSource] = relationship(back_populates="events")
 
 
 class Task(Base):
