@@ -10,6 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from config import settings
 from database.models import Task, TaskStatus, User
 from services.time_utils import resolve_timezone
+from services.translator import LANGUAGES, normalize_lang_code, translator_service
 
 PHONE_RE = re.compile(r"^\+[1-9]\d{7,14}$")
 
@@ -65,11 +66,10 @@ class UserService:
         return True
 
     async def set_translate_lang(self, session: AsyncSession, user: User, lang: str) -> bool:
-        from services.translator import LANGUAGES
-
-        if lang not in LANGUAGES:
+        resolved = translator_service.resolve_alias(lang) or normalize_lang_code(lang)
+        if resolved not in LANGUAGES:
             return False
-        user.translate_target_lang = lang
+        user.translate_target_lang = resolved
         return True
 
 
