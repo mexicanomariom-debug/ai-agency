@@ -427,36 +427,14 @@ async def cb_task_reschedule(callback: CallbackQuery, session: AsyncSession) -> 
 
 @router.message(Command("digest"))
 async def cmd_digest(message: Message, session: AsyncSession) -> None:
-    from bot.copy import DIGEST_DISABLED, DIGEST_ENABLED
+    """Совместимость: /digest → /pulse."""
+    from bot.handlers.journal import cmd_pulse
 
-    user = await user_service.get_or_create(
-        session,
-        telegram_id=message.from_user.id,
-        username=message.from_user.username,
-        first_name=message.from_user.first_name,
-    )
-    parts = (message.text or "").split(maxsplit=1)
-    arg = parts[1].strip().lower() if len(parts) > 1 else ""
-    if arg in ("on", "вкл", "1", "да"):
-        user.digest_enabled = True
-        await answer_menu(message, DIGEST_ENABLED.format(hour=user.digest_hour))
-        return
-    if arg in ("off", "выкл", "0", "нет"):
-        user.digest_enabled = False
-        await answer_menu(message, DIGEST_DISABLED)
-        return
-    status = "включён" if user.digest_enabled else "выключен"
-    await answer_menu(
-        message,
-        f"☀️ Утренний дайджест: <b>{status}</b> ({user.digest_hour}:00)\n"
-        "/digest on · /digest off · /digest_time 8",
-    )
+    await cmd_pulse(message, session)
 
 
 @router.message(Command("digest_time"))
 async def cmd_digest_time(message: Message, session: AsyncSession) -> None:
-    from bot.copy import DIGEST_TIME_SET
-
     user = await user_service.get_or_create(
         session,
         telegram_id=message.from_user.id,
@@ -465,15 +443,15 @@ async def cmd_digest_time(message: Message, session: AsyncSession) -> None:
     )
     parts = (message.text or "").split(maxsplit=1)
     if len(parts) < 2 or not parts[1].strip().isdigit():
-        await answer_menu(message, "Использование: /digest_time 8 (час от 0 до 23)")
+        await answer_menu(message, "Использование: /digest_time 8 (час утреннего пульса)")
         return
     hour = int(parts[1].strip())
     if not 0 <= hour <= 23:
         await answer_menu(message, "Час должен быть от 0 до 23")
         return
     user.digest_hour = hour
-    user.digest_enabled = True
-    await answer_menu(message, DIGEST_TIME_SET.format(hour=hour))
+    user.pulse_enabled = True
+    await answer_menu(message, f"☀️ Утренний пульс в <b>{hour}:00</b> (ваш часовой пояс).")
 
 
 @router.callback_query(F.data.startswith("task:snooze:"))

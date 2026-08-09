@@ -32,19 +32,19 @@ class ReminderScheduler:
         if not self._scheduler.running:
             self._scheduler.start()
             self._scheduler.add_job(
-                self._run_digests,
+                self._run_pulse,
                 trigger="cron",
-                minute="0",
-                id="morning_digest",
+                minute="5",
+                id="agent_pulse",
                 replace_existing=True,
             )
             logger.info("Reminder scheduler started")
 
-    async def _run_digests(self) -> None:
-        from services.digest import digest_service
+    async def _run_pulse(self) -> None:
+        from services.pulse import pulse_service
 
-        if digest_service:
-            await digest_service.send_due_digests()
+        if pulse_service:
+            await pulse_service.run_hourly()
 
     def shutdown(self) -> None:
         if self._scheduler.running:

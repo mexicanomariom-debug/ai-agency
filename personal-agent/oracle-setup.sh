@@ -41,9 +41,6 @@ echo "Building and starting personal-agent bot..."
 $DOCKER compose -p personal-agent -f docker-compose.prod.yml build --no-cache
 $DOCKER compose -p personal-agent -f docker-compose.prod.yml up -d --force-recreate --remove-orphans
 
-# Kill stray bot processes outside Docker (token conflict)
-pkill -f "[p]ython -m bot.main" 2>/dev/null || true
-
 sleep 5
 echo ""
 echo "=== Status ==="

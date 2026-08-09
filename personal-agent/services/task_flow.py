@@ -25,6 +25,7 @@ from services.google_calendar import google_calendar_service
 from services.scheduler import reminder_scheduler
 from services.task_editor import TaskEditChanges
 from services.recurrence import recurrence_label
+from services.task_parser import ParseResult
 from services.user_service import task_service
 
 

@@ -13,6 +13,7 @@ from database.models import User
 from services.assistant import Intent, assistant_service
 from services.chat_history import chat_history_service
 from services.note_service import note_service
+from services.ambient import ambient_service
 from services.task_flow import reply_with_created_tasks
 from services.task_parser import task_parser
 from services.user_service import user_service
@@ -29,9 +30,13 @@ async def process_user_message(
     if await try_one_shot_edit(message, session, user, text):
         return
 
+    ambient_acks = await ambient_service.capture_from_text(session, user, text)
+
     parsed = await task_parser.parse(text, user.timezone)
     if parsed.tasks:
         await reply_with_created_tasks(message, session, user, parsed)
+        if ambient_acks:
+            await answer_menu(message, "🌊 " + "\n".join(ambient_acks))
         return
 
     intent = await assistant_service.classify_intent(text, user.timezone)
@@ -67,6 +72,8 @@ async def process_user_message(
     reply = await assistant_service.chat(text, history)
     await chat_history_service.add(session, user, "user", text)
     await chat_history_service.add(session, user, "assistant", reply)
+    if ambient_acks:
+        reply = reply + "\n\n🌊 " + "\n".join(ambient_acks)
     await answer_menu(message, reply)
 
 

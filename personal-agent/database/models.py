@@ -32,11 +32,20 @@ class User(Base):
     digest_enabled: Mapped[bool] = mapped_column(Boolean, default=True)
     digest_hour: Mapped[int] = mapped_column(default=8)
     digest_last_sent: Mapped[str | None] = mapped_column(String(10))
+    pulse_enabled: Mapped[bool] = mapped_column(Boolean, default=True)
+    pulse_last_hour: Mapped[str | None] = mapped_column(String(13))
+    ambient_enabled: Mapped[bool] = mapped_column(Boolean, default=True)
+    night_enabled: Mapped[bool] = mapped_column(Boolean, default=True)
+    night_hour: Mapped[int] = mapped_column(default=21)
+    night_last_sent: Mapped[str | None] = mapped_column(String(10))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
     tasks: Mapped[list[Task]] = relationship(back_populates="user", cascade="all, delete-orphan")
     notes: Mapped[list[Note]] = relationship(back_populates="user", cascade="all, delete-orphan")
     chat_messages: Mapped[list[ChatMessage]] = relationship(
+        back_populates="user", cascade="all, delete-orphan"
+    )
+    journal_entries: Mapped[list[JournalEntry]] = relationship(
         back_populates="user", cascade="all, delete-orphan"
     )
 
@@ -86,3 +95,26 @@ class ChatMessage(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
     user: Mapped[User] = relationship(back_populates="chat_messages")
+
+
+class JournalKind(str, enum.Enum):
+    EXPENSE = "expense"
+    THOUGHT = "thought"
+    DECISION = "decision"
+    MOOD = "mood"
+    INSIGHT = "insight"
+
+
+class JournalEntry(Base):
+    __tablename__ = "journal_entries"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    kind: Mapped[str] = mapped_column(String(16), index=True)
+    content: Mapped[str] = mapped_column(Text)
+    amount: Mapped[float | None] = mapped_column()
+    currency: Mapped[str | None] = mapped_column(String(8))
+    day_key: Mapped[str] = mapped_column(String(10), index=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+    user: Mapped[User] = relationship(back_populates="journal_entries")

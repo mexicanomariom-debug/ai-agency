@@ -15,6 +15,12 @@ USER_COLUMNS = {
     "digest_enabled": "BOOLEAN DEFAULT 1",
     "digest_hour": "INTEGER DEFAULT 8",
     "digest_last_sent": "VARCHAR(10)",
+    "pulse_enabled": "BOOLEAN DEFAULT 1",
+    "pulse_last_hour": "VARCHAR(13)",
+    "ambient_enabled": "BOOLEAN DEFAULT 1",
+    "night_enabled": "BOOLEAN DEFAULT 1",
+    "night_hour": "INTEGER DEFAULT 21",
+    "night_last_sent": "VARCHAR(10)",
 }
 
 TASK_COLUMNS = {
