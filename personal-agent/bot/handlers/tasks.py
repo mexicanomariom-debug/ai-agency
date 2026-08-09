@@ -10,16 +10,21 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from bot.copy import (
     INVALID_TIMEZONE,
+    TASK_ARCHIVED_EMPTY,
+    TASK_ARCHIVED_HEADER,
+    TASK_ARCHIVED_ITEM,
     TASK_CANCELLED,
     TASK_DONE,
     TASK_ITEM,
     TASK_LIST_EMPTY,
     TASK_LIST_HEADER,
     TASK_NOT_FOUND,
+    TASK_RESTORED,
     TASK_TODAY_HEADER,
     TIMEZONE_UPDATED,
 )
 from bot.utils.messages import answer_menu
+from database.models import TaskStatus
 from services.google_calendar import google_calendar_service
 from services.scheduler import reminder_scheduler
 from services.task_flow import format_due_at, format_notify_types
@@ -156,6 +161,72 @@ async def cmd_timezone(message: Message, session: AsyncSession) -> None:
         await answer_menu(message, INVALID_TIMEZONE)
         return
     await answer_menu(message, TIMEZONE_UPDATED.format(timezone=user.timezone))
+
+
+@router.message(Command("tasks_done"))
+async def cmd_tasks_done(message: Message, session: AsyncSession) -> None:
+    user = await user_service.get_or_create(
+        session,
+        telegram_id=message.from_user.id,
+        username=message.from_user.username,
+        first_name=message.from_user.first_name,
+    )
+    tasks = await task_service.list_finished(session, user)
+    if not tasks:
+        await answer_menu(message, TASK_ARCHIVED_EMPTY)
+        return
+
+    status_labels = {
+        "done": "выполнена",
+        "cancelled": "отменена",
+    }
+    lines = [TASK_ARCHIVED_HEADER]
+    for task in tasks:
+        lines.append(
+            TASK_ARCHIVED_ITEM.format(
+                id=task.id,
+                title=task.title,
+                status=status_labels.get(task.status.value, task.status.value),
+                due_at=format_due_at(task.due_at, user.timezone),
+            )
+        )
+    lines.append("\nВернуть в активные: <code>/restore ID</code>")
+    await answer_menu(message, "\n\n".join(lines))
+
+
+@router.message(Command("restore"))
+async def cmd_restore(message: Message, session: AsyncSession) -> None:
+    parts = (message.text or "").split(maxsplit=1)
+    if len(parts) < 2 or not parts[1].isdigit():
+        await answer_menu(message, "Использование: /restore <id>")
+        return
+
+    task_id = int(parts[1])
+    user = await user_service.get_or_create(
+        session,
+        telegram_id=message.from_user.id,
+        username=message.from_user.username,
+        first_name=message.from_user.first_name,
+    )
+    task = await task_service.get(session, user, task_id)
+    if not task:
+        await answer_menu(message, TASK_NOT_FOUND)
+        return
+    if task.status.value == "pending":
+        await answer_menu(message, f"Задача #{task_id} уже активна.")
+        return
+
+    await task_service.restore(session, task)
+    if user.google_calendar_enabled and user.google_refresh_token and not task.google_event_id:
+        event_id = await google_calendar_service.create_event(user, task)
+        if event_id:
+            task.google_event_id = event_id
+    if reminder_scheduler and task.due_at > datetime.now(ZoneInfo("UTC")):
+        reminder_scheduler.schedule_task(task.id, task.due_at)
+    await answer_menu(
+        message,
+        TASK_RESTORED.format(task_id=task.id, title=task.title),
+    )
 
 
 @router.callback_query(F.data.startswith("task:done:"))

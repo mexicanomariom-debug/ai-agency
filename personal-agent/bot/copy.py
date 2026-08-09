@@ -34,6 +34,8 @@ HELP_TEXT = (
     "/translate_off — выйти из режима\n\n"
     "<b>Команды задач</b>\n"
     "/tasks — все активные\n"
+    "/tasks_done — завершённые и отменённые\n"
+    "/restore &lt;id&gt; — вернуть задачу в активные\n"
     "/done &lt;id&gt; · /cancel &lt;id&gt;\n"
     "/timezone Europe/Moscow\n\n"
     "<b>Кнопки при напоминании</b>\n"
@@ -66,6 +68,10 @@ TASK_ITEM = (
 TASK_DONE = "✅ Задача #{task_id} отмечена выполненной."
 TASK_CANCELLED = "🗑 Задача #{task_id} отменена."
 TASK_NOT_FOUND = "Задача не найдена или уже завершена."
+TASK_ARCHIVED_HEADER = "<b>Завершённые задачи (последние):</b>"
+TASK_ARCHIVED_EMPTY = "Нет завершённых или отменённых задач."
+TASK_ARCHIVED_ITEM = "#{id} — <b>{title}</b> ({status})\n⏰ {due_at}"
+TASK_RESTORED = "↩️ Задача #{task_id} «{title}» снова в активных."
 
 REMINDER_MESSAGE = "⏰ <b>Напоминание</b>\n{title}"
 REMINDER_ACTIONS_HINT = (

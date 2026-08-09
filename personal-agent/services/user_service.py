@@ -137,11 +137,33 @@ class TaskService:
         )
         return result.scalar_one_or_none()
 
+    async def get(self, session: AsyncSession, user: User, task_id: int) -> Task | None:
+        result = await session.execute(
+            select(Task).where(Task.id == task_id, Task.user_id == user.id)
+        )
+        return result.scalar_one_or_none()
+
+    async def list_finished(self, session: AsyncSession, user: User, *, limit: int = 20) -> list[Task]:
+        result = await session.execute(
+            select(Task)
+            .where(
+                Task.user_id == user.id,
+                Task.status.in_((TaskStatus.DONE, TaskStatus.CANCELLED)),
+            )
+            .order_by(Task.id.desc())
+            .limit(limit)
+        )
+        return list(result.scalars().all())
+
     async def mark_done(self, session: AsyncSession, task: Task) -> None:
         task.status = TaskStatus.DONE
 
     async def cancel(self, session: AsyncSession, task: Task) -> None:
         task.status = TaskStatus.CANCELLED
+
+    async def restore(self, session: AsyncSession, task: Task) -> None:
+        task.status = TaskStatus.PENDING
+        task.reminded_at = None
 
     async def mark_reminded(self, session: AsyncSession, task: Task) -> None:
         task.reminded_at = datetime.now(ZoneInfo("UTC"))
