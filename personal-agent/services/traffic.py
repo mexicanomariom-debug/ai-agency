@@ -11,6 +11,8 @@ from config import settings
 from services.traffic_providers import (
     PROVIDER_LABELS,
     TrafficResult,
+    consume_google_last_error,
+    diagnose_google_maps,
     fetch_area_traffic_for_user,
     fetch_traffic_for_user,
     is_russia_context,
@@ -113,7 +115,7 @@ async def check_user_traffic(user: "User", *, manual: bool = False) -> TrafficRe
     return await fetch_traffic(user, origin, destination)
 
 
-def traffic_check_error_hint(user: "User") -> str:
+def traffic_check_error_hint(user: "User", *, google_detail: str | None = None) -> str:
     origin = getattr(user, "traffic_origin", None)
     if not origin:
         return "Сначала настройте монитор: 🛣 Маршрут или 🏙 Район/улица."
@@ -134,12 +136,29 @@ def traffic_check_error_hint(user: "User") -> str:
         )
 
     if not settings.google_maps_api_key:
-        return "Не настроен GOOGLE_MAPS_API_KEY. Включите Geocoding API и Directions API в Google Cloud."
+        return "Не настроен GOOGLE_MAPS_API_KEY. Создайте отдельный ключ для карт в Google Cloud."
 
-    return (
-        "Не удалось получить данные от Google Maps. "
-        "Проверьте, что в Google Cloud включены Geocoding API и Directions API для этого ключа."
+    detail = google_detail or consume_google_last_error()
+    lines = ["Не удалось получить данные от Google Maps."]
+    if detail:
+        lines.append(f"\n<b>Детали:</b> {detail}")
+    lines.append(
+        "\n\n<b>Что проверить в Google Cloud Console:</b>\n"
+        "1. APIs & Services → Library → включить <b>Geocoding API</b> и <b>Directions API</b>\n"
+        "2. APIs & Services → Credentials → ключ GOOGLE_MAPS_API_KEY\n"
+        "   • Application restrictions: <b>None</b> или IP сервера <code>140.84.183.154</code>\n"
+        "   • API restrictions: только Geocoding + Directions\n"
+        "3. Billing → привязана карта к проекту\n"
+        "4. GitHub Secret <code>GOOGLE_MAPS_API_KEY</code> — именно ключ карт, не OAuth Client ID"
     )
+    return "".join(lines)
+
+
+async def traffic_check_error_hint_async(user: "User") -> str:
+    detail = consume_google_last_error()
+    if not detail and not is_russia_context(user) and settings.google_maps_api_key:
+        detail = await diagnose_google_maps()
+    return traffic_check_error_hint(user, google_detail=detail)
 
 
 async def maybe_notify_traffic(

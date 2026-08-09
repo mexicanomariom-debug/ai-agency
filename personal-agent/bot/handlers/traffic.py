@@ -21,9 +21,9 @@ from services.traffic import (
     format_traffic_message,
     is_check_window,
     provider_label,
-    traffic_check_error_hint,
+    traffic_check_error_hint_async,
 )
-from services.traffic_providers import is_russia_context, resolve_provider
+from services.traffic_providers import diagnose_google_maps, is_russia_context, resolve_provider
 from services.user_service import user_service
 
 logger = logging.getLogger(__name__)
@@ -97,7 +97,7 @@ async def _run_check(message: Message, user: User) -> None:
     await answer_menu(message, "⏳ Проверяю трафик…")
     result = await check_user_traffic(user, manual=True)
     if not result:
-        await answer_menu(message, traffic_check_error_hint(user))
+        await answer_menu(message, await traffic_check_error_hint_async(user), parse_mode="HTML")
         return
     await answer_menu(
         message,
@@ -237,6 +237,21 @@ async def cmd_traffic(message: Message, session: AsyncSession, state: FSMContext
 
     if sub == "check":
         await _run_check(message, user)
+        return
+
+    if sub == "test":
+        await answer_menu(message, "⏳ Проверяю ключ Google Maps…")
+        error = await diagnose_google_maps()
+        if error:
+            await answer_menu(
+                message,
+                f"❌ Google Maps: <b>{error}</b>\n\n"
+                "Включите Geocoding API + Directions API, привяжите billing, "
+                "уберите HTTP referrer restriction с ключа (серверный ключ).",
+                parse_mode="HTML",
+            )
+        else:
+            await answer_menu(message, "✅ Google Maps ключ работает (Geocoding + Directions).")
         return
 
     if sub == "threshold" and len(parts) > 2:
@@ -396,7 +411,10 @@ async def cb_traffic_check(callback: CallbackQuery, session: AsyncSession) -> No
     try:
         result = await check_user_traffic(user, manual=True)
         if not result:
-            await status_msg.edit_text(traffic_check_error_hint(user))
+            await status_msg.edit_text(
+                await traffic_check_error_hint_async(user),
+                parse_mode="HTML",
+            )
             return
         await status_msg.edit_text(
             format_traffic_message(result),
@@ -411,7 +429,10 @@ async def cb_traffic_check(callback: CallbackQuery, session: AsyncSession) -> No
                 parse_mode="HTML",
             )
         else:
-            await callback.message.answer(traffic_check_error_hint(user))
+            await callback.message.answer(
+                await traffic_check_error_hint_async(user),
+                parse_mode="HTML",
+            )
     except Exception:
         logger.exception("Manual traffic check failed for user %s", user.id)
         await status_msg.edit_text(

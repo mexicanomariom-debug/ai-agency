@@ -77,6 +77,22 @@ PROVIDER_LABELS = {
     "dgis": "2ГИС",
 }
 
+_google_last_error: str | None = None
+
+
+def consume_google_last_error() -> str | None:
+    global _google_last_error
+    err = _google_last_error
+    _google_last_error = None
+    return err
+
+
+def _set_google_error(status: str | None, error_message: str | None = None, *, context: str = "") -> None:
+    global _google_last_error
+    parts = [p for p in (status, error_message, context) if p]
+    if parts:
+        _google_last_error = ": ".join(parts)
+
 
 @dataclass
 class TrafficResult:
@@ -252,6 +268,11 @@ async def _google_geocode(address: str) -> tuple[float, float] | None:
             resp.raise_for_status()
             data = resp.json()
         if data.get("status") != "OK" or not data.get("results"):
+            _set_google_error(
+                data.get("status"),
+                data.get("error_message"),
+                context=f"Geocoding ({address})",
+            )
             logger.warning(
                 "Google geocode status: %s error: %s for %s",
                 data.get("status"),
@@ -289,6 +310,11 @@ async def fetch_google_traffic(origin: str, destination: str) -> TrafficResult |
         return None
 
     if data.get("status") != "OK" or not data.get("routes"):
+        _set_google_error(
+            data.get("status"),
+            data.get("error_message"),
+            context="Directions",
+        )
         logger.warning(
             "Google Directions status: %s error: %s",
             data.get("status"),
@@ -498,3 +524,50 @@ async def fetch_dgis_traffic(origin: str, destination: str) -> TrafficResult | N
         summary="2ГИС",
         provider="dgis",
     )
+
+
+async def diagnose_google_maps() -> str | None:
+    """Return human-readable Google API error, or None if key works."""
+    api_key = settings.google_maps_api_key
+    if not api_key:
+        return "GOOGLE_MAPS_API_KEY не задан в секретах деплоя."
+
+    try:
+        async with httpx.AsyncClient(timeout=15.0) as client:
+            geocode = await client.get(
+                "https://maps.googleapis.com/maps/api/geocode/json",
+                params={"address": "Playa del Carmen", "key": api_key, "language": "ru"},
+            )
+            geocode.raise_for_status()
+            geocode_data = geocode.json()
+            if geocode_data.get("status") != "OK":
+                return (
+                    f"Geocoding API: {geocode_data.get('status')}"
+                    f" — {geocode_data.get('error_message', 'нет деталей')}"
+                )
+
+            loc = geocode_data["results"][0]["geometry"]["location"]
+            origin = f"{loc['lat']},{loc['lng']}"
+            dest = f"{loc['lat'] + 0.01},{loc['lng'] + 0.01}"
+            directions = await client.get(
+                "https://maps.googleapis.com/maps/api/directions/json",
+                params={
+                    "origin": origin,
+                    "destination": dest,
+                    "departure_time": int(time.time()),
+                    "traffic_model": "best_guess",
+                    "key": api_key,
+                },
+            )
+            directions.raise_for_status()
+            directions_data = directions.json()
+            if directions_data.get("status") != "OK":
+                return (
+                    f"Directions API: {directions_data.get('status')}"
+                    f" — {directions_data.get('error_message', 'нет деталей')}"
+                )
+    except Exception as exc:
+        logger.exception("Google Maps diagnostic failed")
+        return f"Сетевая ошибка при проверке Google Maps: {exc}"
+
+    return None
