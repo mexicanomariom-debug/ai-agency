@@ -18,7 +18,17 @@ compose() {
   $DOCKER compose -p "$PROJECT" -f "$COMPOSE_FILE" "$@"
 }
 
-echo "--- Stopping old containers ---"
+echo "--- Stopping conflicting bots on this host (same BOT_TOKEN) ---"
+if [[ -d /opt/opus5 ]]; then
+  echo "Stopping language-tutor at /opt/opus5..."
+  (cd /opt/opus5 && $DOCKER compose -f docker-compose.prod.yml down --remove-orphans 2>/dev/null) || true
+fi
+for name in opus5-bot opus5-api language-tutor-bot; do
+  $DOCKER rm -f "$name" 2>/dev/null || true
+done
+pkill -f "[p]ython -m bot.main" 2>/dev/null || true
+
+echo "--- Stopping old personal-agent containers ---"
 compose down --remove-orphans 2>/dev/null || true
 $DOCKER rm -f personal-agent-bot personal-agent-oauth 2>/dev/null || true
 $DOCKER network rm "${PROJECT}_default" 2>/dev/null || true
