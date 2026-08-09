@@ -42,12 +42,16 @@ async def show_journal(
     filter_kind: str | None = None,
     enter_mode: bool = True,
     state: FSMContext | None = None,
+    actor=None,
 ) -> None:
+    tg_user = actor or message.from_user
+    if not tg_user:
+        return
     user = await user_service.get_or_create(
         session,
-        telegram_id=message.from_user.id,
-        username=message.from_user.username,
-        first_name=message.from_user.first_name,
+        telegram_id=tg_user.id,
+        username=tg_user.username,
+        first_name=tg_user.first_name,
     )
     day_key = smart_journal_service.day_key_for_user(user, offset_days=day_offset)
     entries = await journal_service.list_for_day(session, user, day_key, kind=filter_kind)
@@ -146,7 +150,7 @@ async def cb_journal_today(callback: CallbackQuery, session: AsyncSession, state
         await callback.answer()
         return
     await callback.answer()
-    await show_journal(callback.message, session, state=state)
+    await show_journal(callback.message, session, state=state, actor=callback.from_user)
 
 
 @router.callback_query(F.data == "journal:yesterday")
@@ -155,7 +159,13 @@ async def cb_journal_yesterday(callback: CallbackQuery, session: AsyncSession) -
         await callback.answer()
         return
     await callback.answer()
-    await show_journal(callback.message, session, day_offset=-1, enter_mode=False)
+    await show_journal(
+        callback.message,
+        session,
+        day_offset=-1,
+        enter_mode=False,
+        actor=callback.from_user,
+    )
 
 
 @router.callback_query(F.data.startswith("journal:filter:"))
@@ -165,7 +175,13 @@ async def cb_journal_filter(callback: CallbackQuery, session: AsyncSession) -> N
         return
     kind = callback.data.split(":")[-1]
     await callback.answer()
-    await show_journal(callback.message, session, filter_kind=kind, enter_mode=False)
+    await show_journal(
+        callback.message,
+        session,
+        filter_kind=kind,
+        enter_mode=False,
+        actor=callback.from_user,
+    )
 
 
 @router.callback_query(F.data == "journal:summary")

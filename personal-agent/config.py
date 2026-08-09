@@ -47,6 +47,22 @@ class Settings(BaseSettings):
         ),
     )
 
+    yandex_maps_api_key: str = Field(
+        default="",
+        validation_alias=AliasChoices(
+            "YANDEX_MAPS_API_KEY",
+            "YANDEX_ROUTING_API_KEY",
+        ),
+    )
+
+    dgis_api_key: str = Field(
+        default="",
+        validation_alias=AliasChoices(
+            "DGIS_API_KEY",
+            "TWOGIS_API_KEY",
+        ),
+    )
+
     @property
     def has_openai(self) -> bool:
         return bool(self.openai_api_key)
@@ -62,6 +78,14 @@ class Settings(BaseSettings):
     @property
     def has_google_maps(self) -> bool:
         return bool(self.google_maps_api_key)
+
+    @property
+    def has_yandex_maps(self) -> bool:
+        return bool(self.yandex_maps_api_key)
+
+    @property
+    def has_dgis(self) -> bool:
+        return bool(self.dgis_api_key)
 
 
 settings = Settings()

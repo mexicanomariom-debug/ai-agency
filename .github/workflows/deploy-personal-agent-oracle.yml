@@ -40,6 +40,8 @@ jobs:
           TWILIO_AUTH_TOKEN: ${{ secrets.TWILIO_AUTH_TOKEN }}
           TWILIO_FROM_NUMBER: ${{ secrets.TWILIO_FROM_NUMBER }}
           GOOGLE_MAPS_API_KEY: ${{ secrets.GOOGLE_MAPS_API_KEY }}
+          YANDEX_MAPS_API_KEY: ${{ secrets.YANDEX_MAPS_API_KEY }}
+          DGIS_API_KEY: ${{ secrets.DGIS_API_KEY }}
         run: |
           if [ -z "$BOT_TOKEN" ]; then
             echo "::error::Set PERSONAL_AGENT_BOT_TOKEN in GitHub Secrets (токен @mychatbot7_bot, отдельно от language-tutor BOT_TOKEN)"
@@ -82,6 +84,8 @@ jobs:
               "TWILIO_AUTH_TOKEN": os.environ.get("TWILIO_AUTH_TOKEN", ""),
               "TWILIO_FROM_NUMBER": os.environ.get("TWILIO_FROM_NUMBER", ""),
               "GOOGLE_MAPS_API_KEY": os.environ.get("GOOGLE_MAPS_API_KEY", ""),
+              "YANDEX_MAPS_API_KEY": os.environ.get("YANDEX_MAPS_API_KEY", ""),
+              "DGIS_API_KEY": os.environ.get("DGIS_API_KEY", ""),
           }
           Path("personal-agent/.env").write_text(
               "\n".join(line(k, v) for k, v in env.items()) + "\n",

@@ -13,6 +13,7 @@ def main_menu_keyboard() -> ReplyKeyboardMarkup:
                 KeyboardButton(text="📝 Заметки"),
             ],
             [
+                KeyboardButton(text="🚗 Пробки"),
                 KeyboardButton(text="🌐 Переводчик"),
             ],
             [

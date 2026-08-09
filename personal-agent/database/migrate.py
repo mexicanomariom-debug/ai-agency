@@ -28,6 +28,7 @@ USER_COLUMNS = {
     "traffic_check_start": "VARCHAR(5)",
     "traffic_check_end": "VARCHAR(5)",
     "traffic_last_alert": "VARCHAR(16)",
+    "traffic_provider": "VARCHAR(16)",
 }
 
 TASK_COLUMNS = {

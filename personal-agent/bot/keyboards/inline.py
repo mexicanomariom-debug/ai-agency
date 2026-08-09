@@ -93,6 +93,42 @@ def journal_menu_keyboard() -> InlineKeyboardMarkup:
     )
 
 
+def traffic_menu_keyboard(*, enabled: bool) -> InlineKeyboardMarkup:
+    toggle = "❌ Выключить" if enabled else "✅ Включить"
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [
+                InlineKeyboardButton(text="📍 Настроить маршрут", callback_data="traffic:setup"),
+                InlineKeyboardButton(text="🔄 Проверить", callback_data="traffic:check"),
+            ],
+            [
+                InlineKeyboardButton(text="🗺 Яндекс", callback_data="traffic:provider:yandex"),
+                InlineKeyboardButton(text="🗺 2ГИС", callback_data="traffic:provider:dgis"),
+                InlineKeyboardButton(text="🗺 Google", callback_data="traffic:provider:google"),
+            ],
+            [
+                InlineKeyboardButton(text=toggle, callback_data="traffic:toggle"),
+                InlineKeyboardButton(text="❌ Отмена", callback_data="traffic:cancel"),
+            ],
+        ]
+    )
+
+
+def traffic_provider_keyboard() -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [
+                InlineKeyboardButton(text="🗺 Яндекс Карты", callback_data="traffic:pick:yandex"),
+                InlineKeyboardButton(text="🗺 2ГИС", callback_data="traffic:pick:dgis"),
+            ],
+            [
+                InlineKeyboardButton(text="🗺 Google Maps", callback_data="traffic:pick:google"),
+                InlineKeyboardButton(text="🤖 Авто", callback_data="traffic:pick:auto"),
+            ],
+        ]
+    )
+
+
 def note_list_keyboard(notes) -> InlineKeyboardMarkup:
     rows: list[list[InlineKeyboardButton]] = []
     for note in notes[:12]:

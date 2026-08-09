@@ -8,6 +8,7 @@ from bot.handlers.tasks import cmd_tasks, cmd_today
 from bot.handlers.task_edit import try_one_shot_edit
 from bot.states.notebook import NotebookStates
 from bot.states.task_edit import TaskEditStates
+from bot.states.traffic import TrafficSetupStates
 from bot.states.translator import TranslatorStates
 from bot.utils.messages import answer_menu
 from database.models import User
@@ -92,10 +93,15 @@ async def handle_text(message: Message, session: AsyncSession, state: FSMContext
     if await state.get_state() == NotebookStates.writing.state:
         return
 
+    traffic_state = await state.get_state()
+    if traffic_state and traffic_state.startswith(TrafficSetupStates.__name__):
+        return
+
     quick_buttons = {
         "📋 Мои задачи",
         "❓ Помощь",
         "💡 Блокнот-Идеи",
+        "🚗 Пробки",
         "📝 Заметки",
         "📅 Календарь",
         "📞 Телефон",
