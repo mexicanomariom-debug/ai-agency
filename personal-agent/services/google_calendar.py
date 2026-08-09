@@ -10,6 +10,7 @@ from google.oauth2.credentials import Credentials
 from google_auth_httplib2 import AuthorizedHttp
 from google_auth_oauthlib.flow import Flow
 from googleapiclient.discovery import build
+from googleapiclient.errors import HttpError
 
 from config import settings
 from database.models import Task, User
@@ -122,9 +123,20 @@ class GoogleCalendarService:
         service = self._build_service(creds)
         return service.events().insert(calendarId="primary", body=body).execute()
 
-    def _delete_event(self, creds: Credentials, event_id: str) -> None:
+    def _delete_event(self, creds: Credentials, event_id: str) -> bool:
         service = self._build_service(creds)
-        service.events().delete(calendarId="primary", eventId=event_id).execute()
+        try:
+            service.events().delete(calendarId="primary", eventId=event_id).execute()
+            return True
+        except HttpError as exc:
+            if exc.resp.status == 404:
+                return True
+            raise
+
+    def _update_event(self, creds: Credentials, event_id: str, body: dict) -> bool:
+        service = self._build_service(creds)
+        service.events().patch(calendarId="primary", eventId=event_id, body=body).execute()
+        return True
 
     async def create_event(self, user: User, task: Task, creds: Credentials | None = None) -> str | None:
         creds = creds or await self._credentials_async(user)
@@ -149,19 +161,45 @@ class GoogleCalendarService:
         user: User,
         event_id: str,
         creds: Credentials | None = None,
-    ) -> None:
+    ) -> bool:
         creds = creds or await self._credentials_async(user)
         if not creds:
-            return
+            return False
         try:
-            await asyncio.wait_for(
+            return await asyncio.wait_for(
                 asyncio.to_thread(self._delete_event, creds, event_id),
                 timeout=GOOGLE_API_TIMEOUT_SEC,
             )
         except TimeoutError:
             logger.error("Google Calendar delete_event timed out for event %s", event_id)
+            return False
         except Exception:
             logger.exception("Failed to delete Google Calendar event %s", event_id)
+            return False
+
+    async def update_event(
+        self,
+        user: User,
+        task: Task,
+        creds: Credentials | None = None,
+    ) -> bool:
+        if not task.google_event_id:
+            return False
+        creds = creds or await self._credentials_async(user)
+        if not creds:
+            return False
+        try:
+            body = self._event_body(user, task)
+            return await asyncio.wait_for(
+                asyncio.to_thread(self._update_event, creds, task.google_event_id, body),
+                timeout=GOOGLE_API_TIMEOUT_SEC,
+            )
+        except TimeoutError:
+            logger.error("Google Calendar update_event timed out for task %s", task.id)
+            return False
+        except Exception:
+            logger.exception("Failed to update Google Calendar event for task %s", task.id)
+            return False
 
 
 google_calendar_service = GoogleCalendarService()

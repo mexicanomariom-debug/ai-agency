@@ -9,6 +9,8 @@ from aiogram.types import CallbackQuery, Message
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from bot.copy import (
+    CALENDAR_REMOVED_LINE,
+    CALENDAR_REMOVE_FAILED_LINE,
     INVALID_TIMEZONE,
     TASK_ARCHIVED_EMPTY,
     TASK_ARCHIVED_HEADER,
@@ -25,12 +27,21 @@ from bot.copy import (
 )
 from bot.utils.messages import answer_menu
 from database.models import TaskStatus
+from services.calendar_sync import remove_task_from_calendar, update_task_in_calendar
 from services.google_calendar import google_calendar_service
 from services.scheduler import reminder_scheduler
 from services.task_flow import format_due_at, format_notify_types
 from services.user_service import task_service, user_service
 
 router = Router()
+
+
+def _calendar_removal_suffix(removed: bool, had_event: bool) -> str:
+    if removed:
+        return CALENDAR_REMOVED_LINE
+    if had_event:
+        return CALENDAR_REMOVE_FAILED_LINE
+    return ""
 
 
 @router.message(Command("tasks"))
@@ -108,12 +119,15 @@ async def cmd_done(message: Message, session: AsyncSession) -> None:
         await answer_menu(message, TASK_NOT_FOUND)
         return
 
-    if task.google_event_id and user.google_refresh_token:
-        await google_calendar_service.delete_event(user, task.google_event_id)
+    had_event = bool(task.google_event_id)
+    removed = await remove_task_from_calendar(user, task)
     await task_service.mark_done(session, task)
     if reminder_scheduler:
         reminder_scheduler.cancel_task(task.id)
-    await answer_menu(message, TASK_DONE.format(task_id=task_id))
+    await answer_menu(
+        message,
+        TASK_DONE.format(task_id=task_id) + _calendar_removal_suffix(removed, had_event),
+    )
 
 
 @router.message(Command("cancel"))
@@ -135,12 +149,15 @@ async def cmd_cancel(message: Message, session: AsyncSession) -> None:
         await answer_menu(message, TASK_NOT_FOUND)
         return
 
-    if task.google_event_id and user.google_refresh_token:
-        await google_calendar_service.delete_event(user, task.google_event_id)
+    had_event = bool(task.google_event_id)
+    removed = await remove_task_from_calendar(user, task)
     await task_service.cancel(session, task)
     if reminder_scheduler:
         reminder_scheduler.cancel_task(task.id)
-    await answer_menu(message, TASK_CANCELLED.format(task_id=task_id))
+    await answer_menu(
+        message,
+        TASK_CANCELLED.format(task_id=task_id) + _calendar_removal_suffix(removed, had_event),
+    )
 
 
 @router.message(Command("timezone"))
@@ -257,8 +274,8 @@ async def cb_task_done(callback: CallbackQuery, session: AsyncSession) -> None:
         await callback.answer(TASK_NOT_FOUND, show_alert=True)
         return
 
-    if task.google_event_id and user.google_refresh_token:
-        await google_calendar_service.delete_event(user, task.google_event_id)
+    had_event = bool(task.google_event_id)
+    removed = await remove_task_from_calendar(user, task)
     await task_service.mark_done(session, task)
     if reminder_scheduler:
         reminder_scheduler.cancel_task(task.id)
@@ -267,6 +284,7 @@ async def cb_task_done(callback: CallbackQuery, session: AsyncSession) -> None:
     await callback.message.answer(
         f"✅ Задача #{task.id} «{task.title}» отмечена <b>выполненной</b>.\n"
         "Она убрана из активных, но не удалена навсегда."
+        + _calendar_removal_suffix(removed, had_event)
     )
 
 
@@ -284,8 +302,8 @@ async def cb_task_cancel(callback: CallbackQuery, session: AsyncSession) -> None
         await callback.answer(TASK_NOT_FOUND, show_alert=True)
         return
 
-    if task.google_event_id and user.google_refresh_token:
-        await google_calendar_service.delete_event(user, task.google_event_id)
+    had_event = bool(task.google_event_id)
+    removed = await remove_task_from_calendar(user, task)
     await task_service.cancel(session, task)
     if reminder_scheduler:
         reminder_scheduler.cancel_task(task.id)
@@ -293,6 +311,7 @@ async def cb_task_cancel(callback: CallbackQuery, session: AsyncSession) -> None
     await callback.message.edit_reply_markup(reply_markup=None)
     await callback.message.answer(
         f"🗑 Задача #{task.id} «{task.title}» <b>отменена</b> и убрана из активных."
+        + _calendar_removal_suffix(removed, had_event)
     )
 
 
@@ -314,12 +333,15 @@ async def cb_task_snooze(callback: CallbackQuery, session: AsyncSession) -> None
         return
 
     task.due_at = datetime.now(ZoneInfo("UTC")) + timedelta(minutes=minutes)
+    calendar_updated = await update_task_in_calendar(user, task)
     if reminder_scheduler:
         reminder_scheduler.schedule_task(task.id, task.due_at)
     new_time = format_due_at(task.due_at, user.timezone)
+    calendar_line = "\n📅 Время в Google Calendar обновлено." if calendar_updated else ""
     await callback.answer(f"Напоминание через {minutes} мин")
     await callback.message.answer(
         f"⏰ Задача #{task.id} «{task.title}» <b>отложена</b>.\n"
         f"Новое время: {new_time}\n"
         "Задача остаётся в списке <b>📋 Мои задачи</b>."
+        + calendar_line
     )

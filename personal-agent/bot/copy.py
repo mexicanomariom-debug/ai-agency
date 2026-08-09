@@ -9,6 +9,7 @@ WELCOME = (
     "🌐 <b>Переводчик</b> — перевод текста и голоса\n\n"
     "Пример: «Завтра в 9:00 напомни позвонить маме»\n"
     "Часовой пояс: /timezone playa (Playa del Carmen)\n"
+    "Google Calendar: /calendar — подключить один раз\n"
     "Команды: /help"
 )
 
@@ -22,7 +23,9 @@ HELP_TEXT = (
     "<b>🎙 Голос</b>\n"
     "Отправь голосовое сообщение — распознаю через Whisper.\n\n"
     "<b>📅 Google Calendar</b>\n"
-    "/calendar — подключить\n"
+    "/calendar — подключить (один раз)\n"
+    "Новые задачи попадают в календарь автоматически.\n"
+    "Выполненные и отменённые — удаляются из календаря.\n"
     "/calendar_sync — отправить активные задачи в Google Calendar\n"
     "/calendar_resync — пересоздать события в Google Calendar\n"
     "/calendar_on · /calendar_off — вкл/выкл синхронизацию\n\n"
@@ -42,9 +45,9 @@ HELP_TEXT = (
     "/timezone playa — Playa del Carmen (UTC−5)\n"
     "/timezone — текущий часовой пояс\n\n"
     "<b>Кнопки при напоминании</b>\n"
-    "• Выполнено — убрать из активных\n"
+    "• Выполнено — убрать из активных и удалить из Google Calendar\n"
     "• Через 15 мин — отложить (задача остаётся)\n"
-    "• Отменить — снять задачу"
+    "• Отменить — снять задачу и удалить из Google Calendar"
 )
 
 TASK_CREATED = (
@@ -58,6 +61,10 @@ TASK_CREATED = (
 
 CALENDAR_SYNCED_LINE = "\n📅 Добавлено в Google Calendar"
 CALENDAR_NOT_SYNCED_LINE = "\n⚠️ В Google Calendar не добавлено (подключите 📅 Календарь)"
+CALENDAR_REMOVED_LINE = "\n📅 Удалено из Google Calendar"
+CALENDAR_REMOVE_FAILED_LINE = (
+    "\n⚠️ Не удалось удалить из Google Calendar — попробуйте /calendar_resync"
+)
 
 TASK_LIST_EMPTY = "У тебя нет активных задач. Напиши, что нужно напомнить."
 
@@ -80,9 +87,9 @@ TASK_RESTORED = "↩️ Задача #{task_id} «{title}» снова в акт
 REMINDER_MESSAGE = "⏰ <b>Напоминание</b>\n{title}"
 REMINDER_ACTIONS_HINT = (
     "Что сделать с напоминанием?\n"
-    "• <b>Выполнено</b> — убрать из активных (задача не удаляется)\n"
+    "• <b>Выполнено</b> — убрать из активных (событие удалится из Google Calendar)\n"
     "• <b>Через 15 мин</b> — отложить напоминание\n"
-    "• <b>Отменить</b> — снять задачу"
+    "• <b>Отменить</b> — снять задачу (событие удалится из Google Calendar)"
 )
 REMINDER_CALL_CAPTION = "📞 Голосовое напоминание: {title}"
 REMINDER_PHONE_SENT = "📞 Звонок на телефон отправлен: <b>{title}</b>"
@@ -124,11 +131,17 @@ CALENDAR_NOT_CONFIGURED = (
     "<code>GOOGLE_CLIENT_ID</code> и <code>GOOGLE_CLIENT_SECRET</code>"
 )
 CALENDAR_NOT_CONNECTED = (
-    "📅 Подключите Google Calendar (один раз):\n"
+    "📅 <b>Подключение Google Calendar</b> (один раз)\n\n"
     '<a href="{url}">Авторизоваться в Google</a>\n\n'
+    "<b>Как это работает:</b>\n"
     "1. Нажмите ссылку и войдите в Google\n"
-    "2. Вернитесь в Telegram — должно прийти «Google Calendar подключён»\n"
-    "3. Если бот молчит — на странице Google нажмите «Скопировать команду» и отправьте боту"
+    "2. Вернитесь в Telegram — придёт «Google Calendar подключён»\n"
+    "3. Если бот молчит — на странице Google нажмите «Скопировать команду» и отправьте боту\n\n"
+    "После подключения:\n"
+    "• новые задачи сразу попадают в Google Calendar\n"
+    "• старые активные — через /calendar_sync\n"
+    "• выполненные и отменённые — удаляются из календаря автоматически\n\n"
+    "Сначала проверьте часовой пояс: /timezone playa"
 )
 CALENDAR_CONNECTED = "✅ Google Calendar подключён!"
 CALENDAR_ENABLED = "✅ Синхронизация с Google Calendar включена."

@@ -31,6 +31,23 @@ async def count_calendar_sync_state(session: AsyncSession, user: User) -> tuple[
     return total, linked, total - linked
 
 
+async def remove_task_from_calendar(user: User, task: Task) -> bool:
+    """Delete task event from Google Calendar and clear google_event_id."""
+    if not task.google_event_id or not user.google_refresh_token:
+        return False
+    removed = await google_calendar_service.delete_event(user, task.google_event_id)
+    if removed:
+        task.google_event_id = None
+    return removed
+
+
+async def update_task_in_calendar(user: User, task: Task) -> bool:
+    """Update Google Calendar event time for a pending task."""
+    if not task.google_event_id or not user.google_refresh_token:
+        return False
+    return await google_calendar_service.update_event(user, task)
+
+
 async def sync_pending_tasks_to_calendar(
     session: AsyncSession,
     user: User,

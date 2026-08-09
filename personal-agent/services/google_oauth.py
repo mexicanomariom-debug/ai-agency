@@ -52,11 +52,15 @@ async def connect_google_calendar(session: AsyncSession, user: User, code: str) 
         logger.exception("Post-connect sync failed for user %s", user.telegram_id)
         synced, failed = 0, 0
 
-    msg = "✅ Google Calendar подключён!"
+    msg = (
+        "✅ Google Calendar подключён!\n\n"
+        "Новые задачи будут попадать в календарь автоматически.\n"
+        "Выполненные и отменённые — удаляются из календаря."
+    )
     if synced:
-        msg += f"\n📅 В календарь добавлено задач: {synced}"
+        msg += f"\n\n📅 В календарь добавлено активных задач: {synced}"
     if failed:
         msg += f"\n⚠️ Не удалось синхронизировать: {failed}"
     if not synced and not failed:
-        msg += "\nНовые задачи будут попадать в календарь автоматически."
+        msg += "\n\nЕсли есть старые задачи — выполните /calendar_sync"
     return True, msg
