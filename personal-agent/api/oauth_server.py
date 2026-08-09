@@ -12,7 +12,10 @@ from database.models import User
 from database.session import async_session_factory
 from services.google_calendar import google_calendar_service
 
-logger = logging.getLogger(__name__)(request: web.Request) -> web.Response:
+logger = logging.getLogger(__name__)
+
+
+async def google_oauth_callback(request: web.Request) -> web.Response:
     bot: Bot = request.app["bot"]
     code = request.query.get("code")
     state = request.query.get("state")
