@@ -31,7 +31,7 @@ jobs:
 
       - name: Create production .env
         env:
-          BOT_TOKEN: ${{ secrets.PERSONAL_AGENT_BOT_TOKEN || secrets.BOT_TOKEN }}
+          BOT_TOKEN: ${{ secrets.PERSONAL_AGENT_BOT_TOKEN }}
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
           GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
@@ -41,7 +41,7 @@ jobs:
           TWILIO_FROM_NUMBER: ${{ secrets.TWILIO_FROM_NUMBER }}
         run: |
           if [ -z "$BOT_TOKEN" ]; then
-            echo "::error::Set PERSONAL_AGENT_BOT_TOKEN (or BOT_TOKEN) in GitHub Secrets"
+            echo "::error::Set PERSONAL_AGENT_BOT_TOKEN in GitHub Secrets (токен @mychatbot7_bot, отдельно от language-tutor BOT_TOKEN)"
             exit 1
           fi
           if [ -z "$OPENAI_API_KEY" ]; then
