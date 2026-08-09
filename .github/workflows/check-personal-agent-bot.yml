@@ -1,0 +1,35 @@
+name: Check Personal Agent Bot
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [cursor/personal-agent-task-scheduler-64cf]
+    paths:
+      - '.github/workflows/check-personal-agent-bot.yml'
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.ORACLE_SSH_KEY }}
+
+      - name: Check personal-agent bot
+        run: |
+          HOST="${{ secrets.ORACLE_HOST || '140.84.183.154' }}"
+          USER="${{ secrets.ORACLE_SSH_USER || 'ubuntu' }}"
+          ssh-keyscan -H "$HOST" >> ~/.ssh/known_hosts 2>/dev/null || true
+          ssh -o StrictHostKeyChecking=no "${USER}@${HOST}" '
+            cd /opt/personal-agent
+            echo "=== CONTAINERS ==="
+            sudo docker compose -f docker-compose.prod.yml ps -a
+            echo "=== BOT STATUS ==="
+            sudo docker inspect -f "{{.State.Status}} started={{.State.StartedAt}}" personal-agent-bot 2>/dev/null || echo missing
+            echo "=== BOT LOGS (last 60) ==="
+            sudo docker compose -f docker-compose.prod.yml logs bot --tail 60
+            echo "=== RESTART BOT ==="
+            sudo docker compose -f docker-compose.prod.yml restart bot
+            sleep 6
+            sudo docker compose -f docker-compose.prod.yml logs bot --tail 15
+          '

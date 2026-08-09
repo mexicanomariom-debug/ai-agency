@@ -28,6 +28,8 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
+_MAX_NEW_ITEMS_PER_CHECK = 3
+
 
 def _source_label(source: ReconSource) -> str:
     if source.label:
@@ -157,16 +159,21 @@ class ReconMonitor:
             return []
 
         events: list[ReconEvent] = []
+        ai_calls = 0
         for item in new_items:
             seen.add(item.item_id)
             if not keyword_prefilter(item.text, db_source.keywords):
                 continue
+
+            if ai_calls >= _MAX_NEW_ITEMS_PER_CHECK:
+                break
 
             interest = await recon_verifier.matches_interest(
                 filter_query=db_source.filter_query or "",
                 text=item.text,
                 source_label=_source_label(db_source),
             )
+            ai_calls += 1
             if not interest.relevant:
                 continue
 
@@ -178,6 +185,7 @@ class ReconMonitor:
                     new_content=item.text,
                     source_type=db_source.source_type,
                 )
+                ai_calls += 1
                 if verification and not verification.notify:
                     continue
 
@@ -198,6 +206,7 @@ class ReconMonitor:
         return events
 
     async def run_checks(self) -> None:
+        logger.info("Recon monitor: starting scheduled checks")
         async with self.session_factory() as session:
             result = await session.execute(
                 select(ReconSource)
@@ -216,6 +225,7 @@ class ReconMonitor:
                     await self._notify_user(source.user.telegram_id, source, event)
             except Exception:
                 logger.exception("Recon check failed for source %s", source.id)
+        logger.info("Recon monitor: scheduled checks finished (%s sources)", len(sources))
 
     async def _notify_user(self, telegram_id: int, source: ReconSource, event: ReconEvent) -> None:
         try:

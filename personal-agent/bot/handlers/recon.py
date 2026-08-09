@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import logging
 
 from aiogram import F, Router
@@ -399,29 +400,6 @@ async def msg_recon_interest(message: Message, session: AsyncSession, state: FSM
     await apply_recon_interest(message, session, state, message.text)
 
 
-@router.message(ReconSetupStates.waiting_interest, F.voice)
-async def msg_recon_interest_voice(message: Message, session: AsyncSession, state: FSMContext) -> None:
-    from bot.handlers.voice import transcribe_for_user
-
-    await message.bot.send_chat_action(message.chat.id, "typing")
-    text = await transcribe_for_user(message, in_translator=False)
-    if text:
-        await apply_recon_interest(message, session, state, text)
-
-
-@router.message(ReconSetupStates.waiting_url, F.voice)
-async def msg_recon_url_voice(message: Message, session: AsyncSession, state: FSMContext) -> None:
-    from bot.handlers.voice import transcribe_for_user
-
-    await message.bot.send_chat_action(message.chat.id, "typing")
-    text = await transcribe_for_user(message, in_translator=False)
-    if not text:
-        return
-    data = await state.get_data()
-    source_type = data.get("recon_source_type")
-    await _add_source_from_text(message, session, state, text.strip(), source_type=source_type)
-
-
 @router.callback_query(F.data.startswith("recon:interest_skip:"))
 async def cb_recon_interest_skip(callback: CallbackQuery, session: AsyncSession, state: FSMContext) -> None:
     if not callback.data or not callback.from_user:
@@ -575,20 +553,34 @@ async def cb_recon_check_all(callback: CallbackQuery, session: AsyncSession) -> 
     if not monitor:
         await callback.message.answer("Монитор не инициализирован.")
         return
-    checked = 0
-    for source in sources:
-        result = await monitor.check_source(source, force=True)
-        if not result:
-            continue
-        events = result if isinstance(result, list) else [result]
-        for event in events:
-            checked += 1
-            await callback.message.answer(
-                format_event_message(source, event),
-                parse_mode="HTML",
-            )
-    if not checked:
-        await callback.message.answer("Новых совпадений не найдено.")
+
+    status_msg = await callback.message.answer(
+        f"⏳ Проверяю {len(sources)} источник(ов)… Это может занять до минуты."
+    )
+
+    async def _run() -> None:
+        checked = 0
+        try:
+            for source in sources:
+                result = await monitor.check_source(source, force=True)
+                if not result:
+                    continue
+                events = result if isinstance(result, list) else [result]
+                for event in events:
+                    checked += 1
+                    await callback.message.answer(
+                        format_event_message(source, event),
+                        parse_mode="HTML",
+                    )
+            if not checked:
+                await status_msg.edit_text("Новых совпадений не найдено.")
+            else:
+                await status_msg.edit_text(f"✅ Готово. Найдено совпадений: {checked}.")
+        except Exception:
+            logger.exception("Recon check_all failed")
+            await status_msg.edit_text("❌ Проверка прервалась. Попробуйте ещё раз.")
+
+    asyncio.create_task(_run())
 
 
 @router.callback_query(F.data.startswith("recon:toggle:"))

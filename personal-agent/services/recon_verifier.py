@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import json
 import logging
 from dataclasses import dataclass
@@ -11,6 +12,8 @@ from openai import AsyncOpenAI
 from config import settings
 
 logger = logging.getLogger(__name__)
+
+_OPENAI_TIMEOUT_SEC = 25
 
 
 @dataclass
@@ -30,7 +33,28 @@ class InterestResult:
 
 class ReconVerifier:
     def __init__(self) -> None:
-        self._openai = AsyncOpenAI(api_key=settings.openai_api_key) if settings.has_openai else None
+        self._openai = (
+            AsyncOpenAI(api_key=settings.openai_api_key, timeout=_OPENAI_TIMEOUT_SEC)
+            if settings.has_openai
+            else None
+        )
+
+    async def _chat_json(self, *, system: str, user: str) -> dict:
+        if not self._openai:
+            return {}
+        response = await asyncio.wait_for(
+            self._openai.chat.completions.create(
+                model=settings.openai_model,
+                messages=[
+                    {"role": "system", "content": system},
+                    {"role": "user", "content": user},
+                ],
+                response_format={"type": "json_object"},
+                temperature=0.2,
+            ),
+            timeout=_OPENAI_TIMEOUT_SEC,
+        )
+        return json.loads(response.choices[0].message.content or "{}")
 
     async def verify_change(
         self,
@@ -58,22 +82,13 @@ class ReconVerifier:
             '"confidence":0.0-1.0,"summary":"кратко по-русски","notify":true|false}'
         )
         try:
-            response = await self._openai.chat.completions.create(
-                model=settings.openai_model,
-                messages=[
-                    {
-                        "role": "system",
-                        "content": (
-                            "Ты аналитик OSINT. Проверяй факты осторожно, без выдумок. "
-                            "notify=true только если событие важное для пользователя."
-                        ),
-                    },
-                    {"role": "user", "content": prompt},
-                ],
-                response_format={"type": "json_object"},
-                temperature=0.2,
+            data = await self._chat_json(
+                system=(
+                    "Ты аналитик OSINT. Проверяй факты осторожно, без выдумок. "
+                    "notify=true только если событие важное для пользователя."
+                ),
+                user=prompt,
             )
-            data = json.loads(response.choices[0].message.content or "{}")
             return VerificationResult(
                 verdict=str(data.get("verdict") or "unknown"),
                 confidence=float(data.get("confidence") or 0.5),
@@ -117,22 +132,13 @@ class ReconVerifier:
             '{"relevant":true|false,"confidence":0.0-1.0,"summary":"кратко по-русски почему да/нет"}'
         )
         try:
-            response = await self._openai.chat.completions.create(
-                model=settings.openai_model,
-                messages=[
-                    {
-                        "role": "system",
-                        "content": (
-                            "Ты фильтр OSINT-алертов. relevant=true только если сообщение явно про интерес пользователя. "
-                            "Игнорируй рекламу, оффтоп и общие новости не по теме."
-                        ),
-                    },
-                    {"role": "user", "content": prompt},
-                ],
-                response_format={"type": "json_object"},
-                temperature=0.1,
+            data = await self._chat_json(
+                system=(
+                    "Ты фильтр OSINT-алертов. relevant=true только если сообщение явно про интерес пользователя. "
+                    "Игнорируй рекламу, оффтоп и общие новости не по теме."
+                ),
+                user=prompt,
             )
-            data = json.loads(response.choices[0].message.content or "{}")
             return InterestResult(
                 relevant=bool(data.get("relevant")),
                 summary=str(data.get("summary") or ""),
@@ -158,16 +164,10 @@ class ReconVerifier:
             '"summary":"по-русски","notify":true}'
         )
         try:
-            response = await self._openai.chat.completions.create(
-                model=settings.openai_model,
-                messages=[
-                    {"role": "system", "content": "Ты фактчекер. Будь осторожен, указывай неопределённость."},
-                    {"role": "user", "content": prompt},
-                ],
-                response_format={"type": "json_object"},
-                temperature=0.2,
+            data = await self._chat_json(
+                system="Ты фактчекер. Будь осторожен, указывай неопределённость.",
+                user=prompt,
             )
-            data = json.loads(response.choices[0].message.content or "{}")
             return VerificationResult(
                 verdict=str(data.get("verdict") or "unknown"),
                 confidence=float(data.get("confidence") or 0.5),

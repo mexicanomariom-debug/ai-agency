@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import logging
 from datetime import datetime
 from zoneinfo import ZoneInfo
@@ -65,14 +66,36 @@ class ReminderScheduler:
 
         monitor = get_traffic_monitor()
         if monitor:
+            asyncio.create_task(self._run_traffic_safe())
+
+    async def _run_traffic_safe(self) -> None:
+        from services.traffic import get_traffic_monitor
+
+        monitor = get_traffic_monitor()
+        if not monitor:
+            return
+        try:
             await monitor.run_checks()
+        except Exception:
+            logger.exception("Traffic monitor job failed")
 
     async def _run_recon(self) -> None:
         from services.recon import get_recon_monitor
 
         monitor = get_recon_monitor()
         if monitor:
+            asyncio.create_task(self._run_recon_safe())
+
+    async def _run_recon_safe(self) -> None:
+        from services.recon import get_recon_monitor
+
+        monitor = get_recon_monitor()
+        if not monitor:
+            return
+        try:
             await monitor.run_checks()
+        except Exception:
+            logger.exception("Recon monitor job failed")
 
     def shutdown(self) -> None:
         if self._scheduler.running:
