@@ -3,9 +3,10 @@ from aiogram.fsm.context import FSMContext
 from aiogram.types import Message
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from bot.copy import NOTE_CREATED, PARSE_FAILED
-from bot.handlers.tasks import cmd_tasks, cmd_today
+from bot.copy import PARSE_FAILED
+from bot.handlers.journal import capture_notebook_message
 from bot.handlers.task_edit import try_one_shot_edit
+from bot.handlers.tasks import cmd_tasks, cmd_today
 from bot.states.notebook import NotebookStates
 from bot.states.task_edit import TaskEditStates
 from bot.states.traffic import TrafficSetupStates
@@ -14,7 +15,6 @@ from bot.utils.messages import answer_menu
 from database.models import User
 from services.assistant import Intent, assistant_service
 from services.chat_history import chat_history_service
-from services.note_service import note_service
 from services.ambient import ambient_service
 from services.task_flow import reply_with_created_tasks
 from services.task_parser import task_parser
@@ -50,16 +50,15 @@ async def process_user_message(
     if intent == Intent.CREATE_NOTE:
         _, content = assistant_service.extract_note_content(text)
         if not content:
-            await answer_menu(message, "Напишите текст заметки, например: Заметка: идея проекта")
+            await answer_menu(message, "Напишите текст, например: Заметка: идея проекта")
             return
-        note = await note_service.create(session, user, content=content)
-        await answer_menu(message, NOTE_CREATED.format(note_id=note.id))
+        await capture_notebook_message(message, session, user, content)
         return
 
     if intent == Intent.LIST_NOTES:
-        from bot.handlers.notes import cmd_notes
+        from bot.handlers.journal import show_journal
 
-        await cmd_notes(message, session)
+        await show_journal(message, session, enter_mode=True, state=None)
         return
 
     if intent == Intent.LIST_TASKS_TODAY:
@@ -102,11 +101,11 @@ async def handle_text(message: Message, session: AsyncSession, state: FSMContext
         "❓ Помощь",
         "💡 Блокнот-Идеи",
         "🚗 Пробки",
-        "📝 Заметки",
         "📅 Календарь",
         "📞 Телефон",
         "📆 Сегодня",
         "🌐 Переводчик",
+        "📝 Заметки",
     }
     if message.text in quick_buttons:
         return

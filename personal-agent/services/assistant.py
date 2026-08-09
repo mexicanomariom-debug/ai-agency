@@ -31,7 +31,7 @@ class AssistantService:
         stripped = text.strip().lower()
         if stripped.startswith(NOTE_PREFIXES) or stripped.startswith("заметка "):
             return Intent.CREATE_NOTE
-        if stripped in ("заметки", "мои заметки", "📝 заметки"):
+        if stripped in ("заметки", "мои заметки", "📝 заметки", "блокнот", "💡 блокнот-идеи"):
             return Intent.LIST_NOTES
         if stripped in ("сегодня", "задачи на сегодня", "📆 сегодня"):
             return Intent.LIST_TASKS_TODAY

@@ -8,12 +8,16 @@ MENU_BUTTONS = {
     "📋 Мои задачи",
     "📆 Сегодня",
     "💡 Блокнот-Идеи",
-    "📝 Заметки",
     "🚗 Пробки",
     "📅 Календарь",
     "📞 Телефон",
     "🌐 Переводчик",
     "❓ Помощь",
+}
+
+# Кнопки, при нажатии которых FSM не сбрасываем заранее — обработчик сам выставит состояние.
+STATEFUL_MENU_BUTTONS = {
+    "💡 Блокнот-Идеи",
 }
 
 
@@ -28,7 +32,7 @@ class ClearTranslatorOnMenuMiddleware(BaseMiddleware):
     ):
         state: FSMContext | None = data.get("state")
         if state and isinstance(event, Message) and event.text:
-            if event.text in MENU_BUTTONS:
+            if event.text in MENU_BUTTONS and event.text not in STATEFUL_MENU_BUTTONS:
                 await state.clear()
             elif event.text.startswith("/"):
                 command = event.text.split(maxsplit=1)[0].lower()

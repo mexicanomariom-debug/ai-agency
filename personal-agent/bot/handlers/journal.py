@@ -10,6 +10,7 @@ from aiogram.types import CallbackQuery, Message
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from bot.keyboards.inline import journal_menu_keyboard
+from bot.middlewares.translator import MENU_BUTTONS
 from bot.states.notebook import NotebookStates
 from bot.utils.messages import answer_menu
 from services.journal_service import journal_service
@@ -132,7 +133,7 @@ async def cmd_journal(message: Message, session: AsyncSession, state: FSMContext
 async def msg_notebook_write(message: Message, session: AsyncSession) -> None:
     if not message.text or message.text.startswith("/"):
         return
-    if message.text in (NOTEBOOK_BUTTON, "❌ Выйти из блокнота"):
+    if message.text in MENU_BUTTONS:
         return
 
     user = await user_service.get_or_create(

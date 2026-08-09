@@ -8,3 +8,11 @@ def h(text: str | None) -> str:
     if not text:
         return ""
     return html.escape(str(text), quote=False)
+
+
+def bold(text: str | None) -> str:
+    """Bold text for Telegram HTML."""
+    return f"<b>{h(text)}</b>"
+
+
+escape = h
