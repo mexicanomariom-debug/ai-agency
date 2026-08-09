@@ -36,16 +36,16 @@ sudo iptables -C INPUT -p tcp --dport "${OAUTH_HOST_PORT:-8081}" -j ACCEPT 2>/de
   sudo iptables -I INPUT -p tcp --dport "${OAUTH_HOST_PORT:-8081}" -j ACCEPT || true
 
 echo "Building and starting personal-agent bot..."
-$DOCKER compose -f docker-compose.prod.yml up -d --build --force-recreate --remove-orphans
+$DOCKER compose -p "$PROJECT" -f docker-compose.prod.yml up -d --build --force-recreate --remove-orphans
 
 sleep 5
 echo ""
 echo "=== Status ==="
-$DOCKER compose -f docker-compose.prod.yml ps
+$DOCKER compose -p "$PROJECT" -f docker-compose.prod.yml ps
 
 echo ""
 echo "=== Bot logs ==="
-$DOCKER compose -f docker-compose.prod.yml logs bot --tail 20
+$DOCKER compose -p "$PROJECT" -f docker-compose.prod.yml logs bot --tail 20
 
 echo ""
 echo "=== Done ==="

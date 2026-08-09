@@ -9,6 +9,10 @@ on:
       - '.github/workflows/deploy-personal-agent-oracle.yml'
   workflow_dispatch:
 
+concurrency:
+  group: deploy-personal-agent-oracle
+  cancel-in-progress: false
+
 jobs:
   deploy:
     runs-on: ubuntu-latest

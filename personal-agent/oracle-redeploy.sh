@@ -12,10 +12,16 @@ else
 fi
 
 COMPOSE_FILE="docker-compose.prod.yml"
+PROJECT="personal-agent"
+
+compose() {
+  $DOCKER compose -p "$PROJECT" -f "$COMPOSE_FILE" "$@"
+}
 
 echo "--- Stopping old containers ---"
-$DOCKER compose -f "$COMPOSE_FILE" down --remove-orphans 2>/dev/null || true
+compose down --remove-orphans 2>/dev/null || true
 $DOCKER rm -f personal-agent-bot personal-agent-oauth 2>/dev/null || true
+$DOCKER network rm "${PROJECT}_default" 2>/dev/null || true
 
 rm -rf __pycache__ .venv 2>/dev/null || true
 
@@ -28,20 +34,20 @@ chmod +x oracle-setup.sh
 ./oracle-setup.sh
 
 echo "--- Verify containers ---"
-$DOCKER compose -f "$COMPOSE_FILE" ps
+compose ps
 
 BOT_STATUS=$($DOCKER inspect -f '{{.State.Status}}' personal-agent-bot 2>/dev/null || echo "missing")
 OAUTH_STATUS=$($DOCKER inspect -f '{{.State.Status}}' personal-agent-oauth 2>/dev/null || echo "missing")
 
 if [[ "$BOT_STATUS" != "running" ]]; then
   echo "ERROR: personal-agent-bot is not running (status=$BOT_STATUS)"
-  $DOCKER compose -f "$COMPOSE_FILE" logs bot --tail 50 || true
+  compose logs bot --tail 50 || true
   exit 1
 fi
 
 if [[ "$OAUTH_STATUS" != "running" ]]; then
   echo "ERROR: personal-agent-oauth is not running (status=$OAUTH_STATUS)"
-  $DOCKER compose -f "$COMPOSE_FILE" logs oauth --tail 50 || true
+  compose logs oauth --tail 50 || true
   exit 1
 fi
 
