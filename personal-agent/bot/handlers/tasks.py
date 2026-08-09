@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 
@@ -35,6 +36,10 @@ from services.task_flow import format_due_at, format_notify_types
 from services.user_service import task_service, user_service
 
 router = Router()
+
+TIMEZONE_TEXT = re.compile(
+    r"(?i)^(?:/)?(?:timezone|таймзон|тайм\s*зон|часовой\s+пояс|пояс)\s+(.+)$"
+)
 
 
 def _calendar_removal_suffix(removed: bool, had_event: bool) -> str:
@@ -162,6 +167,7 @@ async def cmd_cancel(message: Message, session: AsyncSession) -> None:
 
 
 @router.message(Command("timezone"))
+@router.message(F.text.regexp(TIMEZONE_TEXT))
 async def cmd_timezone(message: Message, session: AsyncSession) -> None:
     user = await user_service.get_or_create(
         session,
@@ -170,8 +176,15 @@ async def cmd_timezone(message: Message, session: AsyncSession) -> None:
         first_name=message.from_user.first_name,
     )
 
-    parts = (message.text or "").split(maxsplit=1)
-    if len(parts) < 2:
+    text = message.text or ""
+    match = TIMEZONE_TEXT.match(text)
+    if match:
+        timezone_input = match.group(1).strip()
+    else:
+        parts = text.split(maxsplit=1)
+        timezone_input = parts[1].strip() if len(parts) > 1 else ""
+
+    if not timezone_input:
         now = format_due_at(datetime.now(ZoneInfo("UTC")), user.timezone)
         await answer_menu(
             message,
@@ -182,7 +195,7 @@ async def cmd_timezone(message: Message, session: AsyncSession) -> None:
         )
         return
 
-    ok = await user_service.set_timezone(session, user, parts[1].strip())
+    ok = await user_service.set_timezone(session, user, timezone_input)
     if not ok:
         await answer_menu(message, INVALID_TIMEZONE)
         return

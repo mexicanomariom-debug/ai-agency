@@ -15,12 +15,12 @@ WELCOME = (
 
 TIMEZONE_HELP_EXAMPLES = (
     "Примеры:\n"
-    "/timezone moscow — Москва\n"
     "/timezone playa — Playa del Carmen\n"
+    "/timezone плая — то же (кириллицей)\n"
+    "/timezone moscow — Москва\n"
     "/timezone new york — Нью-Йорк\n"
-    "/timezone london — Лондон\n"
-    "/timezone dubai — Дубай\n"
-    "/timezone Asia/Tokyo — любой IANA-пояс"
+    "/timezone Asia/Tokyo — любой IANA-пояс\n"
+    "Можно без слэша: <code>таймзон playa</code>"
 )
 
 TIMEZONE_SETUP_PROMPT = (

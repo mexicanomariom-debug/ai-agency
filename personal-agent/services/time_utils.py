@@ -10,6 +10,7 @@ TIMEZONE_ALIASES: dict[str, str] = {
     "playa": "America/Cancun",
     "кармен": "America/Cancun",
     "плайя": "America/Cancun",
+    "плая": "America/Cancun",
     "cancun": "America/Cancun",
     "канкун": "America/Cancun",
     "quintana roo": "America/Cancun",
@@ -92,6 +93,18 @@ def resolve_timezone(name: str) -> str | None:
         return None
 
     key = raw.lower().replace("_", " ")
+
+    for prefix in (
+        "/timezone ",
+        "timezone ",
+        "таймзон ",
+        "тайм зон ",
+        "часовой пояс ",
+        "пояс ",
+    ):
+        if key.startswith(prefix):
+            return resolve_timezone(key[len(prefix) :])
+
     if key in TIMEZONE_ALIASES:
         return TIMEZONE_ALIASES[key]
 
@@ -104,6 +117,12 @@ def resolve_timezone(name: str) -> str | None:
     for alias, tz in TIMEZONE_ALIASES.items():
         if key in alias or alias in key:
             return tz
+
+    if " " in key:
+        for part in reversed(key.split()):
+            resolved = resolve_timezone(part)
+            if resolved:
+                return resolved
 
     return None
 
