@@ -20,6 +20,7 @@ from bot.keyboards.inline import (
 )
 from bot.middlewares.translator import MENU_BUTTONS
 from bot.states.recon import ReconSetupStates
+from bot.utils.html import h as html_escape
 from bot.utils.messages import answer_menu
 from services.recon import format_event_message, get_recon_monitor
 from services.recon_providers import _parse_source_input, fetch_source_content
@@ -55,16 +56,16 @@ def _panel_text(sources_count: int, enabled_count: int) -> str:
 
 def _source_detail_text(source) -> str:
     type_label = SOURCE_TYPE_LABELS.get(source.source_type, source.source_type)
-    preview = (source.last_preview or "ещё не проверялся")[:300]
-    filter_line = (
-        f"🎯 <b>Интерес:</b> {source.filter_query}"
-        if source.filter_query
-        else "🎯 <b>Интерес:</b> не задан — приходят все изменения"
-    )
+    preview = html_escape((source.last_preview or "ещё не проверялся")[:300])
+    name = html_escape(source.label or source.url_or_handle)
+    if source.filter_query:
+        filter_line = f"🎯 <b>Интерес:</b> {html_escape(source.filter_query)}"
+    else:
+        filter_line = "🎯 <b>Интерес:</b> не задан — приходят все изменения"
     if source.keywords:
-        filter_line += f"\n🔑 Ключевые слова: {source.keywords}"
+        filter_line += f"\n🔑 Ключевые слова: {html_escape(source.keywords)}"
     return (
-        f"#{source.id} <b>{source.label or source.url_or_handle}</b>\n"
+        f"#{source.id} <b>{name}</b>\n"
         f"{type_label}\n"
         f"Интервал: {source.check_interval_min} мин\n"
         f"Верификация: {'вкл' if source.verify_enabled else 'выкл'}\n"
@@ -112,7 +113,13 @@ async def cmd_recon(message: Message, session: AsyncSession, state: FSMContext) 
         return
 
     if sub == "list":
-        await _show_sources(message, session)
+        await _show_sources(
+            message,
+            session,
+            actor_id=message.from_user.id,
+            username=message.from_user.username,
+            first_name=message.from_user.first_name,
+        )
         return
 
     await show_recon_panel(message, session)
@@ -139,30 +146,44 @@ async def _verify_claim(message: Message, claim: str) -> None:
     )
 
 
-async def _show_sources(message: Message, session: AsyncSession) -> None:
+async def _show_sources(
+    message: Message,
+    session: AsyncSession,
+    *,
+    actor_id: int,
+    username: str | None = None,
+    first_name: str | None = None,
+    edit: bool = False,
+) -> None:
     user = await user_service.get_or_create(
         session,
-        telegram_id=message.from_user.id,
-        username=message.from_user.username,
-        first_name=message.from_user.first_name,
+        telegram_id=actor_id,
+        username=username,
+        first_name=first_name,
     )
     sources = await recon_service.list_sources(session, user)
     if not sources:
-        await answer_menu(message, "Список пуст. Нажмите ➕ Источник.", reply_markup=recon_menu_keyboard())
-        return
-    lines = ["📋 <b>Источники</b>\n"]
-    for src in sources[:15]:
-        type_label = SOURCE_TYPE_LABELS.get(src.source_type, src.source_type)
-        name = src.label or src.url_or_handle
-        status = "✅" if src.enabled else "⏸"
-        interest = " 🎯" if src.filter_query else ""
-        lines.append(f"{status} #{src.id} {type_label}: {name[:50]}{interest}")
-    await answer_menu(
-        message,
-        "\n".join(lines),
-        reply_markup=recon_sources_keyboard(sources),
-        parse_mode="HTML",
-    )
+        text = "Список пуст. Нажмите ➕ Источник."
+        markup = recon_menu_keyboard()
+    else:
+        lines = ["📋 <b>Источники</b>\n"]
+        for src in sources[:15]:
+            type_label = SOURCE_TYPE_LABELS.get(src.source_type, src.source_type)
+            name = html_escape(src.label or src.url_or_handle)[:50]
+            status = "✅" if src.enabled else "⏸"
+            interest = " 🎯" if src.filter_query else ""
+            lines.append(f"{status} #{src.id} {type_label}: {name}{interest}")
+        text = "\n".join(lines)
+        markup = recon_sources_keyboard(sources)
+
+    if edit:
+        try:
+            await message.edit_text(text, reply_markup=markup, parse_mode="HTML")
+            return
+        except TelegramBadRequest:
+            logger.debug("Could not edit recon list message, sending new one")
+
+    await answer_menu(message, text, reply_markup=markup, parse_mode="HTML")
 
 
 async def _seed_source_baseline(source, fetched) -> None:
@@ -414,7 +435,14 @@ async def cb_recon_list(callback: CallbackQuery, session: AsyncSession) -> None:
         await callback.answer()
         return
     await callback.answer()
-    await _show_sources(callback.message, session)
+    await _show_sources(
+        callback.message,
+        session,
+        actor_id=callback.from_user.id,
+        username=callback.from_user.username,
+        first_name=callback.from_user.first_name,
+        edit=True,
+    )
 
 
 @router.callback_query(F.data.startswith("recon:src:"))
@@ -569,8 +597,15 @@ async def cb_recon_delete(callback: CallbackQuery, session: AsyncSession) -> Non
     )
     ok = await recon_service.delete_source(session, user, source_id)
     await callback.answer("Удалён" if ok else "Не найден")
-    if callback.message and ok:
-        await _show_sources(callback.message, session)
+    if callback.message and ok and callback.from_user:
+        await _show_sources(
+            callback.message,
+            session,
+            actor_id=callback.from_user.id,
+            username=callback.from_user.username,
+            first_name=callback.from_user.first_name,
+            edit=True,
+        )
 
 
 @router.callback_query(F.data == "recon:cancel")
