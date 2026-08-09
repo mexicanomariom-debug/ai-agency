@@ -11,7 +11,8 @@ from services.time_utils import (
 from zoneinfo import ZoneInfo
 
 from aiogram import F, Router
-from aiogram.filters import Command
+from aiogram.filters import Command, StateFilter
+from aiogram.fsm.state import default_state
 from aiogram.types import CallbackQuery, Message
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -101,12 +102,15 @@ async def cmd_timezone(message: Message, session: AsyncSession) -> None:
     await _apply_timezone_change(message, session, timezone_input)
 
 
-@router.message(F.text.func(lambda text: is_standalone_timezone_alias(text or "")))
+@router.message(
+    StateFilter(default_state),
+    F.text.func(lambda text: is_standalone_timezone_alias(text or "")),
+)
 async def msg_timezone_alias(message: Message, session: AsyncSession) -> None:
     await _apply_timezone_change(message, session, normalize_timezone_text(message.text or ""))
 
 
-@router.message(F.text.regexp(TIMEZONE_TEXT))
+@router.message(StateFilter(default_state), F.text.regexp(TIMEZONE_TEXT))
 async def msg_timezone_natural(message: Message, session: AsyncSession) -> None:
     timezone_input = extract_timezone_argument(message.text or "")
     if not timezone_input:
