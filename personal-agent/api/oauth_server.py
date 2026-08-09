@@ -12,10 +12,7 @@ from database.models import User
 from database.session import async_session_factory
 from services.google_calendar import google_calendar_service
 
-logger = logging.getLogger(__name__)
-
-
-async def google_oauth_callback(request: web.Request) -> web.Response:
+logger = logging.getLogger(__name__)(request: web.Request) -> web.Response:
     bot: Bot = request.app["bot"]
     code = request.query.get("code")
     state = request.query.get("state")
@@ -83,15 +80,24 @@ async def internal_google_token(request: web.Request) -> web.Response:
 
 
 async def _save_google_token(telegram_id: int, refresh_token: str) -> bool:
-    async with async_session_factory() as session:
-        result = await session.execute(select(User).where(User.telegram_id == telegram_id))
-        user = result.scalar_one_or_none()
-        if not user:
-            return False
-        user.google_refresh_token = refresh_token
-        user.google_calendar_enabled = True
-        await session.commit()
-    return True
+    try:
+        async with async_session_factory() as session:
+            result = await session.execute(select(User).where(User.telegram_id == telegram_id))
+            user = result.scalar_one_or_none()
+            if not user:
+                user = User(
+                    telegram_id=telegram_id,
+                    timezone=settings.default_timezone,
+                )
+                session.add(user)
+                await session.flush()
+            user.google_refresh_token = refresh_token
+            user.google_calendar_enabled = True
+            await session.commit()
+        return True
+    except Exception:
+        logger.exception("Failed to save Google token for telegram_id=%s", telegram_id)
+        return False
 
 
 async def health(request: web.Request) -> web.Response:
