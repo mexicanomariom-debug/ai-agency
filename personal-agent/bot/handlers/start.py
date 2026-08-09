@@ -7,6 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from bot.copy import HELP_TEXT, TIMEZONE_SETUP_PROMPT, WELCOME
 from bot.keyboards.reply import main_menu_keyboard
+from config import settings
 from bot.utils.messages import answer_menu
 from database.models import User
 from services.user_service import user_service
@@ -32,6 +33,18 @@ async def cmd_start(message: Message, session: AsyncSession, state: FSMContext) 
     await message.answer(WELCOME.format(name=name), reply_markup=main_menu_keyboard())
     if is_new:
         await message.answer(TIMEZONE_SETUP_PROMPT)
+
+
+@router.message(Command("version"))
+async def cmd_version(message: Message) -> None:
+    await answer_menu(
+        message,
+        f"🤖 Личный агент\n"
+        f"Сборка: <code>{settings.bot_build_id}</code>\n"
+        f"Сервер: <code>{settings.environment}</code>\n\n"
+        "Если сборка <code>dev</code> или старая — вы общаетесь не с Oracle-ботом.\n"
+        "Остановите локальный <code>start-bot</code> на ПК.",
+    )
 
 
 @router.message(Command("help"))

@@ -34,6 +34,7 @@ from bot.copy import (
     TIMEZONE_UPDATED,
 )
 from bot.utils.messages import answer_menu
+from config import settings
 from database.models import TaskStatus
 from services.calendar_sync import remove_task_from_calendar, update_task_in_calendar
 from services.google_calendar import google_calendar_service
@@ -88,7 +89,8 @@ async def cmd_timezone(message: Message, session: AsyncSession) -> None:
         await answer_menu(
             message,
             f"Сейчас у вас: <b>{user.timezone}</b>\n"
-            f"Локальное время: {now}\n\n"
+            f"Локальное время: {now}\n"
+            f"Сборка бота: <code>{settings.bot_build_id}</code>\n\n"
             "Сменить (у каждого пользователя свой пояс):\n"
             + TIMEZONE_HELP_EXAMPLES,
         )

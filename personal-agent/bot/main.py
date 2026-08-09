@@ -37,7 +37,11 @@ async def main() -> None:
     except Exception:
         logger.exception("Scheduler bootstrap failed — bot will still run")
 
-    logger.info("Personal agent bot started (env=%s)", settings.environment)
+    logger.info(
+        "Personal agent bot started (env=%s, build=%s)",
+        settings.environment,
+        settings.bot_build_id,
+    )
     try:
         await dp.start_polling(bot)
     finally:

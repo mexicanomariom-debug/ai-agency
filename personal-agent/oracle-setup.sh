@@ -38,17 +38,21 @@ sudo iptables -C INPUT -p tcp --dport "${OAUTH_HOST_PORT:-8081}" -j ACCEPT 2>/de
   sudo iptables -I INPUT -p tcp --dport "${OAUTH_HOST_PORT:-8081}" -j ACCEPT || true
 
 echo "Building and starting personal-agent bot..."
-$DOCKER compose -p "$PROJECT" -f docker-compose.prod.yml up -d --build --force-recreate --remove-orphans
+$DOCKER compose -p personal-agent -f docker-compose.prod.yml build --no-cache
+$DOCKER compose -p personal-agent -f docker-compose.prod.yml up -d --force-recreate --remove-orphans
+
+# Kill stray bot processes outside Docker (token conflict)
+pkill -f "[p]ython -m bot.main" 2>/dev/null || true
 
 sleep 5
 echo ""
 echo "=== Status ==="
-$DOCKER compose -p "$PROJECT" -f docker-compose.prod.yml ps
+$DOCKER compose -p personal-agent -f docker-compose.prod.yml ps
 
 echo ""
 echo "=== Bot logs ==="
-$DOCKER compose -p "$PROJECT" -f docker-compose.prod.yml logs bot --tail 20
+$DOCKER compose -p personal-agent -f docker-compose.prod.yml logs bot --tail 20
 
 echo ""
 echo "=== Done ==="
-echo "Logs: $DOCKER compose -p $PROJECT -f docker-compose.prod.yml logs -f bot"
+echo "Logs: $DOCKER compose -p personal-agent -f docker-compose.prod.yml logs -f bot"

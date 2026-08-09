@@ -68,6 +68,7 @@ jobs:
               "SCHEDULER_DATABASE_URL": "sqlite:///./data/scheduler.db",
               "TTS_VOICE": "ru-RU-DmitryNeural",
               "ENVIRONMENT": "production",
+              "BOT_BUILD_ID": os.environ.get("GITHUB_SHA", "manual")[:12],
               "GOOGLE_CLIENT_ID": os.environ["GOOGLE_CLIENT_ID"],
               "GOOGLE_CLIENT_SECRET": os.environ["GOOGLE_CLIENT_SECRET"],
               "GOOGLE_REDIRECT_URI": "https://ai-agency-drab.vercel.app/api/google/oauth/callback",
@@ -122,6 +123,19 @@ jobs:
               exit 1
             fi
             echo "Bot container running"
+          '
+
+      - name: Verify deployed timezone code
+        run: |
+          HOST="${{ secrets.ORACLE_HOST || '140.84.183.154' }}"
+          USER="${{ secrets.ORACLE_SSH_USER || 'ubuntu' }}"
+          ssh -o StrictHostKeyChecking=no "${USER}@${HOST}" '
+            if ! grep -q "extract_timezone_argument" /opt/personal-agent/bot/handlers/tasks.py; then
+              echo "::error::Server still has old timezone handler"
+              exit 1
+            fi
+            BUILD_ID=$(grep "^BOT_BUILD_ID=" /opt/personal-agent/.env | cut -d= -f2)
+            echo "Deployed BOT_BUILD_ID=$BUILD_ID"
           '
 
       - name: Open OAuth port on VM firewall
