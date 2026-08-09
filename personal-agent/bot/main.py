@@ -6,6 +6,7 @@ from aiogram.client.default import DefaultBotProperties
 from aiogram.enums import ParseMode
 from aiogram.fsm.storage.memory import MemoryStorage
 
+from api.oauth_server import start_oauth_server
 from bot.dispatcher import setup_dispatcher
 from config import settings
 from database.session import async_session_factory, init_db
@@ -18,7 +19,7 @@ logger = logging.getLogger(__name__)
 
 async def main() -> None:
     if not settings.bot_token:
-        raise RuntimeError("BOT_TOKEN is required. Copy .env.example to .env and set your token.")
+        raise RuntimeError("BOT_TOKEN is required. Copy env.example to .env and set your token.")
 
     await init_db()
 
@@ -34,11 +35,15 @@ async def main() -> None:
     scheduler.start()
     await scheduler.bootstrap()
 
+    oauth_runner = await start_oauth_server(bot)
+
     logger.info("Personal agent bot started")
     try:
         await dp.start_polling(bot)
     finally:
         scheduler.shutdown()
+        if oauth_runner:
+            await oauth_runner.cleanup()
 
 
 if __name__ == "__main__":

@@ -10,38 +10,21 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from bot.copy import (
     INVALID_TIMEZONE,
-    NOTIFY_BOTH,
-    NOTIFY_CALL,
-    NOTIFY_MESSAGE,
-    PARSE_FAILED,
     TASK_CANCELLED,
-    TASK_CREATED,
     TASK_DONE,
     TASK_ITEM,
     TASK_LIST_EMPTY,
     TASK_LIST_HEADER,
     TASK_NOT_FOUND,
+    TASK_TODAY_HEADER,
     TIMEZONE_UPDATED,
 )
-from bot.keyboards.inline import task_actions_keyboard
+from services.google_calendar import google_calendar_service
 from services.scheduler import reminder_scheduler
-from services.task_parser import task_parser
+from services.task_flow import format_due_at, format_notify_types
 from services.user_service import task_service, user_service
 
 router = Router()
-
-
-def _format_notify_types(notify_message: bool, notify_call: bool) -> str:
-    if notify_message and notify_call:
-        return NOTIFY_BOTH
-    if notify_call:
-        return NOTIFY_CALL
-    return NOTIFY_MESSAGE
-
-
-def _format_due_at(due_at: datetime, timezone: str) -> str:
-    local = due_at.astimezone(ZoneInfo(timezone))
-    return local.strftime("%d.%m.%Y %H:%M")
 
 
 @router.message(Command("tasks"))
@@ -64,8 +47,37 @@ async def cmd_tasks(message: Message, session: AsyncSession) -> None:
             TASK_ITEM.format(
                 id=task.id,
                 title=task.title,
-                due_at=_format_due_at(task.due_at, user.timezone),
-                notify_types=_format_notify_types(task.notify_message, task.notify_call),
+                due_at=format_due_at(task.due_at, user.timezone),
+                notify_types=format_notify_types(
+                    task.notify_message, task.notify_call, task.notify_phone
+                ),
+            )
+        )
+    await message.answer("\n\n".join(lines))
+
+
+@router.message(lambda m: m.text == "📆 Сегодня")
+async def cmd_today(message: Message, session: AsyncSession) -> None:
+    user = await user_service.get_or_create(
+        session,
+        telegram_id=message.from_user.id,
+        username=message.from_user.username,
+        first_name=message.from_user.first_name,
+    )
+    tasks = await task_service.list_today(session, user)
+    if not tasks:
+        await message.answer("На сегодня задач нет.")
+        return
+    lines = [TASK_TODAY_HEADER.format(count=len(tasks))]
+    for task in tasks:
+        lines.append(
+            TASK_ITEM.format(
+                id=task.id,
+                title=task.title,
+                due_at=format_due_at(task.due_at, user.timezone),
+                notify_types=format_notify_types(
+                    task.notify_message, task.notify_call, task.notify_phone
+                ),
             )
         )
     await message.answer("\n\n".join(lines))
@@ -90,6 +102,8 @@ async def cmd_done(message: Message, session: AsyncSession) -> None:
         await message.answer(TASK_NOT_FOUND)
         return
 
+    if task.google_event_id and user.google_refresh_token:
+        await google_calendar_service.delete_event(user, task.google_event_id)
     await task_service.mark_done(session, task)
     if reminder_scheduler:
         reminder_scheduler.cancel_task(task.id)
@@ -115,6 +129,8 @@ async def cmd_cancel(message: Message, session: AsyncSession) -> None:
         await message.answer(TASK_NOT_FOUND)
         return
 
+    if task.google_event_id and user.google_refresh_token:
+        await google_calendar_service.delete_event(user, task.google_event_id)
     await task_service.cancel(session, task)
     if reminder_scheduler:
         reminder_scheduler.cancel_task(task.id)
@@ -155,6 +171,8 @@ async def cb_task_done(callback: CallbackQuery, session: AsyncSession) -> None:
         await callback.answer(TASK_NOT_FOUND, show_alert=True)
         return
 
+    if task.google_event_id and user.google_refresh_token:
+        await google_calendar_service.delete_event(user, task.google_event_id)
     await task_service.mark_done(session, task)
     if reminder_scheduler:
         reminder_scheduler.cancel_task(task.id)
@@ -176,6 +194,8 @@ async def cb_task_cancel(callback: CallbackQuery, session: AsyncSession) -> None
         await callback.answer(TASK_NOT_FOUND, show_alert=True)
         return
 
+    if task.google_event_id and user.google_refresh_token:
+        await google_calendar_service.delete_event(user, task.google_event_id)
     await task_service.cancel(session, task)
     if reminder_scheduler:
         reminder_scheduler.cancel_task(task.id)
@@ -204,54 +224,3 @@ async def cb_task_snooze(callback: CallbackQuery, session: AsyncSession) -> None
     if reminder_scheduler:
         reminder_scheduler.schedule_task(task.id, task.due_at)
     await callback.answer(f"Отложено на {minutes} мин")
-
-
-@router.message(F.text)
-async def handle_natural_language(message: Message, session: AsyncSession) -> None:
-    if message.text.startswith("/"):
-        return
-
-    user = await user_service.get_or_create(
-        session,
-        telegram_id=message.from_user.id,
-        username=message.from_user.username,
-        first_name=message.from_user.first_name,
-    )
-
-    parsed = await task_parser.parse(message.text, user.timezone)
-    if not parsed.tasks:
-        await message.answer(PARSE_FAILED)
-        return
-
-    created_lines: list[str] = []
-    for item in parsed.tasks:
-        task = await task_service.create(
-            session,
-            user=user,
-            title=item.title,
-            description=item.description,
-            due_at=item.due_at,
-            notify_message=item.notify_message,
-            notify_call=item.notify_call,
-        )
-        if reminder_scheduler:
-            reminder_scheduler.schedule_task(task.id, task.due_at)
-
-        created_lines.append(
-            TASK_CREATED.format(
-                task_id=task.id,
-                title=task.title,
-                due_at=_format_due_at(task.due_at, user.timezone),
-                notify_types=_format_notify_types(task.notify_message, task.notify_call),
-            )
-        )
-
-    reply = parsed.reply or "\n\n".join(created_lines)
-    last_task_id = None
-    if parsed.tasks:
-        result_tasks = await task_service.list_pending(session, user)
-        if result_tasks:
-            last_task_id = result_tasks[-1].id
-
-    keyboard = task_actions_keyboard(last_task_id) if last_task_id else None
-    await message.answer(reply, reply_markup=keyboard)

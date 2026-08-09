@@ -4,6 +4,7 @@ from pathlib import Path
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
 from config import settings
+from database.migrate import migrate
 from database.models import Base
 
 _db_path = settings.database_url.split("///")[-1]
@@ -17,6 +18,7 @@ async_session_factory = async_sessionmaker(engine, class_=AsyncSession, expire_o
 async def init_db() -> None:
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
+    await migrate(engine)
 
 
 async def get_session() -> AsyncGenerator[AsyncSession, None]:

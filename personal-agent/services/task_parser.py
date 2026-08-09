@@ -13,6 +13,7 @@ from config import settings
 
 NOTIFY_KEYWORDS_CALL = (r"\bзвонок\b", r"\bзвонком\b", r"\bзвони\b", r"\bпозвони\b", r"\bголосов\w*\b", r"\bcall\b")
 NOTIFY_KEYWORDS_MESSAGE = (r"\bсообщен\w*\b", r"\bнапиши\b", r"\bтекстом\b", r"\bmessage\b")
+NOTIFY_KEYWORDS_PHONE = (r"\bна\s+телефон\b", r"\bпо\s+телефону\b", r"\bмобильн\w*\b", r"\bтелефон\b")
 NOTIFY_KEYWORDS_BOTH = (r"сообщением\s+и\s+звонком", r"\bоба\b", r"\bвсё\b", r"\bвсе\b")
 
 
@@ -22,6 +23,7 @@ class ParsedTask:
     due_at: datetime
     notify_message: bool = True
     notify_call: bool = False
+    notify_phone: bool = False
     description: str | None = None
 
 
@@ -80,12 +82,13 @@ class TaskParser:
                     due_at=due.astimezone(ZoneInfo("UTC")),
                     notify_message=bool(item.get("notify_message", True)),
                     notify_call=bool(item.get("notify_call", False)),
+                    notify_phone=bool(item.get("notify_phone", False)),
                 )
             )
         return ParseResult(tasks=tasks, reply=data.get("reply"))
 
     def _parse_with_rules(self, text: str, timezone: str) -> ParseResult:
-        notify_message, notify_call = self._detect_notify_flags(text)
+        notify_message, notify_call, notify_phone = self._detect_notify_flags(text)
         cleaned = self._strip_notify_phrases(text)
         settings_dict = {
             "TIMEZONE": timezone,
@@ -107,6 +110,7 @@ class TaskParser:
                     due_at=due_at.astimezone(ZoneInfo("UTC")),
                     notify_message=notify_message,
                     notify_call=notify_call,
+                    notify_phone=notify_phone,
                 )
             ]
         )
@@ -129,17 +133,20 @@ class TaskParser:
 
         return dateparser.parse(text, settings=settings_dict, languages=["ru", "en"])
 
-    def _detect_notify_flags(self, text: str) -> tuple[bool, bool]:
+    def _detect_notify_flags(self, text: str) -> tuple[bool, bool, bool]:
         lower = text.lower()
         if any(re.search(k, lower) for k in NOTIFY_KEYWORDS_BOTH):
-            return True, True
+            return True, True, False
+        notify_phone = any(re.search(k, lower) for k in NOTIFY_KEYWORDS_PHONE)
         notify_call = any(re.search(k, lower) for k in NOTIFY_KEYWORDS_CALL)
         notify_message = any(re.search(k, lower) for k in NOTIFY_KEYWORDS_MESSAGE)
-        if notify_call and not notify_message:
-            return False, True
-        if notify_message and not notify_call:
-            return True, False
-        return True, notify_call
+        if notify_phone and not notify_message and not notify_call:
+            return False, False, True
+        if notify_call and not notify_message and not notify_phone:
+            return False, True, False
+        if notify_message and not notify_call and not notify_phone:
+            return True, False, False
+        return True, notify_call, notify_phone
 
     def _strip_notify_phrases(self, text: str) -> str:
         patterns = [

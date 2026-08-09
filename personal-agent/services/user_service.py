@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 from datetime import datetime
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
@@ -8,6 +9,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from config import settings
 from database.models import Task, TaskStatus, User
+
+PHONE_RE = re.compile(r"^\+[1-9]\d{7,14}$")
 
 
 class UserService:
@@ -44,6 +47,23 @@ class UserService:
         user.timezone = timezone
         return True
 
+    def normalize_phone(self, phone: str) -> str | None:
+        cleaned = re.sub(r"[\s\-()]", "", phone.strip())
+        if cleaned.startswith("8") and len(cleaned) == 11:
+            cleaned = "+7" + cleaned[1:]
+        if not cleaned.startswith("+"):
+            cleaned = "+" + cleaned
+        if PHONE_RE.match(cleaned):
+            return cleaned
+        return None
+
+    async def set_phone(self, session: AsyncSession, user: User, phone: str) -> bool:
+        normalized = self.normalize_phone(phone)
+        if not normalized:
+            return False
+        user.phone_number = normalized
+        return True
+
 
 class TaskService:
     async def create(
@@ -56,6 +76,7 @@ class TaskService:
         description: str | None = None,
         notify_message: bool = True,
         notify_call: bool = False,
+        notify_phone: bool = False,
     ) -> Task:
         task = Task(
             user_id=user.id,
@@ -64,6 +85,7 @@ class TaskService:
             due_at=due_at,
             notify_message=notify_message,
             notify_call=notify_call,
+            notify_phone=notify_phone,
             status=TaskStatus.PENDING,
         )
         session.add(task)
@@ -74,6 +96,25 @@ class TaskService:
         result = await session.execute(
             select(Task)
             .where(Task.user_id == user.id, Task.status == TaskStatus.PENDING)
+            .order_by(Task.due_at)
+        )
+        return list(result.scalars().all())
+
+    async def list_today(self, session: AsyncSession, user: User) -> list[Task]:
+        tz = ZoneInfo(user.timezone)
+        now = datetime.now(tz)
+        start = now.replace(hour=0, minute=0, second=0, microsecond=0)
+        end = start.replace(hour=23, minute=59, second=59)
+        start_utc = start.astimezone(ZoneInfo("UTC"))
+        end_utc = end.astimezone(ZoneInfo("UTC"))
+        result = await session.execute(
+            select(Task)
+            .where(
+                Task.user_id == user.id,
+                Task.status == TaskStatus.PENDING,
+                Task.due_at >= start_utc,
+                Task.due_at <= end_utc,
+            )
             .order_by(Task.due_at)
         )
         return list(result.scalars().all())

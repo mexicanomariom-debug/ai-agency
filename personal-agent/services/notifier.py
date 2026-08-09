@@ -9,9 +9,11 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 from sqlalchemy.orm import selectinload
 
-from bot.copy import REMINDER_CALL_CAPTION, REMINDER_MESSAGE
+from bot.copy import REMINDER_CALL_CAPTION, REMINDER_MESSAGE, REMINDER_PHONE_SENT
+from bot.keyboards.inline import task_actions_keyboard
 from database.models import Task, TaskStatus
 from services.tts import synthesize_voice_file
+from services.twilio_calls import twilio_service
 
 logger = logging.getLogger(__name__)
 
@@ -41,6 +43,7 @@ class Notifier:
                         chat_id=telegram_id,
                         text=REMINDER_MESSAGE.format(title=task.title),
                         disable_notification=False,
+                        reply_markup=task_actions_keyboard(task.id),
                     )
 
                 if task.notify_call:
@@ -53,6 +56,17 @@ class Notifier:
                         caption=REMINDER_CALL_CAPTION.format(title=task.title),
                         disable_notification=False,
                     )
+
+                if task.notify_phone and task.user.phone_number:
+                    called = await twilio_service.call_reminder(
+                        task.user.phone_number,
+                        f"Напоминание. {task.title}",
+                    )
+                    if called:
+                        await self._bot.send_message(
+                            chat_id=telegram_id,
+                            text=REMINDER_PHONE_SENT.format(title=task.title),
+                        )
 
                 from datetime import datetime
                 from zoneinfo import ZoneInfo
