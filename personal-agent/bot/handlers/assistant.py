@@ -5,7 +5,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from bot.copy import NOTE_CREATED, PARSE_FAILED
 from bot.handlers.tasks import cmd_tasks, cmd_today
-from bot.handlers.translator import is_translate_request, translate_user_text
 from bot.states.translator import TranslatorStates
 from bot.utils.messages import answer_menu
 from database.models import User
@@ -25,11 +24,6 @@ async def process_user_message(
     user: User,
     text: str,
 ) -> None:
-    if is_translate_request(text):
-        await message.bot.send_chat_action(message.chat.id, "typing")
-        await translate_user_text(message, session, text)
-        return
-
     parsed = await task_parser.parse(text, user.timezone)
     if parsed.tasks:
         await reply_with_created_tasks(message, session, user, parsed)
