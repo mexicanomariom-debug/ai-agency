@@ -7,7 +7,8 @@ const GOOGLE_REDIRECT_URI =
   "https://ai-agency-drab.vercel.app/api/google/oauth/callback";
 const PERSONAL_AGENT_BOT_URL =
   process.env.PERSONAL_AGENT_BOT_URL || "http://140.84.183.154:8081";
-const PERSONAL_AGENT_INTERNAL_SECRET = process.env.PERSONAL_AGENT_INTERNAL_SECRET || "";
+const PERSONAL_AGENT_INTERNAL_SECRET =
+  process.env.PERSONAL_AGENT_INTERNAL_SECRET || "personal-agent-internal-2026";
 
 function htmlPage(title: string, message: string, ok: boolean) {
   return `<!DOCTYPE html>
@@ -74,9 +75,7 @@ export async function GET(request: NextRequest) {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        ...(PERSONAL_AGENT_INTERNAL_SECRET
-          ? { "X-Internal-Secret": PERSONAL_AGENT_INTERNAL_SECRET }
-          : {}),
+        "X-Internal-Secret": PERSONAL_AGENT_INTERNAL_SECRET,
       },
       body: JSON.stringify({
         telegram_id: parseInt(state, 10),
@@ -87,8 +86,14 @@ export async function GET(request: NextRequest) {
 
     if (!botRes.ok) {
       const detail = await botRes.text();
+      let hint = detail;
+      if (detail.includes("unauthorized")) {
+        hint = "Секрет PERSONAL_AGENT_INTERNAL_SECRET не совпадает в Vercel и на сервере бота.";
+      } else if (detail.includes("user not found")) {
+        hint = "Сначала напишите боту /start, затем снова /calendar.";
+      }
       return new NextResponse(
-        htmlPage("Ошибка бота", `Бот не принял токен: ${detail}`, false),
+        htmlPage("Ошибка бота", `Бот не принял токен: ${hint}`, false),
         { status: 502, headers: { "Content-Type": "text/html; charset=utf-8" } },
       );
     }
