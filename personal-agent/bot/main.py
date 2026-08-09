@@ -32,7 +32,10 @@ async def main() -> None:
     notifier = init_notifier(bot, async_session_factory)
     scheduler = init_scheduler(async_session_factory, notifier)
     scheduler.start()
-    await scheduler.bootstrap()
+    try:
+        await scheduler.bootstrap()
+    except Exception:
+        logger.exception("Scheduler bootstrap failed — bot will still run")
 
     logger.info("Personal agent bot started")
     try:

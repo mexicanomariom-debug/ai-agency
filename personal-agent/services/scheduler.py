@@ -2,11 +2,10 @@ from __future__ import annotations
 
 import logging
 from datetime import datetime
-from pathlib import Path
 from zoneinfo import ZoneInfo
 
+from apscheduler.jobstores.memory import MemoryJobStore
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
-from apscheduler.jobstores.sqlalchemy import SQLAlchemyJobStore
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 from sqlalchemy.orm import selectinload
@@ -22,14 +21,10 @@ JOB_PREFIX = "task_reminder_"
 
 class ReminderScheduler:
     def __init__(self, session_factory: async_sessionmaker[AsyncSession], notifier: Notifier) -> None:
-        db_path = settings.scheduler_database_url.split("///")[-1]
-        if db_path and not db_path.startswith(":"):
-            Path(db_path).parent.mkdir(parents=True, exist_ok=True)
-
         self._session_factory = session_factory
         self._notifier = notifier
         self._scheduler = AsyncIOScheduler(
-            jobstores={"default": SQLAlchemyJobStore(url=settings.scheduler_database_url)},
+            jobstores={"default": MemoryJobStore()},
             timezone="UTC",
         )
 

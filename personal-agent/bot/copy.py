@@ -105,12 +105,10 @@ VOICE_FAILED = "Не удалось распознать голосовое со
 VOICE_TRANSCRIBED = "🎙 Распознано: <i>{text}</i>"
 
 CALENDAR_NOT_CONFIGURED = (
-    "Google Calendar не настроен на <b>сервере бота</b> (Oracle).\n\n"
-    "В Vercel секреты уже есть — но боту они нужны отдельно в <b>GitHub</b>:\n"
-    "Репозиторий → Settings → Secrets → Actions:\n"
-    "• <code>GOOGLE_CLIENT_ID</code>\n"
-    "• <code>GOOGLE_CLIENT_SECRET</code>\n\n"
-    "После добавления: Actions → Deploy Personal Agent → Run workflow"
+    "Google Calendar временно недоступен.\n\n"
+    "Сервер бота перезапускается — попробуйте через минуту.\n"
+    "Если не помогло: GitHub → Settings → Secrets →\n"
+    "<code>GOOGLE_CLIENT_ID</code> и <code>GOOGLE_CLIENT_SECRET</code>"
 )
 CALENDAR_NOT_CONNECTED = (
     "📅 Подключите Google Calendar:\n"
