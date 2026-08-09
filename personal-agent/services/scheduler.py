@@ -55,15 +55,9 @@ class ReminderScheduler:
         due_utc = due_at.astimezone(ZoneInfo("UTC")) if due_at.tzinfo else due_at.replace(tzinfo=ZoneInfo("UTC"))
         now = datetime.now(ZoneInfo("UTC"))
 
+        # Не слать напоминание сразу после создания (кнопки «Готово» / «15 мин» только в срок)
         if due_utc <= now:
-            self._scheduler.add_job(
-                self._fire_reminder,
-                trigger="date",
-                run_date=now,
-                id=job_id,
-                replace_existing=True,
-                args=[task_id],
-            )
+            logger.info("Task %s due in the past (%s), reminder not scheduled", task_id, due_utc)
             return
 
         self._scheduler.add_job(

@@ -52,7 +52,8 @@ TASK_CREATED = (
     "<b>{title}</b>\n"
     "⏰ {due_at}\n"
     "🔔 {notify_types}{calendar_line}\n\n"
-    "Список: кнопка <b>📋 Мои задачи</b>"
+    "Список: кнопка <b>📋 Мои задачи</b>\n"
+    "<i>Кнопки «Выполнено» / «15 мин» придут только когда наступит время напоминания.</i>"
 )
 
 CALENDAR_SYNCED_LINE = "\n📅 Добавлено в Google Calendar"
