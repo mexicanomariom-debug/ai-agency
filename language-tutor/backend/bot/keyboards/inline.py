@@ -74,25 +74,22 @@ def level_keyboard(audience: str | None = None) -> InlineKeyboardMarkup:
 
 
 def hub_menu_keyboard() -> InlineKeyboardMarkup:
-    """Main hub after onboarding — product-oriented layout."""
+    """Inline shortcuts under the welcome message (plus persistent reply keyboard)."""
     return InlineKeyboardMarkup(
         inline_keyboard=[
             [
-                InlineKeyboardButton(text="🎙 Голосом", callback_data="menu:voice_hint"),
-                InlineKeyboardButton(text="💬 Текст", callback_data="menu:chat_hint"),
+                InlineKeyboardButton(text="🚀 Начать обучение", callback_data="menu:learn"),
+                InlineKeyboardButton(text="📋 Пройти тест", callback_data="menu:test"),
             ],
             [
                 InlineKeyboardButton(text="📚 Слова", callback_data="menu:review"),
                 InlineKeyboardButton(text="📊 Прогресс", callback_data="menu:progress"),
             ],
             [
-                InlineKeyboardButton(text="📋 Тест", callback_data="menu:test"),
-                InlineKeyboardButton(text="✦ О продукте", callback_data="menu:product"),
-            ],
-            [
                 InlineKeyboardButton(text="✅ Итоги урока", callback_data="menu:finish"),
                 InlineKeyboardButton(text="⚙️ Профиль", callback_data="menu:settings"),
             ],
+            [InlineKeyboardButton(text="✦ О продукте", callback_data="menu:product")],
         ]
     )
 

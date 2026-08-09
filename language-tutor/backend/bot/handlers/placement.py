@@ -6,9 +6,9 @@ from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery, Message
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from bot.keyboards.reply import MENU_BUTTON_TEXTS, main_menu_keyboard
 from bot.states.onboarding import OnboardingStates
 from bot.utils.callbacks import usable_message
-from database.enums import ProficiencyLevel
 from services.chat_service import process_user_text
 from services.placement_service import PLACEMENT_INTRO, placement_service
 from services.user_service import user_service
@@ -81,7 +81,8 @@ async def _finish_placement(
         logger.exception("Placement finalize failed")
         await state.set_state(OnboardingStates.chatting)
         await message.answer(
-            "Не получилось собрать программу. Попробуйте /program ещё раз через минуту."
+            "Не получилось собрать программу. Попробуйте /program ещё раз через минуту.",
+            reply_markup=main_menu_keyboard(),
         )
         return
 
@@ -91,7 +92,8 @@ async def _finish_placement(
     if not result.success:
         await message.answer(
             "Нужно больше ответов в тесте. Напишите /test и ответьте на 3–5 вопросов, "
-            "затем снова /program."
+            "затем снова /program.",
+            reply_markup=main_menu_keyboard(),
         )
         return
 
@@ -104,16 +106,24 @@ async def _finish_placement(
         lines.append(f"\n{result.summary}")
     if result.program:
         lines.append(f"\n{result.program}")
-    await message.answer("\n".join(lines))
+    await message.answer("\n".join(lines), reply_markup=main_menu_keyboard())
 
 
 @router.message(OnboardingStates.placement_test, Command("cancel"))
 async def cmd_cancel_test(message: Message, state: FSMContext) -> None:
     await state.set_state(OnboardingStates.chatting)
-    await message.answer("Тест отменён. Продолжаем обычный чат или /test снова.")
+    await message.answer(
+        "Тест отменён. Продолжаем обычный чат или /test снова.",
+        reply_markup=main_menu_keyboard(),
+    )
 
 
-@router.message(OnboardingStates.placement_test, F.text, ~F.text.startswith("/"))
+@router.message(
+    OnboardingStates.placement_test,
+    F.text,
+    ~F.text.startswith("/"),
+    ~F.text.in_(MENU_BUTTON_TEXTS),
+)
 async def placement_chat(message: Message, session: AsyncSession) -> None:
     await process_user_text(message, session, message.text, placement_mode=True)
 

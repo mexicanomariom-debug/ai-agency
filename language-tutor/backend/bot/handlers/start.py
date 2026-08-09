@@ -19,8 +19,8 @@ from bot.keyboards.inline import (
     audience_keyboard,
     language_keyboard,
     level_keyboard,
-    hub_menu_keyboard,
 )
+from bot.keyboards.reply import main_menu_keyboard
 from bot.states.onboarding import OnboardingStates
 from bot.utils.callbacks import edit_or_send, send_reply, usable_message
 from services.chat_service import process_user_text
@@ -88,7 +88,7 @@ async def cmd_start(message: Message, state: FSMContext, session: AsyncSession) 
                 language=LANGUAGE_LABELS.get(user.language.value, user.language.value),
                 level=LEVEL_LABELS.get(user.level.value, user.level.value),
             ),
-            reply_markup=hub_menu_keyboard(),
+            reply_markup=main_menu_keyboard(),
         )
         return
 
@@ -101,7 +101,7 @@ async def cmd_start(message: Message, state: FSMContext, session: AsyncSession) 
 
 @router.message(Command("help"))
 async def cmd_help(message: Message) -> None:
-    await message.answer(HELP_TEXT)
+    await message.answer(HELP_TEXT, reply_markup=main_menu_keyboard())
 
 
 @router.callback_query(F.data.startswith("audience:"))
@@ -221,12 +221,41 @@ async def choose_level(callback: CallbackQuery, state: FSMContext, session: Asyn
     lang = user.language.value if user.language else ""
 
     await state.set_state(OnboardingStates.chatting)
-    await edit_or_send(
-        callback,
-        _ready_copy(audience, lang, level_value),
-        reply_markup=hub_menu_keyboard(),
-    )
+    await edit_or_send(callback, _ready_copy(audience, lang, level_value))
+    target = usable_message(callback)
+    if target is not None:
+        await target.answer(
+            "⬇️ Меню внизу: Начать обучение · Пройти тест · Слова · Прогресс",
+            reply_markup=main_menu_keyboard(),
+        )
     await callback.answer()
+
+
+@router.callback_query(F.data == "menu:learn")
+async def menu_learn(
+    callback: CallbackQuery, state: FSMContext, session: AsyncSession
+) -> None:
+    await callback.answer()
+    target = usable_message(callback)
+    if target is None:
+        return
+    user = await user_service.get_by_telegram_id(session, callback.from_user.id)
+    if not user or not user.is_onboarded:
+        await send_reply(callback, "Сначала пройди онбординг: /start")
+        return
+    await state.set_state(OnboardingStates.chatting)
+    await target.answer(
+        "🚀 Начинаем обучение.\nПишите текстом или отправьте голосовое — отвечу текстом.",
+        reply_markup=main_menu_keyboard(),
+    )
+    await process_user_text(
+        target,
+        session,
+        (
+            "Давай начнём урок. Предложи одну тему под мой уровень и цель, "
+            "задай первый короткий вопрос для практики."
+        ),
+    )
 
 
 @router.callback_query(F.data == "menu:voice_hint")
