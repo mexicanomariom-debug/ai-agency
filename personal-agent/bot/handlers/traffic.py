@@ -16,8 +16,6 @@ from bot.utils.messages import answer_menu
 from database.models import User
 from services.traffic import (
     check_user_traffic,
-    fetch_area_traffic,
-    fetch_traffic,
     format_traffic_message,
     is_check_window,
     provider_label,
