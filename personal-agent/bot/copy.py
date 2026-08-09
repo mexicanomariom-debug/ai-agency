@@ -23,6 +23,7 @@ HELP_TEXT = (
     "<b>📅 Google Calendar</b>\n"
     "/calendar — подключить\n"
     "/calendar_sync — отправить активные задачи в Google Calendar\n"
+    "/calendar_resync — пересоздать события в Google Calendar\n"
     "/calendar_on · /calendar_off — вкл/выкл синхронизацию\n\n"
     "<b>📞 Телефон</b>\n"
     "/phone +79991234567 — привязать номер для звонков\n\n"

@@ -15,7 +15,7 @@ from bot.copy import (
 )
 from config import settings
 from bot.utils.messages import answer_menu
-from services.calendar_sync import sync_pending_tasks_to_calendar
+from services.calendar_sync import count_calendar_sync_state, sync_pending_tasks_to_calendar
 from services.google_calendar import google_calendar_service
 from services.user_service import user_service
 
@@ -26,9 +26,36 @@ router = Router()
 CALENDAR_SYNC_TEXT = re.compile(
     r"(?i)^(?:/)?calendar[\s_-]*sync$|^синхрониз(?:ировать|ация)\s+(?:с\s+)?(?:google\s+)?календар",
 )
+CALENDAR_RESYNC_TEXT = re.compile(
+    r"(?i)^(?:/)?calendar[\s_-]*resync$|^пересинхрониз",
+)
 
 
-async def _run_calendar_sync(message: Message, session: AsyncSession) -> None:
+def _format_sync_idle_message(total: int, linked: int, unlinked: int) -> str:
+    if total == 0:
+        return (
+            "Активных задач нет.\n\n"
+            "Создайте задачу текстом или голосом — после подключения календаря она попадёт в Google Calendar.\n"
+            "Архив: /tasks_done"
+        )
+    if unlinked == 0:
+        return (
+            f"Активных задач: {total}. Все {linked} уже привязаны к Google Calendar.\n\n"
+            "Если в календаре их не видно — попробуйте /calendar_resync\n"
+            "Или создайте новую задачу для проверки."
+        )
+    return (
+        f"Активных задач: {total}, ожидают синхронизации: {unlinked}.\n"
+        "Попробуйте /calendar_resync"
+    )
+
+
+async def _run_calendar_sync(
+    message: Message,
+    session: AsyncSession,
+    *,
+    resync: bool = False,
+) -> None:
     user = await user_service.get_or_create(
         session,
         telegram_id=message.from_user.id,
@@ -42,13 +69,20 @@ async def _run_calendar_sync(message: Message, session: AsyncSession) -> None:
         await answer_menu(message, "Сначала подключите календарь: /calendar")
         return
 
-    await answer_menu(message, "⏳ Синхронизирую задачи с Google Calendar…")
+    await answer_menu(
+        message,
+        "⏳ Пересинхронизирую задачи с Google Calendar…"
+        if resync
+        else "⏳ Синхронизирую задачи с Google Calendar…",
+    )
 
     if not user.google_calendar_enabled:
         user.google_calendar_enabled = True
 
+    total, linked, unlinked = await count_calendar_sync_state(session, user)
+
     try:
-        synced, failed = await sync_pending_tasks_to_calendar(session, user)
+        synced, failed = await sync_pending_tasks_to_calendar(session, user, resync=resync)
     except Exception:
         logger.exception("calendar_sync failed for user %s", message.from_user.id)
         await answer_menu(
@@ -58,7 +92,7 @@ async def _run_calendar_sync(message: Message, session: AsyncSession) -> None:
         return
 
     if synced == 0 and failed == 0:
-        await answer_menu(message, "Нет задач для синхронизации (или все уже в календаре).")
+        await answer_menu(message, _format_sync_idle_message(total, linked, unlinked))
         return
 
     lines = [f"📅 Синхронизация завершена: добавлено {synced}"]
@@ -82,11 +116,17 @@ async def cmd_calendar(message: Message, session: AsyncSession) -> None:
     )
 
     if user.google_refresh_token and user.google_calendar_enabled:
+        total, linked, unlinked = await count_calendar_sync_state(session, user)
+        stats = f"\n\nАктивных задач: {total}"
+        if total:
+            stats += f" · в календаре: {linked} · ожидают: {unlinked}"
         await answer_menu(message, 
             CALENDAR_STATUS.format(
                 status="подключён ✅",
                 redirect=settings.google_redirect_uri,
             )
+            + stats
+            + "\n\n/calendar_sync — синхронизировать\n/calendar_resync — пересоздать события"
         )
         return
 
@@ -125,6 +165,12 @@ async def cmd_calendar_on(message: Message, session: AsyncSession) -> None:
 @router.message(F.text.regexp(CALENDAR_SYNC_TEXT))
 async def cmd_calendar_sync(message: Message, session: AsyncSession) -> None:
     await _run_calendar_sync(message, session)
+
+
+@router.message(Command("calendar_resync"))
+@router.message(F.text.regexp(CALENDAR_RESYNC_TEXT))
+async def cmd_calendar_resync(message: Message, session: AsyncSession) -> None:
+    await _run_calendar_sync(message, session, resync=True)
 
 
 @router.message(Command("calendar_off"))
