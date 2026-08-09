@@ -74,8 +74,8 @@ async def handle_voice_message(
         message.from_user.id if message.from_user else None,
         transcript[:200],
     )
-    # Show what STT heard so the student can spot Whisper mistakes immediately.
-    await message.answer(f"📝 {transcript}")
+    # Confirm recognition so the student can check Whisper before the tutor reply.
+    await message.answer(f"Вы сказали: {transcript}")
 
     current = await state.get_state()
     placement_mode = current == OnboardingStates.placement_test.state
