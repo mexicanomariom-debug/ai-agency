@@ -9,7 +9,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 from sqlalchemy.orm import selectinload
 
-from bot.copy import REMINDER_CALL_CAPTION, REMINDER_MESSAGE, REMINDER_PHONE_SENT
+from bot.copy import REMINDER_CALL_CAPTION, REMINDER_MESSAGE, REMINDER_ACTIONS_HINT, REMINDER_PHONE_SENT
 from bot.keyboards.inline import task_actions_keyboard
 from bot.keyboards.reply import main_menu_keyboard
 from database.models import Task, TaskStatus
@@ -48,7 +48,7 @@ class Notifier:
                     )
                     await self._bot.send_message(
                         chat_id=telegram_id,
-                        text="Быстрые действия:",
+                        text=REMINDER_ACTIONS_HINT,
                         reply_markup=task_actions_keyboard(task.id),
                     )
 

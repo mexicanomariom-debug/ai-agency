@@ -14,7 +14,6 @@ from bot.copy import (
     NOTIFY_PHONE_CALL,
     TASK_CREATED,
 )
-from bot.keyboards.inline import task_actions_keyboard
 from bot.utils.messages import answer_menu
 from database.models import Task, User
 from services.google_calendar import google_calendar_service
@@ -101,8 +100,3 @@ async def reply_with_created_tasks(
     tasks = await create_tasks_from_parsed(session, user, parsed)
     reply = build_task_reply(user, tasks, parsed)
     await answer_menu(message, reply)
-    if tasks:
-        await message.answer(
-            "Быстрые действия:",
-            reply_markup=task_actions_keyboard(tasks[-1].id),
-        )

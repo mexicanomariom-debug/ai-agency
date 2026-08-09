@@ -177,8 +177,12 @@ async def cb_task_done(callback: CallbackQuery, session: AsyncSession) -> None:
     await task_service.mark_done(session, task)
     if reminder_scheduler:
         reminder_scheduler.cancel_task(task.id)
-    await callback.answer("Готово!")
+    await callback.answer("Задача выполнена")
     await callback.message.edit_reply_markup(reply_markup=None)
+    await callback.message.answer(
+        f"✅ Задача #{task.id} «{task.title}» отмечена <b>выполненной</b>.\n"
+        "Она убрана из активных, но не удалена навсегда."
+    )
 
 
 @router.callback_query(F.data.startswith("task:cancel:"))
@@ -200,8 +204,11 @@ async def cb_task_cancel(callback: CallbackQuery, session: AsyncSession) -> None
     await task_service.cancel(session, task)
     if reminder_scheduler:
         reminder_scheduler.cancel_task(task.id)
-    await callback.answer("Отменено")
+    await callback.answer("Задача отменена")
     await callback.message.edit_reply_markup(reply_markup=None)
+    await callback.message.answer(
+        f"🗑 Задача #{task.id} «{task.title}» <b>отменена</b> и убрана из активных."
+    )
 
 
 @router.callback_query(F.data.startswith("task:snooze:"))
@@ -224,4 +231,10 @@ async def cb_task_snooze(callback: CallbackQuery, session: AsyncSession) -> None
     task.due_at = datetime.now(ZoneInfo("UTC")) + timedelta(minutes=minutes)
     if reminder_scheduler:
         reminder_scheduler.schedule_task(task.id, task.due_at)
-    await callback.answer(f"Отложено на {minutes} мин")
+    new_time = format_due_at(task.due_at, user.timezone)
+    await callback.answer(f"Напоминание через {minutes} мин")
+    await callback.message.answer(
+        f"⏰ Задача #{task.id} «{task.title}» <b>отложена</b>.\n"
+        f"Новое время: {new_time}\n"
+        "Задача остаётся в списке <b>📋 Мои задачи</b>."
+    )
