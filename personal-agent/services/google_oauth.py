@@ -7,6 +7,7 @@ from urllib.parse import parse_qs, urlparse
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from database.models import User
+from config import settings
 from services.calendar_sync import sync_pending_tasks_to_calendar
 from services.google_calendar import google_calendar_service
 
@@ -63,4 +64,6 @@ async def connect_google_calendar(session: AsyncSession, user: User, code: str) 
         msg += f"\n⚠️ Не удалось синхронизировать: {failed}"
     if not synced and not failed:
         msg += "\n\nЕсли есть старые задачи — выполните /calendar_sync"
+    if user.timezone == settings.default_timezone:
+        msg += f"\n\n🌍 Укажите ваш часовой пояс: /timezone (сейчас {user.timezone})"
     return True, msg

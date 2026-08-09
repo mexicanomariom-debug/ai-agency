@@ -14,7 +14,7 @@ class Settings(BaseSettings):
     openai_api_key: str = ""
     openai_model: str = "gpt-4o-mini"
     openai_whisper_model: str = "whisper-1"
-    default_timezone: str = "Europe/Moscow"
+    default_timezone: str = "UTC"
     database_url: str = "sqlite+aiosqlite:///./data/agent.db"
     scheduler_database_url: str = "sqlite:///./data/scheduler.db"
     tts_voice: str = "ru-RU-DmitryNeural"

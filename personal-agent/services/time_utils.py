@@ -3,8 +3,9 @@ from __future__ import annotations
 from datetime import datetime
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
-# Friendly names -> IANA timezone
+# Friendly names -> IANA timezone (per-user; each user sets their own)
 TIMEZONE_ALIASES: dict[str, str] = {
+    # Mexico / Caribbean
     "playa del carmen": "America/Cancun",
     "playa": "America/Cancun",
     "кармен": "America/Cancun",
@@ -12,11 +13,75 @@ TIMEZONE_ALIASES: dict[str, str] = {
     "cancun": "America/Cancun",
     "канкун": "America/Cancun",
     "quintana roo": "America/Cancun",
-    "мексика": "America/Cancun",
-    "mexico": "America/Cancun",
+    "мексика": "America/Mexico_City",
+    "mexico": "America/Mexico_City",
+    "mexico city": "America/Mexico_City",
+    "ciudad de mexico": "America/Mexico_City",
+    # Russia / CIS
     "moscow": "Europe/Moscow",
     "москва": "Europe/Moscow",
     "msk": "Europe/Moscow",
+    "spb": "Europe/Moscow",
+    "petersburg": "Europe/Moscow",
+    "питер": "Europe/Moscow",
+    "санкт-петербург": "Europe/Moscow",
+    "kiev": "Europe/Kyiv",
+    "kyiv": "Europe/Kyiv",
+    "киев": "Europe/Kyiv",
+    "minsk": "Europe/Minsk",
+    "минск": "Europe/Minsk",
+    "almaty": "Asia/Almaty",
+    "алматы": "Asia/Almaty",
+    "tashkent": "Asia/Tashkent",
+    "ташкент": "Asia/Tashkent",
+    # Europe
+    "london": "Europe/London",
+    "лондон": "Europe/London",
+    "paris": "Europe/Paris",
+    "париж": "Europe/Paris",
+    "berlin": "Europe/Berlin",
+    "берлин": "Europe/Berlin",
+    "madrid": "Europe/Madrid",
+    "мадрид": "Europe/Madrid",
+    "rome": "Europe/Rome",
+    "рим": "Europe/Rome",
+    "istanbul": "Europe/Istanbul",
+    "стамбул": "Europe/Istanbul",
+    # Americas
+    "new york": "America/New_York",
+    "nyc": "America/New_York",
+    "ny": "America/New_York",
+    "нью-йорк": "America/New_York",
+    "los angeles": "America/Los_Angeles",
+    "la": "America/Los_Angeles",
+    "miami": "America/New_York",
+    "chicago": "America/Chicago",
+    "toronto": "America/Toronto",
+    "торонто": "America/Toronto",
+    "vancouver": "America/Vancouver",
+    "sao paulo": "America/Sao_Paulo",
+    "buenos aires": "America/Argentina/Buenos_Aires",
+    # Asia / Pacific
+    "dubai": "Asia/Dubai",
+    "дубай": "Asia/Dubai",
+    "tokyo": "Asia/Tokyo",
+    "токио": "Asia/Tokyo",
+    "singapore": "Asia/Singapore",
+    "сингапур": "Asia/Singapore",
+    "hong kong": "Asia/Hong_Kong",
+    "seoul": "Asia/Seoul",
+    "сеул": "Asia/Seoul",
+    "beijing": "Asia/Shanghai",
+    "shanghai": "Asia/Shanghai",
+    "пекин": "Asia/Shanghai",
+    "bangkok": "Asia/Bangkok",
+    "бангкок": "Asia/Bangkok",
+    "sydney": "Australia/Sydney",
+    "сидней": "Australia/Sydney",
+    "melbourne": "Australia/Melbourne",
+    # UTC
+    "utc": "UTC",
+    "gmt": "UTC",
 }
 
 

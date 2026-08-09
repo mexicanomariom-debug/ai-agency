@@ -8,9 +8,27 @@ WELCOME = (
     "🤖 <b>AI</b> — свободный диалог (нужен OPENAI_API_KEY)\n"
     "🌐 <b>Переводчик</b> — перевод текста и голоса\n\n"
     "Пример: «Завтра в 9:00 напомни позвонить маме»\n"
-    "Часовой пояс: /timezone playa (Playa del Carmen)\n"
+    "Сначала укажите свой часовой пояс: /timezone\n"
     "Google Calendar: /calendar — подключить один раз\n"
     "Команды: /help"
+)
+
+TIMEZONE_HELP_EXAMPLES = (
+    "Примеры:\n"
+    "/timezone moscow — Москва\n"
+    "/timezone playa — Playa del Carmen\n"
+    "/timezone new york — Нью-Йорк\n"
+    "/timezone london — Лондон\n"
+    "/timezone dubai — Дубай\n"
+    "/timezone Asia/Tokyo — любой IANA-пояс"
+)
+
+TIMEZONE_SETUP_PROMPT = (
+    "🌍 <b>Укажите ваш часовой пояс</b>\n\n"
+    "У каждого пользователя свой пояс — задачи и Google Calendar "
+    "будут в <b>вашем</b> локальном времени.\n\n"
+    + TIMEZONE_HELP_EXAMPLES
+    + "\n\nТекущий пояс: /timezone"
 )
 
 HELP_TEXT = (
@@ -42,8 +60,7 @@ HELP_TEXT = (
     "/tasks_done — завершённые и отменённые\n"
     "/restore &lt;id&gt; — вернуть задачу в активные\n"
     "/done &lt;id&gt; · /cancel &lt;id&gt;\n"
-    "/timezone playa — Playa del Carmen (UTC−5)\n"
-    "/timezone — текущий часовой пояс\n\n"
+    "/timezone — ваш часовой пояс (у каждого пользователя свой)\n\n"
     "<b>Кнопки при напоминании</b>\n"
     "• Выполнено — убрать из активных и удалить из Google Calendar\n"
     "• Через 15 мин — отложить (задача остаётся)\n"
@@ -105,10 +122,7 @@ TIMEZONE_UPDATED = (
 )
 INVALID_TIMEZONE = (
     "Не понял часовой пояс.\n"
-    "Примеры:\n"
-    "/timezone playa — Playa del Carmen\n"
-    "/timezone America/Cancun\n"
-    "/timezone Europe/Moscow"
+    + TIMEZONE_HELP_EXAMPLES
 )
 
 NOTIFY_MESSAGE = "сообщение"
@@ -141,16 +155,16 @@ CALENDAR_NOT_CONNECTED = (
     "• новые задачи сразу попадают в Google Calendar\n"
     "• старые активные — через /calendar_sync\n"
     "• выполненные и отменённые — удаляются из календаря автоматически\n\n"
-    "Сначала проверьте часовой пояс: /timezone playa"
+    "События создаются в <b>вашем</b> часовом поясе — сначала укажите: /timezone"
 )
 CALENDAR_CONNECTED = "✅ Google Calendar подключён!"
 CALENDAR_ENABLED = "✅ Синхронизация с Google Calendar включена."
 CALENDAR_DISABLED = "Синхронизация с Google Calendar отключена."
 CALENDAR_STATUS = (
     "📅 Календарь: {status}\n"
-    "Часовой пояс бота: <b>{timezone}</b>\n\n"
-    "В Google Calendar выберите тот же часовой пояс, что и в боте (/timezone).\n"
-    "Playa del Carmen: /timezone playa\n\n"
+    "Ваш часовой пояс в боте: <b>{timezone}</b>\n\n"
+    "События в Google Calendar создаются в этом поясе.\n"
+    "Если время в календаре не совпадает — смените пояс: /timezone\n\n"
     "Синхронизировать: /calendar_sync\n"
     "Пересоздать события: /calendar_resync"
 )

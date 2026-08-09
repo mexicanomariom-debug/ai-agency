@@ -2,11 +2,13 @@ from aiogram import Router
 from aiogram.filters import Command, CommandStart
 from aiogram.fsm.context import FSMContext
 from aiogram.types import Message
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from bot.copy import HELP_TEXT, WELCOME
+from bot.copy import HELP_TEXT, TIMEZONE_SETUP_PROMPT, WELCOME
 from bot.keyboards.reply import main_menu_keyboard
 from bot.utils.messages import answer_menu
+from database.models import User
 from services.user_service import user_service
 
 router = Router()
@@ -15,6 +17,11 @@ router = Router()
 @router.message(CommandStart())
 async def cmd_start(message: Message, session: AsyncSession, state: FSMContext) -> None:
     await state.clear()
+    result = await session.execute(
+        select(User).where(User.telegram_id == message.from_user.id)
+    )
+    is_new = result.scalar_one_or_none() is None
+
     await user_service.get_or_create(
         session,
         telegram_id=message.from_user.id,
@@ -23,6 +30,8 @@ async def cmd_start(message: Message, session: AsyncSession, state: FSMContext) 
     )
     name = message.from_user.first_name or "друг"
     await message.answer(WELCOME.format(name=name), reply_markup=main_menu_keyboard())
+    if is_new:
+        await message.answer(TIMEZONE_SETUP_PROMPT)
 
 
 @router.message(Command("help"))

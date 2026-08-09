@@ -23,6 +23,7 @@ from bot.copy import (
     TASK_NOT_FOUND,
     TASK_RESTORED,
     TASK_TODAY_HEADER,
+    TIMEZONE_HELP_EXAMPLES,
     TIMEZONE_UPDATED,
 )
 from bot.utils.messages import answer_menu
@@ -176,10 +177,8 @@ async def cmd_timezone(message: Message, session: AsyncSession) -> None:
             message,
             f"Сейчас у вас: <b>{user.timezone}</b>\n"
             f"Локальное время: {now}\n\n"
-            "Сменить:\n"
-            "/timezone playa — Playa del Carmen (UTC−5)\n"
-            "/timezone America/Cancun\n"
-            "/timezone Europe/Moscow",
+            "Сменить (у каждого пользователя свой пояс):\n"
+            + TIMEZONE_HELP_EXAMPLES,
         )
         return
 

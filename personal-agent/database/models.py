@@ -24,7 +24,7 @@ class User(Base):
     telegram_id: Mapped[int] = mapped_column(BigInteger, unique=True, index=True)
     username: Mapped[str | None] = mapped_column(String(255))
     first_name: Mapped[str | None] = mapped_column(String(255))
-    timezone: Mapped[str] = mapped_column(String(64), default="Europe/Moscow")
+    timezone: Mapped[str] = mapped_column(String(64), default="UTC")
     phone_number: Mapped[str | None] = mapped_column(String(32))
     google_refresh_token: Mapped[str | None] = mapped_column(Text)
     google_calendar_enabled: Mapped[bool] = mapped_column(Boolean, default=False)
