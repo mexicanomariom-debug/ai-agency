@@ -123,9 +123,10 @@ CALENDAR_NOT_CONFIGURED = (
     "<code>GOOGLE_CLIENT_ID</code> и <code>GOOGLE_CLIENT_SECRET</code>"
 )
 CALENDAR_NOT_CONNECTED = (
-    "📅 Подключите Google Calendar:\n"
+    "📅 Подключите Google Calendar (один раз):\n"
     '<a href="{url}">Авторизоваться в Google</a>\n\n'
-    "После авторизации вернитесь в Telegram."
+    "После авторизации вернитесь в Telegram — придёт «Google Calendar подключён».\n"
+    "Повторно входить не нужно, пока статус «подключён ✅»."
 )
 CALENDAR_CONNECTED = "✅ Google Calendar подключён!"
 CALENDAR_ENABLED = "✅ Синхронизация с Google Calendar включена."

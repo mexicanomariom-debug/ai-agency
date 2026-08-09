@@ -59,7 +59,7 @@ jobs:
               "OPENAI_API_KEY": os.environ.get("OPENAI_API_KEY", ""),
               "OPENAI_MODEL": "gpt-4o-mini",
               "OPENAI_WHISPER_MODEL": "whisper-1",
-              "DEFAULT_TIMEZONE": "Europe/Moscow",
+              "DEFAULT_TIMEZONE": "America/Cancun",
               "DATABASE_URL": "sqlite+aiosqlite:///./data/agent.db",
               "SCHEDULER_DATABASE_URL": "sqlite:///./data/scheduler.db",
               "TTS_VOICE": "ru-RU-DmitryNeural",

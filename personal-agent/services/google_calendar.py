@@ -52,7 +52,10 @@ class GoogleCalendarService:
             flow.redirect_uri = settings.google_redirect_uri
             flow.fetch_token(code=code)
             credentials = flow.credentials
-            return credentials.refresh_token or credentials.token
+            if not credentials.refresh_token:
+                logger.error("Google OAuth: no refresh_token in response (re-auth with prompt=consent)")
+                return None
+            return credentials.refresh_token
         except Exception:
             logger.exception("Google OAuth token exchange failed")
             return None
@@ -80,12 +83,6 @@ class GoogleCalendarService:
             logger.exception("Failed to refresh Google credentials for user %s", user.telegram_id)
             return None
         return creds
-
-    def _service(self, user: User):
-        creds = self._credentials(user)
-        if not creds:
-            return None
-        return build("calendar", "v3", credentials=creds, cache_discovery=False)
 
     async def _credentials_async(self, user: User) -> Credentials | None:
         try:

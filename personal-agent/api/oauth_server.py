@@ -63,7 +63,7 @@ async def internal_google_token(request: web.Request) -> web.Response:
 
     saved = await _save_google_token(telegram_id, refresh_token)
     if not saved:
-        return web.json_response({"error": "user not found"}, status=404)
+        return web.json_response({"error": "save failed"}, status=500)
 
     bot: Bot = request.app["bot"]
     await _notify_calendar_connected(bot, telegram_id)
@@ -72,6 +72,9 @@ async def internal_google_token(request: web.Request) -> web.Response:
 
 
 async def _save_google_token(telegram_id: int, refresh_token: str) -> bool:
+    if not refresh_token or not refresh_token.strip():
+        logger.error("Empty refresh_token for telegram_id=%s", telegram_id)
+        return False
     try:
         async with async_session_factory() as session:
             result = await session.execute(select(User).where(User.telegram_id == telegram_id))
@@ -83,9 +86,10 @@ async def _save_google_token(telegram_id: int, refresh_token: str) -> bool:
                 )
                 session.add(user)
                 await session.flush()
-            user.google_refresh_token = refresh_token
+            user.google_refresh_token = refresh_token.strip()
             user.google_calendar_enabled = True
             await session.commit()
+            logger.info("Google token saved for telegram_id=%s user_id=%s", telegram_id, user.id)
         return True
     except Exception:
         logger.exception("Failed to save Google token for telegram_id=%s", telegram_id)

@@ -84,7 +84,7 @@ export async function GET(request: NextRequest) {
       signal: AbortSignal.timeout(15000),
     });
 
-    if not botRes.ok) {
+    if (!botRes.ok) {
       const detail = await botRes.text();
       let hint = detail;
       if (detail.includes("unauthorized")) {

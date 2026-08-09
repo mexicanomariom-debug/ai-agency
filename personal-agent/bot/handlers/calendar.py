@@ -130,17 +130,18 @@ async def cmd_calendar(message: Message, session: AsyncSession) -> None:
         first_name=message.from_user.first_name,
     )
 
-    if user.google_refresh_token and user.google_calendar_enabled:
+    if user.google_refresh_token:
         total, linked, unlinked = await count_calendar_sync_state(session, user)
         stats = f"\n\nАктивных задач: {total}"
         if total:
             stats += f" · в календаре: {linked} · ожидают: {unlinked}"
-        await answer_menu(message, 
-            CALENDAR_STATUS.format(
-                status="подключён ✅",
-                timezone=user.timezone,
-            )
-            + stats
+        if user.google_calendar_enabled:
+            status = "подключён ✅"
+        else:
+            status = "подключён, синхронизация выкл (включить: /calendar_on)"
+        await answer_menu(
+            message,
+            CALENDAR_STATUS.format(status=status, timezone=user.timezone) + stats,
         )
         return
 
