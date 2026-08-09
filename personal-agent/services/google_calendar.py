@@ -4,8 +4,10 @@ import asyncio
 import logging
 from datetime import timedelta
 
+import httplib2
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
+from google_auth_httplib2 import AuthorizedHttp
 from google_auth_oauthlib.flow import Flow
 from googleapiclient.discovery import build
 
@@ -15,7 +17,7 @@ from services.time_utils import ensure_utc, format_google_datetime
 
 logger = logging.getLogger(__name__)
 
-GOOGLE_API_TIMEOUT_SEC = 30
+GOOGLE_API_TIMEOUT_SEC = 15
 
 SCOPES = ["https://www.googleapis.com/auth/calendar.events"]
 CLIENT_CONFIG = {
@@ -55,6 +57,11 @@ class GoogleCalendarService:
             logger.exception("Google OAuth token exchange failed")
             return None
 
+    def _build_service(self, creds: Credentials):
+        http = httplib2.Http(timeout=GOOGLE_API_TIMEOUT_SEC)
+        authorized = AuthorizedHttp(creds, http=http)
+        return build("calendar", "v3", http=authorized, cache_discovery=False)
+
     def _credentials(self, user: User) -> Credentials | None:
         if not user.google_refresh_token:
             return None
@@ -81,33 +88,46 @@ class GoogleCalendarService:
         return build("calendar", "v3", credentials=creds, cache_discovery=False)
 
     async def _credentials_async(self, user: User) -> Credentials | None:
-        return await asyncio.to_thread(self._credentials, user)
+        try:
+            return await asyncio.wait_for(
+                asyncio.to_thread(self._credentials, user),
+                timeout=GOOGLE_API_TIMEOUT_SEC,
+            )
+        except TimeoutError:
+            logger.error("Google credentials refresh timed out for user %s", user.telegram_id)
+            return None
 
-    async def create_event(self, user: User, task: Task) -> str | None:
-        creds = await self._credentials_async(user)
+    def _event_body(self, user: User, task: Task) -> dict:
+        end_at = ensure_utc(task.due_at) + timedelta(minutes=30)
+        return {
+            "summary": task.title,
+            "description": task.description or "Создано Personal Agent",
+            "start": {
+                "dateTime": format_google_datetime(task.due_at, user.timezone),
+                "timeZone": user.timezone,
+            },
+            "end": {
+                "dateTime": format_google_datetime(end_at, user.timezone),
+                "timeZone": user.timezone,
+            },
+        }
+
+    def _insert_event(self, creds: Credentials, body: dict) -> dict:
+        service = self._build_service(creds)
+        return service.events().insert(calendarId="primary", body=body).execute()
+
+    def _delete_event(self, creds: Credentials, event_id: str) -> None:
+        service = self._build_service(creds)
+        service.events().delete(calendarId="primary", eventId=event_id).execute()
+
+    async def create_event(self, user: User, task: Task, creds: Credentials | None = None) -> str | None:
+        creds = creds or await self._credentials_async(user)
         if not creds:
             return None
         try:
-            end_at = ensure_utc(task.due_at) + timedelta(minutes=30)
-            body = {
-                "summary": task.title,
-                "description": task.description or "Создано Personal Agent",
-                "start": {
-                    "dateTime": format_google_datetime(task.due_at, user.timezone),
-                    "timeZone": user.timezone,
-                },
-                "end": {
-                    "dateTime": format_google_datetime(end_at, user.timezone),
-                    "timeZone": user.timezone,
-                },
-            }
-
-            def _insert() -> dict:
-                service = build("calendar", "v3", credentials=creds, cache_discovery=False)
-                return service.events().insert(calendarId="primary", body=body).execute()
-
+            body = self._event_body(user, task)
             event = await asyncio.wait_for(
-                asyncio.to_thread(_insert),
+                asyncio.to_thread(self._insert_event, creds, body),
                 timeout=GOOGLE_API_TIMEOUT_SEC,
             )
             return event.get("id")
@@ -118,17 +138,18 @@ class GoogleCalendarService:
             logger.exception("Failed to create Google Calendar event for task %s", task.id)
             return None
 
-    async def delete_event(self, user: User, event_id: str) -> None:
-        creds = await self._credentials_async(user)
+    async def delete_event(
+        self,
+        user: User,
+        event_id: str,
+        creds: Credentials | None = None,
+    ) -> None:
+        creds = creds or await self._credentials_async(user)
         if not creds:
             return
         try:
-            def _delete() -> None:
-                service = build("calendar", "v3", credentials=creds, cache_discovery=False)
-                service.events().delete(calendarId="primary", eventId=event_id).execute()
-
             await asyncio.wait_for(
-                asyncio.to_thread(_delete),
+                asyncio.to_thread(self._delete_event, creds, event_id),
                 timeout=GOOGLE_API_TIMEOUT_SEC,
             )
         except TimeoutError:

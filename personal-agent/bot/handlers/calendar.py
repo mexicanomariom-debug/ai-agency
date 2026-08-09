@@ -1,3 +1,4 @@
+import asyncio
 import logging
 import re
 
@@ -15,7 +16,11 @@ from bot.copy import (
 )
 from config import settings
 from bot.utils.messages import answer_menu
-from services.calendar_sync import count_calendar_sync_state, sync_pending_tasks_to_calendar
+from services.calendar_sync import (
+    SYNC_OVERALL_TIMEOUT_SEC,
+    count_calendar_sync_state,
+    sync_user_calendar_by_telegram_id,
+)
 from services.google_calendar import google_calendar_service
 from services.user_service import user_service
 
@@ -80,11 +85,21 @@ async def _run_calendar_sync(
         user.google_calendar_enabled = True
 
     total, linked, unlinked = await count_calendar_sync_state(session, user)
+    telegram_id = message.from_user.id
+    await session.commit()
 
     try:
-        synced, failed = await sync_pending_tasks_to_calendar(session, user, resync=resync)
+        synced, failed = await sync_user_calendar_by_telegram_id(telegram_id, resync=resync)
+    except TimeoutError:
+        logger.error("calendar_sync timed out for user %s", telegram_id)
+        await answer_menu(
+            message,
+            f"⏱ Синхронизация прервалась по таймауту ({SYNC_OVERALL_TIMEOUT_SEC} сек).\n"
+            "Часть задач могла успеть синхронизироваться. Попробуйте /calendar_sync ещё раз.",
+        )
+        return
     except Exception:
-        logger.exception("calendar_sync failed for user %s", message.from_user.id)
+        logger.exception("calendar_sync failed for user %s", telegram_id)
         await answer_menu(
             message,
             "❌ Не удалось синхронизировать календарь. Попробуйте позже или переподключите: /calendar",
@@ -146,8 +161,17 @@ async def cmd_calendar_on(message: Message, session: AsyncSession) -> None:
         return
     user.google_calendar_enabled = True
     await answer_menu(message, "⏳ Синхронизирую задачи с Google Calendar…")
+    telegram_id = message.from_user.id
+    await session.commit()
     try:
-        synced, failed = await sync_pending_tasks_to_calendar(session, user)
+        synced, failed = await sync_user_calendar_by_telegram_id(telegram_id)
+    except TimeoutError:
+        await answer_menu(
+            message,
+            f"⏱ Синхронизация прервалась по таймауту ({SYNC_OVERALL_TIMEOUT_SEC} сек). "
+            "Попробуйте /calendar_sync ещё раз.",
+        )
+        return
     except Exception:
         logger.exception("calendar_on sync failed for user %s", message.from_user.id)
         await answer_menu(message, "❌ Синхронизация включена, но задачи не удалось отправить. Попробуйте /calendar_sync")
