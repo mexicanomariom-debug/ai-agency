@@ -15,6 +15,8 @@ from database.models import Task, User
 
 logger = logging.getLogger(__name__)
 
+GOOGLE_API_TIMEOUT_SEC = 30
+
 SCOPES = ["https://www.googleapis.com/auth/calendar.events"]
 CLIENT_CONFIG = {
     "web": {
@@ -78,8 +80,11 @@ class GoogleCalendarService:
             return None
         return build("calendar", "v3", credentials=creds, cache_discovery=False)
 
+    async def _credentials_async(self, user: User) -> Credentials | None:
+        return await asyncio.to_thread(self._credentials, user)
+
     async def create_event(self, user: User, task: Task) -> str | None:
-        creds = self._credentials(user)
+        creds = await self._credentials_async(user)
         if not creds:
             return None
         try:
@@ -100,14 +105,20 @@ class GoogleCalendarService:
                 service = build("calendar", "v3", credentials=creds, cache_discovery=False)
                 return service.events().insert(calendarId="primary", body=body).execute()
 
-            event = await asyncio.to_thread(_insert)
+            event = await asyncio.wait_for(
+                asyncio.to_thread(_insert),
+                timeout=GOOGLE_API_TIMEOUT_SEC,
+            )
             return event.get("id")
+        except TimeoutError:
+            logger.error("Google Calendar create_event timed out for task %s", task.id)
+            return None
         except Exception:
             logger.exception("Failed to create Google Calendar event for task %s", task.id)
             return None
 
     async def delete_event(self, user: User, event_id: str) -> None:
-        creds = self._credentials(user)
+        creds = await self._credentials_async(user)
         if not creds:
             return
         try:
@@ -115,7 +126,12 @@ class GoogleCalendarService:
                 service = build("calendar", "v3", credentials=creds, cache_discovery=False)
                 service.events().delete(calendarId="primary", eventId=event_id).execute()
 
-            await asyncio.to_thread(_delete)
+            await asyncio.wait_for(
+                asyncio.to_thread(_delete),
+                timeout=GOOGLE_API_TIMEOUT_SEC,
+            )
+        except TimeoutError:
+            logger.error("Google Calendar delete_event timed out for event %s", event_id)
         except Exception:
             logger.exception("Failed to delete Google Calendar event %s", event_id)
 

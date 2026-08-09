@@ -1,4 +1,7 @@
-from aiogram import Router
+import logging
+import re
+
+from aiogram import F, Router
 from aiogram.filters import Command
 from aiogram.types import Message
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -16,7 +19,53 @@ from services.calendar_sync import sync_pending_tasks_to_calendar
 from services.google_calendar import google_calendar_service
 from services.user_service import user_service
 
+logger = logging.getLogger(__name__)
+
 router = Router()
+
+CALENDAR_SYNC_TEXT = re.compile(
+    r"(?i)^(?:/)?calendar[\s_-]*sync$|^синхрониз(?:ировать|ация)\s+(?:с\s+)?(?:google\s+)?календар",
+)
+
+
+async def _run_calendar_sync(message: Message, session: AsyncSession) -> None:
+    user = await user_service.get_or_create(
+        session,
+        telegram_id=message.from_user.id,
+        username=message.from_user.username,
+        first_name=message.from_user.first_name,
+    )
+    if not google_calendar_service.available:
+        await answer_menu(message, CALENDAR_NOT_CONFIGURED)
+        return
+    if not user.google_refresh_token:
+        await answer_menu(message, "Сначала подключите календарь: /calendar")
+        return
+
+    await answer_menu(message, "⏳ Синхронизирую задачи с Google Calendar…")
+
+    if not user.google_calendar_enabled:
+        user.google_calendar_enabled = True
+
+    try:
+        synced, failed = await sync_pending_tasks_to_calendar(session, user)
+    except Exception:
+        logger.exception("calendar_sync failed for user %s", message.from_user.id)
+        await answer_menu(
+            message,
+            "❌ Не удалось синхронизировать календарь. Попробуйте позже или переподключите: /calendar",
+        )
+        return
+
+    if synced == 0 and failed == 0:
+        await answer_menu(message, "Нет задач для синхронизации (или все уже в календаре).")
+        return
+
+    lines = [f"📅 Синхронизация завершена: добавлено {synced}"]
+    if failed:
+        lines.append(f"⚠️ Ошибок: {failed}")
+        lines.append("Проверьте подключение: /calendar")
+    await answer_menu(message, "\n".join(lines))
 
 
 @router.message(Command("calendar"))
@@ -57,7 +106,13 @@ async def cmd_calendar_on(message: Message, session: AsyncSession) -> None:
         await answer_menu(message, "Сначала подключите календарь: /calendar")
         return
     user.google_calendar_enabled = True
-    synced, failed = await sync_pending_tasks_to_calendar(session, user)
+    await answer_menu(message, "⏳ Синхронизирую задачи с Google Calendar…")
+    try:
+        synced, failed = await sync_pending_tasks_to_calendar(session, user)
+    except Exception:
+        logger.exception("calendar_on sync failed for user %s", message.from_user.id)
+        await answer_menu(message, "❌ Синхронизация включена, но задачи не удалось отправить. Попробуйте /calendar_sync")
+        return
     msg = CALENDAR_ENABLED
     if synced:
         msg += f"\n📅 В календарь добавлено задач: {synced}"
@@ -67,26 +122,9 @@ async def cmd_calendar_on(message: Message, session: AsyncSession) -> None:
 
 
 @router.message(Command("calendar_sync"))
+@router.message(F.text.regexp(CALENDAR_SYNC_TEXT))
 async def cmd_calendar_sync(message: Message, session: AsyncSession) -> None:
-    user = await user_service.get_or_create(
-        session,
-        telegram_id=message.from_user.id,
-        username=message.from_user.username,
-        first_name=message.from_user.first_name,
-    )
-    if not user.google_refresh_token:
-        await answer_menu(message, "Сначала подключите календарь: /calendar")
-        return
-    if not user.google_calendar_enabled:
-        user.google_calendar_enabled = True
-    synced, failed = await sync_pending_tasks_to_calendar(session, user)
-    if synced == 0 and failed == 0:
-        await answer_menu(message, "Нет задач для синхронизации (или все уже в календаре).")
-        return
-    lines = [f"📅 Синхронизация завершена: добавлено {synced}"]
-    if failed:
-        lines.append(f"⚠️ Ошибок: {failed}")
-    await answer_menu(message, "\n".join(lines))
+    await _run_calendar_sync(message, session)
 
 
 @router.message(Command("calendar_off"))
