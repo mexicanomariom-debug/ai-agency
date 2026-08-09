@@ -11,6 +11,7 @@ from bot.copy import (
     TRANSLATE_RESULT,
 )
 from bot.states.translator import TranslatorStates
+from bot.utils.messages import answer_menu
 from services.translator import translator_service
 from services.user_service import user_service
 
@@ -21,26 +22,27 @@ AUTO_LANG = "auto"
 
 async def _enter_translator(message: Message, state: FSMContext) -> None:
     if not translator_service.available:
-        await message.answer(TRANSLATE_NEED_OPENAI)
+        await answer_menu(message, TRANSLATE_NEED_OPENAI)
         return
 
     await state.set_state(TranslatorStates.waiting_text)
-    await message.answer(TRANSLATE_PROMPT)
+    await answer_menu(message, TRANSLATE_PROMPT)
 
 
 async def _translate_and_reply(message: Message, text: str) -> bool:
     result = await translator_service.translate(text, AUTO_LANG)
     if not result:
-        await message.answer("Не удалось перевести. Попробуйте ещё раз.")
+        await answer_menu(message, "Не удалось перевести. Попробуйте ещё раз.")
         return False
 
-    await message.answer(
+    await answer_menu(
+        message,
         TRANSLATE_RESULT.format(
             source_lang=result.source_lang,
             target_lang=result.target_lang,
             source=result.source_text,
             translation=result.translated_text,
-        )
+        ),
     )
     return True
 
@@ -54,14 +56,14 @@ async def cmd_translator(message: Message, state: FSMContext) -> None:
 @router.message(Command("translate_off"))
 async def cmd_translate_off(message: Message, state: FSMContext) -> None:
     await state.clear()
-    await message.answer(TRANSLATE_EXIT)
+    await answer_menu(message, TRANSLATE_EXIT)
 
 
 @router.message(TranslatorStates.waiting_text, F.text)
 async def handle_translate_text(message: Message, session: AsyncSession, state: FSMContext) -> None:
     if message.text in ("❌ Выйти", "/translate_off"):
         await state.clear()
-        await message.answer(TRANSLATE_EXIT)
+        await answer_menu(message, TRANSLATE_EXIT)
         return
 
     await user_service.get_or_create(

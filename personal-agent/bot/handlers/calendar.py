@@ -11,6 +11,7 @@ from bot.copy import (
     CALENDAR_STATUS,
 )
 from config import settings
+from bot.utils.messages import answer_menu
 from services.google_calendar import google_calendar_service
 from services.user_service import user_service
 
@@ -20,7 +21,7 @@ router = Router()
 @router.message(Command("calendar"))
 async def cmd_calendar(message: Message, session: AsyncSession) -> None:
     if not google_calendar_service.available:
-        await message.answer(CALENDAR_NOT_CONFIGURED)
+        await answer_menu(message, CALENDAR_NOT_CONFIGURED)
         return
 
     user = await user_service.get_or_create(
@@ -31,7 +32,7 @@ async def cmd_calendar(message: Message, session: AsyncSession) -> None:
     )
 
     if user.google_refresh_token and user.google_calendar_enabled:
-        await message.answer(
+        await answer_menu(message, 
             CALENDAR_STATUS.format(
                 status="подключён ✅",
                 redirect=settings.google_redirect_uri,
@@ -40,7 +41,7 @@ async def cmd_calendar(message: Message, session: AsyncSession) -> None:
         return
 
     auth_url = google_calendar_service.build_auth_url(message.from_user.id)
-    await message.answer(CALENDAR_NOT_CONNECTED.format(url=auth_url))
+    await answer_menu(message, CALENDAR_NOT_CONNECTED.format(url=auth_url))
 
 
 @router.message(Command("calendar_on"))
@@ -52,10 +53,10 @@ async def cmd_calendar_on(message: Message, session: AsyncSession) -> None:
         first_name=message.from_user.first_name,
     )
     if not user.google_refresh_token:
-        await message.answer("Сначала подключите календарь: /calendar")
+        await answer_menu(message, "Сначала подключите календарь: /calendar")
         return
     user.google_calendar_enabled = True
-    await message.answer(CALENDAR_ENABLED)
+    await answer_menu(message, CALENDAR_ENABLED)
 
 
 @router.message(Command("calendar_off"))
@@ -67,7 +68,7 @@ async def cmd_calendar_off(message: Message, session: AsyncSession) -> None:
         first_name=message.from_user.first_name,
     )
     user.google_calendar_enabled = False
-    await message.answer(CALENDAR_DISABLED)
+    await answer_menu(message, CALENDAR_DISABLED)
 
 
 @router.message(lambda m: m.text == "📅 Календарь")

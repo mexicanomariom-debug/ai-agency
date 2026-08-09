@@ -19,6 +19,7 @@ from bot.copy import (
     TASK_TODAY_HEADER,
     TIMEZONE_UPDATED,
 )
+from bot.utils.messages import answer_menu
 from services.google_calendar import google_calendar_service
 from services.scheduler import reminder_scheduler
 from services.task_flow import format_due_at, format_notify_types
@@ -38,7 +39,7 @@ async def cmd_tasks(message: Message, session: AsyncSession) -> None:
     )
     tasks = await task_service.list_pending(session, user)
     if not tasks:
-        await message.answer(TASK_LIST_EMPTY)
+        await answer_menu(message, TASK_LIST_EMPTY)
         return
 
     lines = [TASK_LIST_HEADER.format(count=len(tasks))]
@@ -53,7 +54,7 @@ async def cmd_tasks(message: Message, session: AsyncSession) -> None:
                 ),
             )
         )
-    await message.answer("\n\n".join(lines))
+    await answer_menu(message, "\n\n".join(lines))
 
 
 @router.message(lambda m: m.text == "📆 Сегодня")
@@ -66,7 +67,7 @@ async def cmd_today(message: Message, session: AsyncSession) -> None:
     )
     tasks = await task_service.list_today(session, user)
     if not tasks:
-        await message.answer("На сегодня задач нет.")
+        await answer_menu(message, "На сегодня задач нет.")
         return
     lines = [TASK_TODAY_HEADER.format(count=len(tasks))]
     for task in tasks:
@@ -80,14 +81,14 @@ async def cmd_today(message: Message, session: AsyncSession) -> None:
                 ),
             )
         )
-    await message.answer("\n\n".join(lines))
+    await answer_menu(message, "\n\n".join(lines))
 
 
 @router.message(Command("done"))
 async def cmd_done(message: Message, session: AsyncSession) -> None:
     parts = (message.text or "").split(maxsplit=1)
     if len(parts) < 2 or not parts[1].isdigit():
-        await message.answer("Использование: /done <id>")
+        await answer_menu(message, "Использование: /done <id>")
         return
 
     task_id = int(parts[1])
@@ -99,7 +100,7 @@ async def cmd_done(message: Message, session: AsyncSession) -> None:
     )
     task = await task_service.get_pending(session, user, task_id)
     if not task:
-        await message.answer(TASK_NOT_FOUND)
+        await answer_menu(message, TASK_NOT_FOUND)
         return
 
     if task.google_event_id and user.google_refresh_token:
@@ -107,14 +108,14 @@ async def cmd_done(message: Message, session: AsyncSession) -> None:
     await task_service.mark_done(session, task)
     if reminder_scheduler:
         reminder_scheduler.cancel_task(task.id)
-    await message.answer(TASK_DONE.format(task_id=task_id))
+    await answer_menu(message, TASK_DONE.format(task_id=task_id))
 
 
 @router.message(Command("cancel"))
 async def cmd_cancel(message: Message, session: AsyncSession) -> None:
     parts = (message.text or "").split(maxsplit=1)
     if len(parts) < 2 or not parts[1].isdigit():
-        await message.answer("Использование: /cancel <id>")
+        await answer_menu(message, "Использование: /cancel <id>")
         return
 
     task_id = int(parts[1])
@@ -126,7 +127,7 @@ async def cmd_cancel(message: Message, session: AsyncSession) -> None:
     )
     task = await task_service.get_pending(session, user, task_id)
     if not task:
-        await message.answer(TASK_NOT_FOUND)
+        await answer_menu(message, TASK_NOT_FOUND)
         return
 
     if task.google_event_id and user.google_refresh_token:
@@ -134,14 +135,14 @@ async def cmd_cancel(message: Message, session: AsyncSession) -> None:
     await task_service.cancel(session, task)
     if reminder_scheduler:
         reminder_scheduler.cancel_task(task.id)
-    await message.answer(TASK_CANCELLED.format(task_id=task_id))
+    await answer_menu(message, TASK_CANCELLED.format(task_id=task_id))
 
 
 @router.message(Command("timezone"))
 async def cmd_timezone(message: Message, session: AsyncSession) -> None:
     parts = (message.text or "").split(maxsplit=1)
     if len(parts) < 2:
-        await message.answer("Использование: /timezone Europe/Moscow")
+        await answer_menu(message, "Использование: /timezone Europe/Moscow")
         return
 
     user = await user_service.get_or_create(
@@ -152,9 +153,9 @@ async def cmd_timezone(message: Message, session: AsyncSession) -> None:
     )
     ok = await user_service.set_timezone(session, user, parts[1].strip())
     if not ok:
-        await message.answer(INVALID_TIMEZONE)
+        await answer_menu(message, INVALID_TIMEZONE)
         return
-    await message.answer(TIMEZONE_UPDATED.format(timezone=user.timezone))
+    await answer_menu(message, TIMEZONE_UPDATED.format(timezone=user.timezone))
 
 
 @router.callback_query(F.data.startswith("task:done:"))

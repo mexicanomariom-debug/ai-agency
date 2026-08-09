@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import datetime
 from zoneinfo import ZoneInfo
 
-from aiogram.types import InlineKeyboardMarkup, Message
+from aiogram.types import Message
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from bot.copy import (
@@ -15,6 +15,7 @@ from bot.copy import (
     TASK_CREATED,
 )
 from bot.keyboards.inline import task_actions_keyboard
+from bot.utils.messages import answer_menu
 from database.models import Task, User
 from services.google_calendar import google_calendar_service
 from services.scheduler import reminder_scheduler
@@ -98,7 +99,9 @@ async def reply_with_created_tasks(
 ) -> None:
     tasks = await create_tasks_from_parsed(session, user, parsed)
     reply = build_task_reply(user, tasks, parsed)
-    keyboard: InlineKeyboardMarkup | None = None
+    await answer_menu(message, reply)
     if tasks:
-        keyboard = task_actions_keyboard(tasks[-1].id)
-    await message.answer(reply, reply_markup=keyboard)
+        await message.answer(
+            "Быстрые действия:",
+            reply_markup=task_actions_keyboard(tasks[-1].id),
+        )

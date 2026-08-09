@@ -11,6 +11,7 @@ from sqlalchemy.orm import selectinload
 
 from bot.copy import REMINDER_CALL_CAPTION, REMINDER_MESSAGE, REMINDER_PHONE_SENT
 from bot.keyboards.inline import task_actions_keyboard
+from bot.keyboards.reply import main_menu_keyboard
 from database.models import Task, TaskStatus
 from services.tts import synthesize_voice_file
 from services.twilio_calls import twilio_service
@@ -43,6 +44,11 @@ class Notifier:
                         chat_id=telegram_id,
                         text=REMINDER_MESSAGE.format(title=task.title),
                         disable_notification=False,
+                        reply_markup=main_menu_keyboard(),
+                    )
+                    await self._bot.send_message(
+                        chat_id=telegram_id,
+                        text="Быстрые действия:",
                         reply_markup=task_actions_keyboard(task.id),
                     )
 
@@ -66,6 +72,7 @@ class Notifier:
                         await self._bot.send_message(
                             chat_id=telegram_id,
                             text=REMINDER_PHONE_SENT.format(title=task.title),
+                            reply_markup=main_menu_keyboard(),
                         )
 
                 from datetime import datetime

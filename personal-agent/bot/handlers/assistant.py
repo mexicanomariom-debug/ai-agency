@@ -3,6 +3,7 @@ from aiogram.types import Message
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from bot.copy import NOTE_CREATED, PARSE_FAILED, TASK_LIST_EMPTY, TASK_TODAY_HEADER
+from bot.utils.messages import answer_menu
 from database.models import User
 from services.assistant import Intent, assistant_service
 from services.chat_history import chat_history_service
@@ -27,16 +28,16 @@ async def process_user_message(
         if parsed.tasks:
             await reply_with_created_tasks(message, session, user, parsed)
             return
-        await message.answer(PARSE_FAILED)
+        await answer_menu(message, PARSE_FAILED)
         return
 
     if intent == Intent.CREATE_NOTE:
         _, content = assistant_service.extract_note_content(text)
         if not content:
-            await message.answer("Напишите текст заметки, например: Заметка: идея проекта")
+            await answer_menu(message, "Напишите текст заметки, например: Заметка: идея проекта")
             return
         note = await note_service.create(session, user, content=content)
-        await message.answer(NOTE_CREATED.format(note_id=note.id))
+        await answer_menu(message, NOTE_CREATED.format(note_id=note.id))
         return
 
     if intent == Intent.LIST_NOTES:
@@ -48,7 +49,7 @@ async def process_user_message(
     if intent == Intent.LIST_TASKS:
         tasks = await task_service.list_today(session, user)
         if not tasks:
-            await message.answer(TASK_LIST_EMPTY)
+            await answer_menu(message, TASK_LIST_EMPTY)
             return
         lines = [TASK_TODAY_HEADER.format(count=len(tasks))]
         for task in tasks:
@@ -57,14 +58,14 @@ async def process_user_message(
                 f"⏰ {format_due_at(task.due_at, user.timezone)} · "
                 f"{format_notify_types(task.notify_message, task.notify_call, task.notify_phone)}"
             )
-        await message.answer("\n\n".join(lines))
+        await answer_menu(message, "\n\n".join(lines))
         return
 
     history = await chat_history_service.get_recent(session, user)
     reply = await assistant_service.chat(text, history)
     await chat_history_service.add(session, user, "user", text)
     await chat_history_service.add(session, user, "assistant", reply)
-    await message.answer(reply)
+    await answer_menu(message, reply)
 
 
 @router.message(F.text)

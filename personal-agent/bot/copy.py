@@ -85,7 +85,8 @@ VOICE_TRANSCRIBED = "🎙 Распознано: <i>{text}</i>"
 
 CALENDAR_NOT_CONFIGURED = (
     "Google Calendar не настроен на сервере.\n"
-    "Нужны GOOGLE_CLIENT_ID и GOOGLE_CLIENT_SECRET в .env"
+    "Нужны GOOGLE_CLIENT_ID и GOOGLE_CLIENT_SECRET в GitHub Secrets.\n"
+    "Инструкция: personal-agent/CALENDAR-SETUP.md"
 )
 CALENDAR_NOT_CONNECTED = (
     "📅 Подключите Google Calendar:\n"

@@ -6,6 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from bot.copy import HELP_TEXT, WELCOME
 from bot.keyboards.reply import main_menu_keyboard
+from bot.utils.messages import answer_menu
 from services.user_service import user_service
 
 router = Router()
@@ -27,4 +28,4 @@ async def cmd_start(message: Message, session: AsyncSession, state: FSMContext) 
 @router.message(Command("help"))
 @router.message(lambda m: m.text == "❓ Помощь")
 async def cmd_help(message: Message) -> None:
-    await message.answer(HELP_TEXT)
+    await answer_menu(message, HELP_TEXT)

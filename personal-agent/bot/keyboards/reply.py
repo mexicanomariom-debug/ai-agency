@@ -21,4 +21,6 @@ def main_menu_keyboard() -> ReplyKeyboardMarkup:
             ],
         ],
         resize_keyboard=True,
+        is_persistent=True,
+        input_field_placeholder="Напишите задачу или нажмите кнопку…",
     )

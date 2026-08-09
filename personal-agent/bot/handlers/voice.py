@@ -6,6 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from bot.copy import VOICE_FAILED, VOICE_HINT, VOICE_TRANSCRIBED
 from bot.handlers.translator import _translate_and_reply
 from bot.states.translator import TranslatorStates
+from bot.utils.messages import answer_menu
 from services.assistant import Intent, assistant_service
 from services.stt import stt_service
 from services.task_parser import task_parser
@@ -18,13 +19,13 @@ router = Router()
 @router.message(F.voice)
 async def handle_voice(message: Message, session: AsyncSession, state: FSMContext) -> None:
     if not stt_service.available:
-        await message.answer(VOICE_HINT)
+        await answer_menu(message, VOICE_HINT)
         return
 
     await message.bot.send_chat_action(message.chat.id, "typing")
     text = await stt_service.transcribe_telegram_voice(message.bot, message.voice.file_id)
     if not text:
-        await message.answer(VOICE_FAILED)
+        await answer_menu(message, VOICE_FAILED)
         return
 
     current_state = await state.get_state()
@@ -36,11 +37,11 @@ async def handle_voice(message: Message, session: AsyncSession, state: FSMContex
     )
 
     if current_state == TranslatorStates.waiting_text.state:
-        await message.answer(VOICE_TRANSCRIBED.format(text=text))
+        await answer_menu(message, VOICE_TRANSCRIBED.format(text=text))
         await _translate_and_reply(message, text)
         return
 
-    await message.answer(VOICE_TRANSCRIBED.format(text=text))
+    await answer_menu(message, VOICE_TRANSCRIBED.format(text=text))
 
     intent = await assistant_service.classify_intent(text, user.timezone)
     if intent == Intent.CREATE_TASK:
