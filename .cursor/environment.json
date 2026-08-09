@@ -1,11 +1,5 @@
 {
   "name": "personal-agent",
   "install": "cd personal-agent && pip install -r requirements.txt",
-  "start": "mkdir -p personal-agent/data",
-  "terminals": [
-    {
-      "name": "telegram-bot",
-      "command": "cd personal-agent && python -m bot.main"
-    }
-  ]
+  "start": "mkdir -p personal-agent/data"
 }

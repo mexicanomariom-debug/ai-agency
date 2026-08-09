@@ -1,5 +1,6 @@
 import asyncio
 import logging
+import os
 
 from aiogram import Bot, Dispatcher
 from aiogram.client.default import DefaultBotProperties
@@ -19,6 +20,13 @@ logger = logging.getLogger(__name__)
 async def main() -> None:
     if not settings.bot_token:
         raise RuntimeError("BOT_TOKEN is required. Copy env.example to .env and set your token.")
+
+    if settings.environment != "production" and os.getenv("ALLOW_LOCAL_BOT", "").lower() != "true":
+        raise RuntimeError(
+            "Локальный polling отключён (на Oracle уже работает @mychatbot7_bot).\n"
+            "Для разработки на ПК добавьте ALLOW_LOCAL_BOT=true в .env.\n"
+            "Cloud Agent / Cursor VM не должен запускать bot.main — иначе два ответа в Telegram."
+        )
 
     await init_db()
 
