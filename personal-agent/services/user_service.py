@@ -64,6 +64,14 @@ class UserService:
         user.phone_number = normalized
         return True
 
+    async def set_translate_lang(self, session: AsyncSession, user: User, lang: str) -> bool:
+        from services.translator import LANGUAGES
+
+        if lang not in LANGUAGES:
+            return False
+        user.translate_target_lang = lang
+        return True
+
 
 class TaskService:
     async def create(

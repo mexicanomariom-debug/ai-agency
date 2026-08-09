@@ -11,6 +11,7 @@ USER_COLUMNS = {
     "phone_number": "VARCHAR(32)",
     "google_refresh_token": "TEXT",
     "google_calendar_enabled": "BOOLEAN DEFAULT 0",
+    "translate_target_lang": "VARCHAR(8) DEFAULT 'en'",
 }
 
 TASK_COLUMNS = {

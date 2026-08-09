@@ -10,10 +10,13 @@ def main_menu_keyboard() -> ReplyKeyboardMarkup:
             ],
             [
                 KeyboardButton(text="📝 Заметки"),
-                KeyboardButton(text="📅 Календарь"),
+                KeyboardButton(text="🌐 Переводчик"),
             ],
             [
+                KeyboardButton(text="📅 Календарь"),
                 KeyboardButton(text="📞 Телефон"),
+            ],
+            [
                 KeyboardButton(text="❓ Помощь"),
             ],
         ],
