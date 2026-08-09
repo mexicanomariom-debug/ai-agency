@@ -1,0 +1,24 @@
+services:
+  bot:
+    build: .
+    container_name: personal-agent-bot
+    env_file:
+      - .env
+    volumes:
+      - agent-data:/app/data
+    restart: unless-stopped
+
+  oauth:
+    build: .
+    container_name: personal-agent-oauth
+    command: ["python", "-m", "api.oauth_main"]
+    env_file:
+      - .env
+    volumes:
+      - agent-data:/app/data
+    ports:
+      - "${OAUTH_HOST_PORT:-8081}:8080"
+    restart: unless-stopped
+
+volumes:
+  agent-data:
