@@ -116,6 +116,21 @@ jobs:
               sudo iptables -I INPUT -p tcp --dport 8081 -j ACCEPT || true
           '
 
+      - name: Verify OAuth port 8081
+        run: |
+          HOST="${{ secrets.ORACLE_HOST || '140.84.183.154' }}"
+          USER="${{ secrets.ORACLE_SSH_USER || 'ubuntu' }}"
+          ssh -o StrictHostKeyChecking=no "${USER}@${HOST}" '
+            echo "--- localhost:8081 from VM ---"
+            curl -sS --connect-timeout 5 http://127.0.0.1:8081/health || echo "local curl failed"
+            echo
+            echo "--- public IP from VM ---"
+            curl -sS --connect-timeout 5 http://140.84.183.154:8081/health || echo "public curl failed"
+            echo
+            echo "--- listening ports ---"
+            sudo ss -tlnp | grep -E ":808[01]" || true
+          '
+
       - name: Bot logs after deploy
         run: |
           HOST="${{ secrets.ORACLE_HOST || '140.84.183.154' }}"
@@ -134,5 +149,6 @@ jobs:
           print('GOOGLE_CLIENT_SECRET chars:', vals.get('GOOGLE_CLIENT_SECRET', 0))
           PY
             sudo docker compose -f docker-compose.prod.yml ps
-            sudo docker compose -f docker-compose.prod.yml logs bot --tail 40
+            sudo docker compose -f docker-compose.prod.yml logs bot --tail 20
+            sudo docker compose -f docker-compose.prod.yml logs oauth --tail 20
           "
