@@ -20,9 +20,8 @@ from bot.keyboards.inline import (
 from bot.middlewares.translator import MENU_BUTTONS
 from bot.states.recon import ReconSetupStates
 from bot.utils.messages import answer_menu
-from database.models import ReconSourceType
 from services.recon import format_event_message, get_recon_monitor
-from services.recon_providers import fetch_source_content
+from services.recon_providers import _parse_source_input, fetch_source_content
 from services.recon_service import SOURCE_TYPE_LABELS, VERDICT_LABELS, recon_service
 from services.recon_verifier import recon_verifier
 from services.user_service import user_service
@@ -40,7 +39,8 @@ def _panel_text(sources_count: int, enabled_count: int) -> str:
         "Мониторинг сайтов, Telegram, эко-календаря и соцсетей.\n"
         "При изменениях — AI-верификация достоверности.\n\n"
         f"Источников: {sources_count} (активных: {enabled_count})\n\n"
-        "<b>Добавить:</b> ➕ Источник\n"
+        "<b>Добавить:</b> ➕ Источник → 📢 Telegram → <code>@канал</code>\n"
+        "Или сразу: <code>/recon add @канал</code>\n"
         "<b>Верифицировать текст:</b> /recon verify ваш текст\n"
         "или перешлите сообщение с подписью <code>вериф:</code>"
     )
@@ -74,6 +74,10 @@ async def cmd_recon(message: Message, session: AsyncSession, state: FSMContext) 
     if sub == "verify" and len(parts) > 2:
         claim = parts[2].strip()
         await _verify_claim(message, claim)
+        return
+
+    if sub == "add" and len(parts) > 2:
+        await _add_source_from_text(message, session, state, " ".join(parts[2:]))
         return
 
     if sub == "list":
@@ -129,13 +133,76 @@ async def _show_sources(message: Message, session: AsyncSession) -> None:
     )
 
 
+async def _add_source_from_text(
+    message: Message,
+    session: AsyncSession,
+    state: FSMContext,
+    text: str,
+    *,
+    source_type: str | None = None,
+) -> None:
+    parsed_type, url, label = _parse_source_input(text, source_type)
+    if not url:
+        await answer_menu(message, "Укажите адрес, @канал или ссылку.")
+        return
+
+    user = await user_service.get_or_create(
+        session,
+        telegram_id=message.from_user.id,
+        username=message.from_user.username,
+        first_name=message.from_user.first_name,
+    )
+    await state.clear()
+    await answer_menu(message, "⏳ Добавляю источник и проверяю…")
+
+    source = await recon_service.add_source(
+        session,
+        user,
+        source_type=parsed_type,
+        url_or_handle=url,
+        label=label,
+    )
+
+    fetched = await fetch_source_content(parsed_type, url)
+    probe = ""
+    if fetched:
+        source.last_preview = fetched.content[:500]
+        source.last_content_hash = fetched.content_hash
+        preview = fetched.content[:200].replace("<", "").replace(">", "")
+        probe = f"\n\n✅ Пробное чтение OK ({len(fetched.content)} симв.):\n<i>{preview}…</i>"
+    else:
+        hints = {
+            "telegram": (
+                "\n\n⚠️ Канал пока не читается. Нужен <b>публичный</b> канал "
+                "(t.me/s/имя). Приватные каналы пока не поддерживаются."
+            ),
+            "website": "\n\n⚠️ Сайт не ответил. Проверьте URL или RSS-ссылку.",
+        }
+        probe = hints.get(parsed_type, "\n\n⚠️ Источник добавлен, но данные пока не получены.")
+
+    type_label = SOURCE_TYPE_LABELS.get(parsed_type, parsed_type)
+    await answer_menu(
+        message,
+        f"✅ Источник #{source.id} добавлен\n"
+        f"{type_label}: <b>{label or url}</b>{probe}",
+        reply_markup=recon_menu_keyboard(),
+        parse_mode="HTML",
+    )
+
+
 @router.callback_query(F.data == "recon:add")
 async def cb_recon_add(callback: CallbackQuery, state: FSMContext) -> None:
     await callback.answer()
-    await state.set_state(ReconSetupStates.waiting_type)
+    await state.set_state(ReconSetupStates.waiting_url)
+    await state.update_data(recon_source_type=None)
     if callback.message:
         await callback.message.answer(
-            "➕ <b>Новый источник</b>\n\nВыберите тип:",
+            "➕ <b>Новый источник</b>\n\n"
+            "Выберите тип кнопкой ниже <b>или сразу напишите</b>:\n"
+            "• <code>@канал</code>\n"
+            "• <code>https://t.me/канал</code>\n"
+            "• <code>https://site.com/feed.xml</code>\n\n"
+            "Быстро: <code>/recon add @канал</code>",
             reply_markup=recon_type_keyboard(),
             parse_mode="HTML",
         )
@@ -152,79 +219,29 @@ async def cb_recon_type(callback: CallbackQuery, state: FSMContext) -> None:
     await callback.answer()
 
     hints = {
-        "website": "URL сайта или RSS:\n• https://example.com/news\n• https://site.com/feed.xml",
-        "telegram": "Публичный канал:\n• @channelname\n• https://t.me/channelname",
-        "instagram": "Ссылка на профиль Instagram:\n• https://instagram.com/username",
-        "tiktok": "Ссылка на профиль TikTok:\n• https://tiktok.com/@username",
-        "econ_calendar": "Экономический календарь — введите <code>auto</code> или любой текст",
+        "website": "Отправьте URL сайта или RSS:\n• https://example.com/feed.xml",
+        "telegram": "Отправьте публичный канал:\n• @channelname\n• https://t.me/channelname",
+        "instagram": "Ссылка Instagram:\n• https://instagram.com/username",
+        "tiktok": "Ссылка TikTok:\n• https://tiktok.com/@username",
+        "econ_calendar": "Напишите <code>auto</code> или любой текст — подключу календарь на неделю",
     }
     label = SOURCE_TYPE_LABELS.get(source_type, source_type)
     if callback.message:
         await callback.message.answer(
-            f"{label}\n\n{hints.get(source_type, 'Укажите адрес:')}",
+            f"📢 <b>{label}</b>\n\n{hints.get(source_type, 'Укажите адрес:')}",
             parse_mode="HTML",
         )
 
 
 @router.message(ReconSetupStates.waiting_url, F.text)
-async def msg_recon_url(message: Message, state: FSMContext) -> None:
+async def msg_recon_url(message: Message, session: AsyncSession, state: FSMContext) -> None:
     if not message.text or message.text.startswith("/") or message.text in MENU_BUTTONS:
+        if message.text in MENU_BUTTONS and message.text != RECON_BUTTON:
+            await state.clear()
         return
     data = await state.get_data()
     source_type = data.get("recon_source_type")
-    url = message.text.strip()
-    if source_type == ReconSourceType.ECON_CALENDAR.value:
-        url = "ff_calendar_thisweek"
-    await state.update_data(recon_url=url)
-    await state.set_state(ReconSetupStates.waiting_label)
-    await answer_menu(
-        message,
-        f"📍 <b>{url[:80]}</b>\n\n"
-        "Название для списка (или «-» чтобы пропустить):",
-    )
-
-
-@router.message(ReconSetupStates.waiting_label, F.text)
-async def msg_recon_label(message: Message, session: AsyncSession, state: FSMContext) -> None:
-    if not message.text or message.text.startswith("/") or message.text in MENU_BUTTONS:
-        return
-
-    data = await state.get_data()
-    source_type = data.get("recon_source_type")
-    url = data.get("recon_url")
-    if not source_type or not url:
-        await state.clear()
-        await answer_menu(message, "Сессия истекла. Начните снова: 🔍 Разведка и Вериф")
-        return
-
-    label = None if message.text.strip() == "-" else message.text.strip()
-    user = await user_service.get_or_create(
-        session,
-        telegram_id=message.from_user.id,
-        username=message.from_user.username,
-        first_name=message.from_user.first_name,
-    )
-    source = await recon_service.add_source(
-        session,
-        user,
-        source_type=source_type,
-        url_or_handle=url,
-        label=label,
-    )
-    await state.clear()
-
-    monitor = get_recon_monitor()
-    if monitor:
-        await monitor.check_source(source)
-
-    type_label = SOURCE_TYPE_LABELS.get(source_type, source_type)
-    await answer_menu(
-        message,
-        f"✅ Источник добавлен (#{source.id})\n"
-        f"{type_label}: {label or url}\n\n"
-        "Первый опрос выполнен. Дальше — автоматически каждый час.",
-        reply_markup=recon_menu_keyboard(),
-    )
+    await _add_source_from_text(message, session, state, message.text.strip(), source_type=source_type)
 
 
 @router.callback_query(F.data == "recon:list")

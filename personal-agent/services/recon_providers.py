@@ -49,6 +49,44 @@ def _normalize_telegram_handle(value: str) -> str:
     return value.split("/")[0].split("?")[0]
 
 
+def _detect_source_type(text: str) -> str | None:
+    lowered = text.strip().lower()
+    if lowered in ("auto", "календарь", "calendar", "эко", "эконом"):
+        return ReconSourceType.ECON_CALENDAR.value
+    if lowered.startswith("@") or "t.me/" in lowered or "telegram.me/" in lowered:
+        return ReconSourceType.TELEGRAM.value
+    if "instagram.com" in lowered:
+        return ReconSourceType.INSTAGRAM.value
+    if "tiktok.com" in lowered:
+        return ReconSourceType.TIKTOK.value
+    if lowered.startswith("http") or "." in lowered:
+        return ReconSourceType.WEBSITE.value
+    return None
+
+
+def _parse_source_input(text: str, source_type: str | None = None) -> tuple[str, str, str | None]:
+    """Return (source_type, url_or_handle, label)."""
+    raw = text.strip()
+    label = None
+    if "|" in raw:
+        raw, label_part = [p.strip() for p in raw.split("|", 1)]
+        label = label_part or None
+
+    detected = source_type or _detect_source_type(raw)
+    if not detected:
+        detected = ReconSourceType.WEBSITE.value
+
+    if detected == ReconSourceType.ECON_CALENDAR.value:
+        return detected, "ff_calendar_thisweek", label or "Экономический календарь"
+
+    if detected == ReconSourceType.TELEGRAM.value:
+        handle = _normalize_telegram_handle(raw)
+        return detected, handle, label or f"@{handle}"
+
+    return detected, raw, label
+
+
+
 async def fetch_source_content(source_type: str, url_or_handle: str) -> FetchResult | None:
     fetchers = {
         ReconSourceType.WEBSITE.value: _fetch_website,
@@ -141,9 +179,20 @@ async def _fetch_telegram(handle: str) -> FetchResult | None:
     messages = re.findall(
         r'<div class="tgme_widget_message_text[^"]*"[^>]*>(.*?)</div>',
         html,
-        re.S,
+        re.S | re.I,
     )
     if not messages:
+        # Fallback: strip tags from whole page preview area
+        block = re.search(r'tgme_channel_history.*?tgme_footer', html, re.S | re.I)
+        if block:
+            content = _normalize_text(block.group(0))
+            if len(content) > 80:
+                return FetchResult(
+                    title=f"Telegram @{channel}",
+                    content=content,
+                    content_hash=_hash_content(content),
+                )
+        logger.warning("Telegram channel @%s: no messages in HTML", channel)
         return None
 
     texts = [_normalize_text(m, limit=500) for m in messages[-6:]]

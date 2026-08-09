@@ -41,6 +41,6 @@ class ClearTranslatorOnMenuMiddleware(BaseMiddleware):
                 await state.clear()
             elif event.text.startswith("/"):
                 command = event.text.split(maxsplit=1)[0].lower()
-                if command not in ("/translate", "/edit"):
+                if command not in ("/translate", "/edit", "/recon"):
                     await state.clear()
         return await handler(event, data)
