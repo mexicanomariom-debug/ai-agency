@@ -9,7 +9,11 @@ from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery, Message
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from bot.keyboards.inline import journal_menu_keyboard
+from bot.keyboards.inline import (
+    journal_entries_keyboard,
+    journal_entry_view_keyboard,
+    journal_menu_keyboard,
+)
 from bot.middlewares.translator import MENU_BUTTONS
 from bot.states.notebook import NotebookStates
 from bot.utils.messages import answer_menu
@@ -35,6 +39,18 @@ NOTEBOOK_MODE_ON = (
 )
 
 
+def _journal_back_callback(*, filter_kind: str | None, day_offset: int) -> str:
+    if filter_kind == "idea":
+        return "journal:filter:idea"
+    if filter_kind == "thought":
+        return "journal:filter:thought"
+    if filter_kind == "expense":
+        return "journal:filter:expense"
+    if day_offset == -1:
+        return "journal:yesterday"
+    return "journal:today"
+
+
 async def show_journal(
     message: Message,
     session: AsyncSession,
@@ -44,6 +60,7 @@ async def show_journal(
     enter_mode: bool = True,
     state: FSMContext | None = None,
     actor=None,
+    edit: bool = False,
 ) -> None:
     tg_user = actor or message.from_user
     if not tg_user:
@@ -55,27 +72,53 @@ async def show_journal(
         first_name=tg_user.first_name,
     )
     day_key = smart_journal_service.day_key_for_user(user, offset_days=day_offset)
-    entries = await journal_service.list_for_day(session, user, day_key, kind=filter_kind)
+    ideas_feed = filter_kind == "idea" and day_offset == 0
 
-    if day_offset == -1:
-        title = f"📔 Блокнот — вчера ({day_key})"
-    elif filter_kind == "idea":
-        title = f"💡 Идеи — {day_key}"
+    if ideas_feed:
+        entries = await journal_service.list_ideas_recent(session, user, limit=12)
+        title = "💡 Идеи — все недавние"
     else:
-        title = f"📔 Блокнот — сегодня ({day_key})"
+        entries = await journal_service.list_for_day(session, user, day_key, kind=filter_kind)
+        if day_offset == -1:
+            title = f"📔 Блокнот — вчера ({day_key})"
+        elif filter_kind == "idea":
+            title = f"💡 Идеи — {day_key}"
+        elif filter_kind == "thought":
+            title = f"💭 Мысли — {day_key}"
+        elif filter_kind == "expense":
+            title = f"💸 Траты — {day_key}"
+        else:
+            title = f"📔 Блокнот — сегодня ({day_key})"
 
     text = smart_journal_service.format_day_entries(
         entries,
         title=title,
         empty_hint=NOTEBOOK_EMPTY_HINT,
         filter_kind=filter_kind,
+        timezone=user.timezone or "UTC",
+        today_key=day_key,
+        ideas_feed=ideas_feed,
     )
 
     if enter_mode and state is not None:
         await state.set_state(NotebookStates.writing)
         text = f"{text}\n\n{NOTEBOOK_MODE_ON}"
 
-    await answer_menu(message, text, reply_markup=journal_menu_keyboard())
+    back_cb = _journal_back_callback(filter_kind=filter_kind, day_offset=day_offset)
+    markup = (
+        journal_entries_keyboard(entries, back_callback=back_cb)
+        if entries
+        else journal_menu_keyboard()
+    )
+
+    if edit:
+        try:
+            await message.edit_text(text, reply_markup=markup, parse_mode="HTML")
+            return
+        except TelegramBadRequest:
+            logger.debug("Could not edit journal message")
+
+    await answer_menu(message, text, reply_markup=markup, parse_mode="HTML")
 
 
 async def capture_notebook_message(
@@ -92,6 +135,7 @@ async def capture_notebook_message(
         message,
         "📔 <b>Записано:</b>\n" + "\n".join(f"• {line}" for line in acks),
         reply_markup=journal_menu_keyboard(),
+        parse_mode="HTML",
     )
 
 
@@ -115,7 +159,7 @@ async def cmd_journal(message: Message, session: AsyncSession, state: FSMContext
         )
         await answer_menu(message, "⏳ Готовлю сводку…")
         summary = await smart_journal_service.summarize_day(session, user)
-        await answer_menu(message, summary, reply_markup=journal_menu_keyboard())
+        await answer_menu(message, summary, reply_markup=journal_menu_keyboard(), parse_mode="HTML")
         return
 
     if sub in ("ideas", "идеи"):
@@ -151,7 +195,13 @@ async def cb_journal_today(callback: CallbackQuery, session: AsyncSession, state
         await callback.answer()
         return
     await callback.answer()
-    await show_journal(callback.message, session, state=state, actor=callback.from_user)
+    await show_journal(
+        callback.message,
+        session,
+        state=state,
+        actor=callback.from_user,
+        edit=True,
+    )
 
 
 @router.callback_query(F.data == "journal:yesterday")
@@ -166,6 +216,7 @@ async def cb_journal_yesterday(callback: CallbackQuery, session: AsyncSession) -
         day_offset=-1,
         enter_mode=False,
         actor=callback.from_user,
+        edit=True,
     )
 
 
@@ -182,6 +233,68 @@ async def cb_journal_filter(callback: CallbackQuery, session: AsyncSession) -> N
         filter_kind=kind,
         enter_mode=False,
         actor=callback.from_user,
+        edit=True,
+    )
+
+
+@router.callback_query(F.data.startswith("journal:view:"))
+async def cb_journal_view(callback: CallbackQuery, session: AsyncSession) -> None:
+    if not callback.data or not callback.from_user or not callback.message:
+        await callback.answer()
+        return
+    entry_id = int(callback.data.split(":")[-1])
+    user = await user_service.get_or_create(
+        session,
+        telegram_id=callback.from_user.id,
+        username=callback.from_user.username,
+        first_name=callback.from_user.first_name,
+    )
+    entry = await journal_service.get_entry(session, user, entry_id)
+    if not entry:
+        await callback.answer("Запись не найдена", show_alert=True)
+        return
+    await callback.answer()
+    back = "journal:filter:idea" if entry.kind == "idea" else "journal:today"
+    text = smart_journal_service.format_entry_detail(entry, timezone=user.timezone or "UTC")
+    try:
+        await callback.message.edit_text(
+            text,
+            reply_markup=journal_entry_view_keyboard(entry.id, back_callback=back),
+            parse_mode="HTML",
+        )
+    except TelegramBadRequest:
+        await callback.message.answer(
+            text,
+            reply_markup=journal_entry_view_keyboard(entry.id, back_callback=back),
+            parse_mode="HTML",
+        )
+
+
+@router.callback_query(F.data.startswith("journal:delete:"))
+async def cb_journal_delete(callback: CallbackQuery, session: AsyncSession) -> None:
+    if not callback.data or not callback.from_user or not callback.message:
+        await callback.answer()
+        return
+    entry_id = int(callback.data.split(":")[-1])
+    user = await user_service.get_or_create(
+        session,
+        telegram_id=callback.from_user.id,
+        username=callback.from_user.username,
+        first_name=callback.from_user.first_name,
+    )
+    entry = await journal_service.get_entry(session, user, entry_id)
+    ok = await journal_service.delete_entry(session, user, entry_id)
+    await callback.answer("Удалено" if ok else "Не найдено")
+    if not ok or not entry:
+        return
+    back_kind = entry.kind if entry.kind in ("idea", "thought", "expense") else None
+    await show_journal(
+        callback.message,
+        session,
+        filter_kind=back_kind,
+        enter_mode=False,
+        actor=callback.from_user,
+        edit=True,
     )
 
 
@@ -243,6 +356,7 @@ async def cmd_pulse(message: Message, session: AsyncSession) -> None:
         f"💓 Пульс: <b>{status}</b>\n"
         f"Утро: {user.digest_hour}:00 · Ночь: {user.night_hour}:00\n"
         "/pulse on · /pulse off · /ambient · /night",
+        parse_mode="HTML",
     )
 
 
@@ -270,6 +384,7 @@ async def cmd_ambient(message: Message, session: AsyncSession) -> None:
         f"🌊 Ambient: <b>{status}</b>\n"
         "Пиши как живому — «обед 500», «устал», «решил не брать проект».\n"
         "/ambient on · /ambient off",
+        parse_mode="HTML",
     )
 
 
@@ -287,7 +402,7 @@ async def cmd_night(message: Message, session: AsyncSession) -> None:
         if 0 <= hour <= 23:
             user.night_hour = hour
             user.night_enabled = True
-            await answer_menu(message, f"🌙 Ночной итог в <b>{hour}:00</b>.")
+            await answer_menu(message, f"🌙 Ночной итог в <b>{hour}:00</b>.", parse_mode="HTML")
             return
     arg = parts[1].strip().lower() if len(parts) > 1 else ""
     if arg in ("on", "вкл"):
@@ -303,4 +418,5 @@ async def cmd_night(message: Message, session: AsyncSession) -> None:
         message,
         f"🌙 Ночной итог: <b>{status}</b> ({user.night_hour}:00)\n"
         "/night on · /night off · /night 21",
+        parse_mode="HTML",
     )

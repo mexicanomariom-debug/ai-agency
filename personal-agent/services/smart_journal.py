@@ -42,6 +42,9 @@ SECTION_TITLES = {
     "insight": "✨ Инсайты",
 }
 
+_PREVIEW_LIMIT = 90
+_BUTTON_PREVIEW_LIMIT = 38
+
 
 @dataclass
 class JournalCapture:
@@ -60,6 +63,37 @@ class SmartJournalService:
         day = datetime.now(tz).date() + timedelta(days=offset_days)
         return day.isoformat()
 
+    @staticmethod
+    def preview_text(content: str, limit: int = _PREVIEW_LIMIT) -> str:
+        from bot.utils.html import h
+
+        one_line = " ".join(content.split())
+        if len(one_line) <= limit:
+            return h(one_line)
+        return h(one_line[: limit - 1] + "…")
+
+    @staticmethod
+    def button_preview(content: str, limit: int = _BUTTON_PREVIEW_LIMIT) -> str:
+        one_line = " ".join(content.split())
+        if len(one_line) <= limit:
+            return one_line
+        return one_line[: limit - 1] + "…"
+
+    def _entry_time(self, entry: JournalEntry, timezone: str) -> str:
+        if not entry.created_at:
+            return ""
+        tz = ZoneInfo(timezone or "UTC")
+        return entry.created_at.astimezone(tz).strftime("%H:%M")
+
+    def _entry_day_label(self, entry: JournalEntry, timezone: str, *, today_key: str) -> str:
+        if entry.day_key == today_key:
+            return "сегодня"
+        try:
+            day = datetime.fromisoformat(entry.day_key).strftime("%d.%m")
+        except ValueError:
+            day = entry.day_key
+        return day
+
     def format_entry(self, entry: JournalEntry, timezone: str = "UTC") -> str:
         from bot.utils.html import h
 
@@ -69,10 +103,23 @@ class SmartJournalService:
             extra = f" — {entry.amount:g} {entry.currency or ''}".rstrip()
         time_str = ""
         if entry.created_at:
-            tz = ZoneInfo(timezone)
-            local = entry.created_at.astimezone(tz)
-            time_str = f" <i>{local.strftime('%H:%M')}</i>"
+            time_str = f" <i>{self._entry_time(entry, timezone)}</i>"
         return f"{icon} {h(entry.content)}{extra}{time_str}"
+
+    def format_entry_detail(self, entry: JournalEntry, *, timezone: str = "UTC") -> str:
+        from bot.utils.html import bold, h
+
+        icon = KIND_ICONS.get(entry.kind, "📝")
+        label = KIND_LABELS.get(entry.kind, entry.kind)
+        lines = [
+            f"{icon} {bold(label)} · #{entry.id}",
+            f"<i>{entry.day_key} · {self._entry_time(entry, timezone)}</i>",
+            "",
+            h(entry.content),
+        ]
+        if entry.amount is not None:
+            lines.append(f"\n💰 {entry.amount:g} {entry.currency or ''}".rstrip())
+        return "\n".join(lines)
 
     def format_day_entries(
         self,
@@ -81,6 +128,9 @@ class SmartJournalService:
         title: str,
         empty_hint: str,
         filter_kind: str | None = None,
+        timezone: str = "UTC",
+        today_key: str | None = None,
+        ideas_feed: bool = False,
     ) -> str:
         from bot.utils.html import bold, h
 
@@ -91,32 +141,96 @@ class SmartJournalService:
         if not entries:
             return f"{bold(title)}\n\n{empty_hint}"
 
+        if ideas_feed and filter_kind == "idea":
+            return self._format_ideas_feed(entries, title=title, timezone=timezone, today_key=today_key or "")
+
         grouped: dict[str, list[JournalEntry]] = {}
         for entry in entries:
             grouped.setdefault(entry.kind, []).append(entry)
 
         order = ("idea", "thought", "decision", "expense", "mood", "insight")
-        lines = [bold(title), ""]
+        lines = [bold(title), f"<i>Записей: {len(entries)}</i>", ""]
         for kind in order:
             items = grouped.get(kind)
             if not items:
                 continue
             if not filter_kind:
                 lines.append(bold(SECTION_TITLES.get(kind, kind)))
-            for entry in items:
-                icon = KIND_ICONS.get(kind, "•")
-                extra = ""
-                if entry.amount is not None:
-                    extra = f" — {entry.amount:g} {entry.currency or ''}".rstrip()
-                time_str = ""
-                if entry.created_at:
-                    time_str = f" ({entry.created_at.strftime('%H:%M')})"
-                lines.append(f"{icon} {h(entry.content)}{extra}{time_str}")
-            lines.append("")
+            for idx, entry in enumerate(items, start=1):
+                lines.extend(
+                    self._format_entry_card_lines(
+                        entry,
+                        index=idx,
+                        timezone=timezone,
+                        today_key=today_key or entry.day_key,
+                        compact=bool(filter_kind),
+                    )
+                )
+            if not filter_kind:
+                lines.append("")
 
         while lines and not lines[-1].strip():
             lines.pop()
         return "\n".join(lines)
+
+    def _format_ideas_feed(
+        self,
+        entries: list[JournalEntry],
+        *,
+        title: str,
+        timezone: str,
+        today_key: str,
+    ) -> str:
+        from bot.utils.html import bold
+
+        lines = [
+            bold(title),
+            f"<i>{len(entries)} идей · новые сверху</i>",
+            "",
+        ]
+        for idx, entry in enumerate(entries, start=1):
+            lines.extend(
+                self._format_entry_card_lines(
+                    entry,
+                    index=idx,
+                    timezone=timezone,
+                    today_key=today_key,
+                    compact=True,
+                    show_day=True,
+                )
+            )
+        return "\n".join(lines)
+
+    def _format_entry_card_lines(
+        self,
+        entry: JournalEntry,
+        *,
+        index: int,
+        timezone: str,
+        today_key: str,
+        compact: bool,
+        show_day: bool = False,
+    ) -> list[str]:
+        from bot.utils.html import h
+
+        icon = KIND_ICONS.get(entry.kind, "•")
+        time_part = self._entry_time(entry, timezone)
+        day_part = ""
+        if show_day:
+            day_part = f"{self._entry_day_label(entry, timezone, today_key=today_key)} · "
+        header = f"<b>#{entry.id}</b> · {day_part}{time_part}"
+        preview = self.preview_text(entry.content)
+        extra = ""
+        if entry.amount is not None:
+            extra = f"\n💰 {entry.amount:g} {h(entry.currency or '')}".rstrip()
+
+        if compact:
+            return [f"{icon} {header}", preview + extra, ""]
+
+        lines = [f"{index}. {icon} {header}", preview + extra]
+        if not compact:
+            lines.append("")
+        return lines
 
     async def capture_text(
         self,

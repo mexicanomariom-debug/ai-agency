@@ -93,6 +93,40 @@ def journal_menu_keyboard() -> InlineKeyboardMarkup:
     )
 
 
+def journal_entries_keyboard(entries, *, back_callback: str = "journal:today") -> InlineKeyboardMarkup:
+    from services.smart_journal import smart_journal_service
+
+    rows: list[list[InlineKeyboardButton]] = []
+    for entry in entries[:8]:
+        icon = {"idea": "💡", "thought": "💭", "expense": "💸"}.get(entry.kind, "📔")
+        preview = smart_journal_service.button_preview(entry.content)
+        rows.append(
+            [
+                InlineKeyboardButton(
+                    text=f"{icon} #{entry.id} {preview}",
+                    callback_data=f"journal:view:{entry.id}",
+                ),
+            ]
+        )
+    rows.append([InlineKeyboardButton(text="◀️ К списку", callback_data=back_callback)])
+    rows.append([InlineKeyboardButton(text="❌ Выйти", callback_data="journal:exit")])
+    return InlineKeyboardMarkup(inline_keyboard=rows)
+
+
+def journal_entry_view_keyboard(entry_id: int, *, back_callback: str = "journal:filter:idea") -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [
+                InlineKeyboardButton(text="🗑 Удалить", callback_data=f"journal:delete:{entry_id}"),
+                InlineKeyboardButton(text="◀️ Назад", callback_data=back_callback),
+            ],
+            [
+                InlineKeyboardButton(text="❌ Выйти", callback_data="journal:exit"),
+            ],
+        ]
+    )
+
+
 def traffic_menu_keyboard(*, enabled: bool) -> InlineKeyboardMarkup:
     toggle = "❌ Выключить" if enabled else "✅ Включить"
     return InlineKeyboardMarkup(

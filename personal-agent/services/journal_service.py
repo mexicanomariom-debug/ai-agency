@@ -70,7 +70,21 @@ class JournalService:
             .order_by(JournalEntry.created_at.desc())
             .limit(limit)
         )
-        return list(reversed(result.scalars().all()))
+        return list(result.scalars().all())
+
+    async def get_entry(
+        self,
+        session: AsyncSession,
+        user: User,
+        entry_id: int,
+    ) -> JournalEntry | None:
+        result = await session.execute(
+            select(JournalEntry).where(
+                JournalEntry.id == entry_id,
+                JournalEntry.user_id == user.id,
+            )
+        )
+        return result.scalar_one_or_none()
 
     async def delete_entry(
         self,
