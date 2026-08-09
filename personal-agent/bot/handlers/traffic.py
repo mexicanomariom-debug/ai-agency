@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import logging
+
 from aiogram import F, Router
 from aiogram.exceptions import TelegramBadRequest
 from aiogram.filters import Command
@@ -19,9 +21,12 @@ from services.traffic import (
     format_traffic_message,
     is_check_window,
     provider_label,
+    traffic_check_error_hint,
 )
 from services.traffic_providers import is_russia_context, resolve_provider
 from services.user_service import user_service
+
+logger = logging.getLogger(__name__)
 
 router = Router(name="traffic")
 
@@ -90,13 +95,9 @@ async def _run_check(message: Message, user: User) -> None:
         return
 
     await answer_menu(message, "⏳ Проверяю трафик…")
-    result = await check_user_traffic(user)
+    result = await check_user_traffic(user, manual=True)
     if not result:
-        await answer_menu(
-            message,
-            "Не удалось получить данные. Для России — YANDEX_MAPS_API_KEY или DGIS_API_KEY, "
-            "для остальных — GOOGLE_MAPS_API_KEY.",
-        )
+        await answer_menu(message, traffic_check_error_hint(user))
         return
     await answer_menu(
         message,
@@ -384,16 +385,38 @@ async def cb_traffic_check(callback: CallbackQuery, session: AsyncSession) -> No
     if not getattr(user, "traffic_origin", None):
         await callback.answer("Сначала настройте монитор", show_alert=True)
         return
-    await callback.answer("Проверяю…")
-    result = await check_user_traffic(user)
-    if not result:
-        await callback.message.answer("Не удалось получить данные о трафике.")
+    mode = getattr(user, "traffic_mode", None) or "route"
+    if mode == "route" and not getattr(user, "traffic_destination", None):
+        await callback.answer("Сначала настройте маршрут", show_alert=True)
         return
-    await callback.message.answer(
-        format_traffic_message(result),
-        reply_markup=traffic_menu_keyboard(enabled=bool(user.traffic_enabled)),
-        parse_mode="HTML",
-    )
+
+    await callback.answer()
+    status_msg = await callback.message.answer("⏳ Проверяю трафик…")
+    result = None
+    try:
+        result = await check_user_traffic(user, manual=True)
+        if not result:
+            await status_msg.edit_text(traffic_check_error_hint(user))
+            return
+        await status_msg.edit_text(
+            format_traffic_message(result),
+            reply_markup=traffic_menu_keyboard(enabled=bool(user.traffic_enabled)),
+            parse_mode="HTML",
+        )
+    except TelegramBadRequest:
+        if result:
+            await callback.message.answer(
+                format_traffic_message(result),
+                reply_markup=traffic_menu_keyboard(enabled=bool(user.traffic_enabled)),
+                parse_mode="HTML",
+            )
+        else:
+            await callback.message.answer(traffic_check_error_hint(user))
+    except Exception:
+        logger.exception("Manual traffic check failed for user %s", user.id)
+        await status_msg.edit_text(
+            "❌ Ошибка при проверке трафика. Попробуйте ещё раз через минуту."
+        )
 
 
 @router.callback_query(F.data == "traffic:toggle")

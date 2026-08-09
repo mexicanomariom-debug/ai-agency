@@ -7,6 +7,7 @@ from datetime import datetime, time
 from typing import TYPE_CHECKING
 from zoneinfo import ZoneInfo
 
+from config import settings
 from services.traffic_providers import (
     PROVIDER_LABELS,
     TrafficResult,
@@ -94,8 +95,8 @@ def format_traffic_message(result: TrafficResult, *, alert: bool = False) -> str
     return "\n".join(lines)
 
 
-async def check_user_traffic(user: "User") -> TrafficResult | None:
-    if not getattr(user, "traffic_enabled", False):
+async def check_user_traffic(user: "User", *, manual: bool = False) -> TrafficResult | None:
+    if not manual and not getattr(user, "traffic_enabled", False):
         return None
 
     origin = getattr(user, "traffic_origin", None)
@@ -110,6 +111,35 @@ async def check_user_traffic(user: "User") -> TrafficResult | None:
     if not destination:
         return None
     return await fetch_traffic(user, origin, destination)
+
+
+def traffic_check_error_hint(user: "User") -> str:
+    origin = getattr(user, "traffic_origin", None)
+    if not origin:
+        return "Сначала настройте монитор: 🛣 Маршрут или 🏙 Район/улица."
+
+    mode = getattr(user, "traffic_mode", None) or "route"
+    if mode == "route" and not getattr(user, "traffic_destination", None):
+        return "Сначала настройте маршрут: кнопка 🛣 Маршрут."
+
+    if is_russia_context(user):
+        if not settings.yandex_maps_api_key and not settings.dgis_api_key and not settings.google_maps_api_key:
+            return (
+                "Нет ключей карт для России. Добавьте YANDEX_MAPS_API_KEY, DGIS_API_KEY "
+                "или GOOGLE_MAPS_API_KEY в секреты деплоя."
+            )
+        return (
+            "Не удалось получить данные от Яндекс/2ГИС/Google. "
+            "Проверьте, что в кабинете карт включены API геокодера и маршрутизации."
+        )
+
+    if not settings.google_maps_api_key:
+        return "Не настроен GOOGLE_MAPS_API_KEY. Включите Geocoding API и Directions API в Google Cloud."
+
+    return (
+        "Не удалось получить данные от Google Maps. "
+        "Проверьте, что в Google Cloud включены Geocoding API и Directions API для этого ключа."
+    )
 
 
 async def maybe_notify_traffic(

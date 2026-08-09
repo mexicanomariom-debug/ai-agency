@@ -2,8 +2,10 @@
 
 from __future__ import annotations
 
+import asyncio
 import logging
 import math
+import time
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
@@ -133,9 +135,6 @@ async def fetch_traffic_for_user(user: "User", origin: str, destination: str) ->
     return None
 
 
-    return None
-
-
 async def fetch_area_traffic_for_user(user: "User", location: str) -> TrafficResult | None:
     """Probe traffic around a city, district or street."""
     provider = resolve_provider(user, location, location)
@@ -150,8 +149,14 @@ async def fetch_area_traffic_for_user(user: "User", location: str) -> TrafficRes
     probes = _probe_points(center[0], center[1])
     delays: list[tuple[str, int, int, int]] = []
 
-    for lat, lon, direction in probes:
-        delay_info = await _route_delay(provider, center, (lat, lon))
+    probe_results = await asyncio.gather(
+        *[_route_delay(provider, center, (lat, lon)) for lat, lon, _direction in probes],
+        return_exceptions=True,
+    )
+    for (lat, lon, direction), delay_info in zip(probes, probe_results, strict=True):
+        if isinstance(delay_info, Exception):
+            logger.warning("Area probe failed (%s): %s", direction, delay_info)
+            continue
         if delay_info:
             base_min, traffic_min, delay = delay_info
             delays.append((direction, base_min, traffic_min, delay))
@@ -247,6 +252,12 @@ async def _google_geocode(address: str) -> tuple[float, float] | None:
             resp.raise_for_status()
             data = resp.json()
         if data.get("status") != "OK" or not data.get("results"):
+            logger.warning(
+                "Google geocode status: %s error: %s for %s",
+                data.get("status"),
+                data.get("error_message"),
+                address,
+            )
             return None
         loc = data["results"][0]["geometry"]["location"]
         return float(loc["lat"]), float(loc["lng"])
@@ -263,7 +274,7 @@ async def fetch_google_traffic(origin: str, destination: str) -> TrafficResult |
     params = {
         "origin": origin,
         "destination": destination,
-        "departure_time": "now",
+        "departure_time": int(time.time()),
         "traffic_model": "best_guess",
         "language": "ru",
         "key": api_key,
@@ -278,7 +289,11 @@ async def fetch_google_traffic(origin: str, destination: str) -> TrafficResult |
         return None
 
     if data.get("status") != "OK" or not data.get("routes"):
-        logger.warning("Google Directions status: %s", data.get("status"))
+        logger.warning(
+            "Google Directions status: %s error: %s",
+            data.get("status"),
+            data.get("error_message"),
+        )
         return None
 
     leg = data["routes"][0]["legs"][0]
