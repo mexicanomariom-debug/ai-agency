@@ -110,13 +110,7 @@ async def handle_translate_text(message: Message, session: AsyncSession, state: 
         first_name=message.from_user.first_name,
     )
     target = user.translate_target_lang or "en"
-
-    inline = translator_service.parse_inline_request(message.text)
-    if inline:
-        target = inline.target_lang or target
-        text = inline.text
-    else:
-        text = message.text
+    text = message.text
 
     await message.bot.send_chat_action(message.chat.id, "typing")
     await _translate_and_reply(message, session, text, target)

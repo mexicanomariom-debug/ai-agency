@@ -2,10 +2,12 @@ from aiogram import Dispatcher
 
 from bot.handlers import assistant, calendar, notes, phone, start, tasks, translator, voice
 from bot.middlewares.db import DbSessionMiddleware
+from bot.middlewares.translator import ClearTranslatorOnMenuMiddleware
 
 
 def setup_dispatcher(dp: Dispatcher) -> None:
     dp.update.middleware(DbSessionMiddleware())
+    dp.update.middleware(ClearTranslatorOnMenuMiddleware())
     dp.include_router(start.router)
     dp.include_router(tasks.router)
     dp.include_router(calendar.router)

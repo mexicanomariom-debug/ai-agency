@@ -2,14 +2,13 @@ from aiogram import F, Router
 from aiogram.types import Message
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from bot.copy import NOTE_CREATED, PARSE_FAILED, TASK_LIST_EMPTY, TASK_TODAY_HEADER, TRANSLATE_NEED_OPENAI, TRANSLATE_RESULT
+from bot.copy import NOTE_CREATED, PARSE_FAILED, TASK_LIST_EMPTY, TASK_TODAY_HEADER
 from database.models import User
 from services.assistant import Intent, assistant_service
 from services.chat_history import chat_history_service
 from services.note_service import note_service
 from services.task_flow import format_due_at, format_notify_types, reply_with_created_tasks
 from services.task_parser import task_parser
-from services.translator import translator_service
 from services.user_service import task_service, user_service
 
 router = Router()
@@ -91,26 +90,4 @@ async def handle_text(message: Message, session: AsyncSession) -> None:
         username=message.from_user.username,
         first_name=message.from_user.first_name,
     )
-
-    inline_translate = translator_service.parse_inline_request(message.text)
-    if inline_translate:
-        if not translator_service.available:
-            await message.answer(TRANSLATE_NEED_OPENAI)
-            return
-        target = inline_translate.target_lang or user.translate_target_lang or "en"
-        await message.bot.send_chat_action(message.chat.id, "typing")
-        result = await translator_service.translate(inline_translate.text, target)
-        if result:
-            await message.answer(
-                TRANSLATE_RESULT.format(
-                    source_lang=result.source_lang,
-                    target_lang=result.target_lang,
-                    source=result.source_text,
-                    translation=result.translated_text,
-                )
-            )
-        else:
-            await message.answer("Не удалось перевести.")
-        return
-
     await process_user_message(message, session, user, message.text)
