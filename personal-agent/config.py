@@ -1,8 +1,14 @@
+from pydantic import AliasChoices, Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
-    model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
+    model_config = SettingsConfigDict(
+        env_file=".env",
+        env_file_encoding="utf-8",
+        extra="ignore",
+        populate_by_name=True,
+    )
 
     bot_token: str = ""
     openai_api_key: str = ""
@@ -19,7 +25,13 @@ class Settings(BaseSettings):
     google_client_secret: str = ""
     google_redirect_uri: str = "https://ai-agency-drab.vercel.app/api/google/oauth/callback"
     oauth_server_port: int = 8080
-    internal_api_secret: str = ""
+    internal_api_secret: str = Field(
+        default="",
+        validation_alias=AliasChoices(
+            "INTERNAL_API_SECRET",
+            "PERSONAL_AGENT_INTERNAL_SECRET",
+        ),
+    )
 
     # Twilio phone calls
     twilio_account_sid: str = ""
