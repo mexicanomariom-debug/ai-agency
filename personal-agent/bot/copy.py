@@ -8,6 +8,7 @@ WELCOME = (
     "🤖 <b>AI</b> — свободный диалог (нужен OPENAI_API_KEY)\n"
     "🌐 <b>Переводчик</b> — перевод текста и голоса\n\n"
     "Пример: «Завтра в 9:00 напомни позвонить маме»\n"
+    "Часовой пояс: /timezone playa (Playa del Carmen)\n"
     "Команды: /help"
 )
 
@@ -38,7 +39,8 @@ HELP_TEXT = (
     "/tasks_done — завершённые и отменённые\n"
     "/restore &lt;id&gt; — вернуть задачу в активные\n"
     "/done &lt;id&gt; · /cancel &lt;id&gt;\n"
-    "/timezone Europe/Moscow\n\n"
+    "/timezone playa — Playa del Carmen (UTC−5)\n"
+    "/timezone — текущий часовой пояс\n\n"
     "<b>Кнопки при напоминании</b>\n"
     "• Выполнено — убрать из активных\n"
     "• Через 15 мин — отложить (задача остаётся)\n"
@@ -89,8 +91,17 @@ PARSE_FAILED = (
     "«Завтра в 10:00 купить молоко»"
 )
 
-TIMEZONE_UPDATED = "Часовой пояс обновлён: <b>{timezone}</b>"
-INVALID_TIMEZONE = "Неверный часовой пояс. Пример: Europe/Moscow, Asia/Almaty"
+TIMEZONE_UPDATED = (
+    "Часовой пояс обновлён: <b>{timezone}</b>\n"
+    "Все новые задачи будут в этом времени."
+)
+INVALID_TIMEZONE = (
+    "Не понял часовой пояс.\n"
+    "Примеры:\n"
+    "/timezone playa — Playa del Carmen\n"
+    "/timezone America/Cancun\n"
+    "/timezone Europe/Moscow"
+)
 
 NOTIFY_MESSAGE = "сообщение"
 NOTIFY_CALL = "звонок"
@@ -122,8 +133,8 @@ CALENDAR_DISABLED = "Синхронизация с Google Calendar отключ�
 CALENDAR_STATUS = (
     "📅 Календарь: {status}\n"
     "Часовой пояс бота: <b>{timezone}</b>\n\n"
-    "В Google Calendar время должно совпадать, если там выбран тот же часовой пояс.\n"
-    "Настройки Google → Общие → Часовой пояс\n\n"
+    "В Google Calendar выберите тот же часовой пояс, что и в боте (/timezone).\n"
+    "Playa del Carmen: /timezone playa\n\n"
     "Синхронизировать: /calendar_sync\n"
     "Пересоздать события: /calendar_resync"
 )

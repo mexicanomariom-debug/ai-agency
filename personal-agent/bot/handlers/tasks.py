@@ -145,22 +145,36 @@ async def cmd_cancel(message: Message, session: AsyncSession) -> None:
 
 @router.message(Command("timezone"))
 async def cmd_timezone(message: Message, session: AsyncSession) -> None:
-    parts = (message.text or "").split(maxsplit=1)
-    if len(parts) < 2:
-        await answer_menu(message, "Использование: /timezone Europe/Moscow")
-        return
-
     user = await user_service.get_or_create(
         session,
         telegram_id=message.from_user.id,
         username=message.from_user.username,
         first_name=message.from_user.first_name,
     )
+
+    parts = (message.text or "").split(maxsplit=1)
+    if len(parts) < 2:
+        now = format_due_at(datetime.now(ZoneInfo("UTC")), user.timezone)
+        await answer_menu(
+            message,
+            f"Сейчас у вас: <b>{user.timezone}</b>\n"
+            f"Локальное время: {now}\n\n"
+            "Сменить:\n"
+            "/timezone playa — Playa del Carmen (UTC−5)\n"
+            "/timezone America/Cancun\n"
+            "/timezone Europe/Moscow",
+        )
+        return
+
     ok = await user_service.set_timezone(session, user, parts[1].strip())
     if not ok:
         await answer_menu(message, INVALID_TIMEZONE)
         return
-    await answer_menu(message, TIMEZONE_UPDATED.format(timezone=user.timezone))
+    await answer_menu(
+        message,
+        TIMEZONE_UPDATED.format(timezone=user.timezone)
+        + "\n\nЕсли подключён Google Calendar — выполните /calendar_resync",
+    )
 
 
 @router.message(Command("tasks_done"))
@@ -212,7 +226,7 @@ async def cmd_restore(message: Message, session: AsyncSession) -> None:
     if not task:
         await answer_menu(message, TASK_NOT_FOUND)
         return
-    if task.status.value == "pending":
+    if task.status == TaskStatus.PENDING:
         await answer_menu(message, f"Задача #{task_id} уже активна.")
         return
 

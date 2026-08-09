@@ -1,7 +1,46 @@
 from __future__ import annotations
 
 from datetime import datetime
-from zoneinfo import ZoneInfo
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
+
+# Friendly names -> IANA timezone
+TIMEZONE_ALIASES: dict[str, str] = {
+    "playa del carmen": "America/Cancun",
+    "playa": "America/Cancun",
+    "кармен": "America/Cancun",
+    "плайя": "America/Cancun",
+    "cancun": "America/Cancun",
+    "канкун": "America/Cancun",
+    "quintana roo": "America/Cancun",
+    "мексика": "America/Cancun",
+    "mexico": "America/Cancun",
+    "moscow": "Europe/Moscow",
+    "москва": "Europe/Moscow",
+    "msk": "Europe/Moscow",
+}
+
+
+def resolve_timezone(name: str) -> str | None:
+    """Resolve IANA timezone or friendly alias."""
+    raw = name.strip()
+    if not raw:
+        return None
+
+    key = raw.lower().replace("_", " ")
+    if key in TIMEZONE_ALIASES:
+        return TIMEZONE_ALIASES[key]
+
+    try:
+        ZoneInfo(raw)
+        return raw
+    except ZoneInfoNotFoundError:
+        pass
+
+    for alias, tz in TIMEZONE_ALIASES.items():
+        if key in alias or alias in key:
+            return tz
+
+    return None
 
 
 def ensure_utc(dt: datetime) -> datetime:

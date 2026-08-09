@@ -2,13 +2,14 @@ from __future__ import annotations
 
 import re
 from datetime import datetime
-from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
+from zoneinfo import ZoneInfo
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from config import settings
 from database.models import Task, TaskStatus, User
+from services.time_utils import resolve_timezone
 
 PHONE_RE = re.compile(r"^\+[1-9]\d{7,14}$")
 
@@ -40,11 +41,10 @@ class UserService:
         return user
 
     async def set_timezone(self, session: AsyncSession, user: User, timezone: str) -> bool:
-        try:
-            ZoneInfo(timezone)
-        except ZoneInfoNotFoundError:
+        resolved = resolve_timezone(timezone)
+        if not resolved:
             return False
-        user.timezone = timezone
+        user.timezone = resolved
         return True
 
     def normalize_phone(self, phone: str) -> str | None:
