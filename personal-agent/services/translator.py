@@ -226,10 +226,10 @@ class TranslatorService:
             resolved_target = explicit_target
         else:
             target_instruction = (
-                "Detect the source language (ISO 639-1). "
-                "Default rules: if source is Russian (ru), translate to English (en); "
-                "for any other language, translate to Russian (ru). "
-                "If the user asked for a specific target language in the message, use that instead."
+                "Detect the source language (ISO 639-1) accurately — Spanish is es, not ru. "
+                "Translate into Russian (ru) unless the source is already Russian. "
+                "If source is Russian (ru), translate into English (en). "
+                "Never output the same language as both source and target unless impossible."
             )
             resolved_target = "auto"
 
@@ -261,10 +261,18 @@ class TranslatorService:
             out_target = normalize_lang_code(data.get("target_lang"))
 
             if resolved_target == "auto":
-                if not out_target or out_target == "?":
-                    out_target = self.resolve_auto_target(source_lang, user_preferred_lang)
+                out_target = self.resolve_auto_target(source_lang, user_preferred_lang)
             else:
                 out_target = resolved_target
+
+            if source_lang == out_target:
+                if source_lang == "ru":
+                    out_target = self.resolve_auto_target("ru", user_preferred_lang)
+                else:
+                    out_target = "ru"
+
+            if translation.lower().strip() == text.lower().strip() and source_lang == out_target:
+                return None
 
             return TranslationResult(
                 source_text=text,

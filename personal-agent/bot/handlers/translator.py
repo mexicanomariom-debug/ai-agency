@@ -10,6 +10,7 @@ from bot.copy import (
     TRANSLATE_NEED_OPENAI,
     TRANSLATE_PROMPT,
     TRANSLATE_RESULT,
+    TRANSLATE_SAME_LANG,
     TRANSLATE_UNKNOWN_LANG,
 )
 from bot.states.translator import TranslatorStates
@@ -29,6 +30,27 @@ async def _enter_translator(message: Message, state: FSMContext) -> None:
 
     await state.set_state(TranslatorStates.waiting_text)
     await answer_menu(message, TRANSLATE_PROMPT)
+
+
+async def translate_user_text(
+    message: Message,
+    session: AsyncSession,
+    text: str,
+    *,
+    explicit_target: str | None = None,
+) -> bool:
+    user = await user_service.get_or_create(
+        session,
+        telegram_id=message.from_user.id,
+        username=message.from_user.username,
+        first_name=message.from_user.first_name,
+    )
+    return await _translate_and_reply(
+        message,
+        text,
+        user_preferred_lang=user.translate_target_lang,
+        explicit_target=explicit_target,
+    )
 
 
 async def _translate_and_reply(
@@ -57,7 +79,7 @@ async def _translate_and_reply(
         user_preferred_lang=user_preferred_lang,
     )
     if not result:
-        await answer_menu(message, "Не удалось перевести. Попробуйте ещё раз.")
+        await answer_menu(message, TRANSLATE_SAME_LANG)
         return False
 
     await answer_menu(
@@ -70,6 +92,15 @@ async def _translate_and_reply(
         ),
     )
     return True
+
+
+def is_translate_request(text: str) -> bool:
+    if translator_service.parse_inline_request(text):
+        return True
+    if translator_service.parse_target_prefix(text):
+        return True
+    lower = text.strip().lower()
+    return lower.startswith(("переведи", "перевод", "translate"))
 
 
 @router.message(Command("translate"))
@@ -121,16 +152,16 @@ async def handle_translate_text(message: Message, session: AsyncSession, state: 
         await answer_menu(message, TRANSLATE_EXIT)
         return
 
-    user = await user_service.get_or_create(
-        session,
-        telegram_id=message.from_user.id,
-        username=message.from_user.username,
-        first_name=message.from_user.first_name,
-    )
+    await message.bot.send_chat_action(message.chat.id, "typing")
+    await translate_user_text(message, session, message.text or "")
+
+
+@router.message(TranslatorStates.waiting_text, F.voice)
+async def handle_translate_voice(message: Message, session: AsyncSession, state: FSMContext) -> None:
+    from bot.handlers.voice import transcribe_for_user
 
     await message.bot.send_chat_action(message.chat.id, "typing")
-    await _translate_and_reply(
-        message,
-        message.text,
-        user_preferred_lang=user.translate_target_lang,
-    )
+    text = await transcribe_for_user(message, in_translator=True)
+    if not text:
+        return
+    await translate_user_text(message, session, text)

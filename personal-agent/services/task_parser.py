@@ -38,6 +38,11 @@ class TaskParser:
         self._openai = AsyncOpenAI(api_key=settings.openai_api_key) if settings.openai_api_key else None
 
     async def parse(self, text: str, timezone: str) -> ParseResult:
+        from services.translator import translator_service
+
+        if translator_service.parse_inline_request(text) or translator_service.parse_target_prefix(text):
+            return ParseResult(tasks=[])
+
         if self._openai:
             try:
                 result = await self._parse_with_llm(text, timezone)

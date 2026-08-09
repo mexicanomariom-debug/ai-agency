@@ -20,7 +20,13 @@ class SpeechToText:
     def available(self) -> bool:
         return self._client is not None
 
-    async def transcribe_telegram_voice(self, bot: Bot, file_id: str) -> str | None:
+    async def transcribe_telegram_voice(
+        self,
+        bot: Bot,
+        file_id: str,
+        *,
+        language: str | None = None,
+    ) -> str | None:
         if not self._client:
             return None
 
@@ -33,11 +39,13 @@ class SpeechToText:
         try:
             await bot.download_file(file.file_path, tmp_path)
             with tmp_path.open("rb") as audio_file:
-                response = await self._client.audio.transcriptions.create(
-                    model=settings.openai_whisper_model,
-                    file=audio_file,
-                    language="ru",
-                )
+                kwargs: dict = {
+                    "model": settings.openai_whisper_model,
+                    "file": audio_file,
+                }
+                if language:
+                    kwargs["language"] = language
+                response = await self._client.audio.transcriptions.create(**kwargs)
             text = (response.text or "").strip()
             return text or None
         except Exception:

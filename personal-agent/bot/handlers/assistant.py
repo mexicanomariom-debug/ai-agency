@@ -1,9 +1,12 @@
 from aiogram import F, Router
+from aiogram.fsm.context import FSMContext
 from aiogram.types import Message
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from bot.copy import NOTE_CREATED, PARSE_FAILED
 from bot.handlers.tasks import cmd_tasks, cmd_today
+from bot.handlers.translator import is_translate_request, translate_user_text
+from bot.states.translator import TranslatorStates
 from bot.utils.messages import answer_menu
 from database.models import User
 from services.assistant import Intent, assistant_service
@@ -22,6 +25,11 @@ async def process_user_message(
     user: User,
     text: str,
 ) -> None:
+    if is_translate_request(text):
+        await message.bot.send_chat_action(message.chat.id, "typing")
+        await translate_user_text(message, session, text)
+        return
+
     parsed = await task_parser.parse(text, user.timezone)
     if parsed.tasks:
         await reply_with_created_tasks(message, session, user, parsed)
@@ -64,8 +72,11 @@ async def process_user_message(
 
 
 @router.message(F.text)
-async def handle_text(message: Message, session: AsyncSession) -> None:
+async def handle_text(message: Message, session: AsyncSession, state: FSMContext) -> None:
     if not message.text or message.text.startswith("/"):
+        return
+
+    if await state.get_state() == TranslatorStates.waiting_text.state:
         return
 
     quick_buttons = {
