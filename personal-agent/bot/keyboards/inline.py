@@ -102,12 +102,12 @@ def traffic_menu_keyboard(*, enabled: bool) -> InlineKeyboardMarkup:
                 InlineKeyboardButton(text="🏙 Район/улица", callback_data="traffic:setup:area"),
             ],
             [
-                InlineKeyboardButton(text="🔄 Проверить", callback_data="traffic:check"),
+                InlineKeyboardButton(text="🔄 Авто", callback_data="traffic:check"),
             ],
             [
-                InlineKeyboardButton(text="🗺 Яндекс", callback_data="traffic:provider:yandex"),
-                InlineKeyboardButton(text="🗺 2ГИС", callback_data="traffic:provider:dgis"),
-                InlineKeyboardButton(text="🗺 Google", callback_data="traffic:provider:google"),
+                InlineKeyboardButton(text="🗺 Яндекс", callback_data="traffic:check:yandex"),
+                InlineKeyboardButton(text="🗺 2ГИС", callback_data="traffic:check:dgis"),
+                InlineKeyboardButton(text="🗺 Google", callback_data="traffic:check:google"),
             ],
             [
                 InlineKeyboardButton(text=toggle, callback_data="traffic:toggle"),

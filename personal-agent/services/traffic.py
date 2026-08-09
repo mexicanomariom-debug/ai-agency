@@ -12,10 +12,12 @@ from services.traffic_providers import (
     PROVIDER_LABELS,
     TrafficResult,
     consume_google_last_error,
+    consume_provider_last_error,
     diagnose_google_maps,
     fetch_area_traffic_for_user,
     fetch_traffic_for_user,
     is_russia_context,
+    resolve_provider,
 )
 
 if TYPE_CHECKING:
@@ -52,12 +54,23 @@ def provider_label(provider: str | None) -> str:
     return PROVIDER_LABELS.get(provider or "google", provider or "Google Maps")
 
 
-async def fetch_traffic(user: "User", origin: str, destination: str) -> TrafficResult | None:
-    return await fetch_traffic_for_user(user, origin, destination)
+async def fetch_traffic(
+    user: "User",
+    origin: str,
+    destination: str,
+    *,
+    provider_override: str | None = None,
+) -> TrafficResult | None:
+    return await fetch_traffic_for_user(user, origin, destination, provider_override=provider_override)
 
 
-async def fetch_area_traffic(user: "User", location: str) -> TrafficResult | None:
-    return await fetch_area_traffic_for_user(user, location)
+async def fetch_area_traffic(
+    user: "User",
+    location: str,
+    *,
+    provider_override: str | None = None,
+) -> TrafficResult | None:
+    return await fetch_area_traffic_for_user(user, location, provider_override=provider_override)
 
 
 def format_traffic_message(result: TrafficResult, *, alert: bool = False) -> str:
@@ -97,7 +110,12 @@ def format_traffic_message(result: TrafficResult, *, alert: bool = False) -> str
     return "\n".join(lines)
 
 
-async def check_user_traffic(user: "User", *, manual: bool = False) -> TrafficResult | None:
+async def check_user_traffic(
+    user: "User",
+    *,
+    manual: bool = False,
+    provider_override: str | None = None,
+) -> TrafficResult | None:
     if not manual and not getattr(user, "traffic_enabled", False):
         return None
 
@@ -107,38 +125,58 @@ async def check_user_traffic(user: "User", *, manual: bool = False) -> TrafficRe
 
     mode = getattr(user, "traffic_mode", None) or "route"
     if mode == "area":
-        return await fetch_area_traffic(user, origin)
+        return await fetch_area_traffic(user, origin, provider_override=provider_override)
 
     destination = getattr(user, "traffic_destination", None)
     if not destination:
         return None
-    return await fetch_traffic(user, origin, destination)
+    return await fetch_traffic(user, origin, destination, provider_override=provider_override)
 
 
-def traffic_check_error_hint(user: "User", *, google_detail: str | None = None) -> str:
+def traffic_check_error_hint(
+    user: "User",
+    *,
+    google_detail: str | None = None,
+    provider_override: str | None = None,
+) -> str:
     origin = getattr(user, "traffic_origin", None)
     if not origin:
         return "Сначала настройте монитор: 🛣 Маршрут или 🏙 Район/улица."
 
     mode = getattr(user, "traffic_mode", None) or "route"
-    if mode == "route" and not getattr(user, "traffic_destination", None):
+    dest = getattr(user, "traffic_destination", None) if mode == "route" else origin
+    if mode == "route" and not dest:
         return "Сначала настройте маршрут: кнопка 🛣 Маршрут."
 
-    if is_russia_context(user):
+    russia = is_russia_context(user, origin, dest or origin)
+    forced = provider_override or "auto"
+    provider_err = consume_provider_last_error(forced if forced != "auto" else resolve_provider(user, origin, dest or origin))
+
+    if forced in ("yandex", "dgis") and not russia:
+        return (
+            f"{provider_label(forced)} работает для России/СНГ.\n"
+            f"Для «{origin}» используйте 🔄 Авто или 🗺 Google."
+        )
+
+    if russia:
         if not settings.yandex_maps_api_key and not settings.dgis_api_key and not settings.google_maps_api_key:
             return (
                 "Нет ключей карт для России. Добавьте YANDEX_MAPS_API_KEY, DGIS_API_KEY "
                 "или GOOGLE_MAPS_API_KEY в секреты деплоя."
             )
-        return (
-            "Не удалось получить данные от Яндекс/2ГИС/Google. "
-            "Проверьте, что в кабинете карт включены API геокодера и маршрутизации."
+        lines = [f"Не удалось получить данные ({provider_label(forced)})."]
+        if provider_err:
+            lines.append(f"\n<b>Детали:</b> {provider_err}")
+        lines.append(
+            "\n\nПроверьте ключи: Яндекс — HTTP Геокодер + API Маршрутизации; "
+            "2ГИС — Geocoder + Routing API."
         )
+        return "".join(lines)
 
     if not settings.google_maps_api_key:
         return "Не настроен GOOGLE_MAPS_API_KEY. Создайте отдельный ключ для карт в Google Cloud."
 
-    detail = google_detail or consume_google_last_error()
+    detail = google_detail or provider_err or consume_google_last_error()
     lines = ["Не удалось получить данные от Google Maps."]
     if detail:
         lines.append(f"\n<b>Детали:</b> {detail}")
@@ -154,11 +192,23 @@ def traffic_check_error_hint(user: "User", *, google_detail: str | None = None) 
     return "".join(lines)
 
 
-async def traffic_check_error_hint_async(user: "User") -> str:
+async def traffic_check_error_hint_async(
+    user: "User",
+    *,
+    provider_override: str | None = None,
+) -> str:
     detail = consume_google_last_error()
-    if not detail and not is_russia_context(user) and settings.google_maps_api_key:
+    origin = getattr(user, "traffic_origin", None) or ""
+    mode = getattr(user, "traffic_mode", None) or "route"
+    dest = getattr(user, "traffic_destination", None) if mode == "route" else origin
+    if (
+        not detail
+        and not is_russia_context(user, origin, dest or origin)
+        and settings.google_maps_api_key
+        and (provider_override in (None, "auto", "google"))
+    ):
         detail = await diagnose_google_maps()
-    return traffic_check_error_hint(user, google_detail=detail)
+    return traffic_check_error_hint(user, google_detail=detail, provider_override=provider_override)
 
 
 async def maybe_notify_traffic(

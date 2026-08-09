@@ -78,6 +78,8 @@ PROVIDER_LABELS = {
 }
 
 _google_last_error: str | None = None
+_dgis_last_error: str | None = None
+_yandex_last_error: str | None = None
 
 
 def consume_google_last_error() -> str | None:
@@ -87,11 +89,41 @@ def consume_google_last_error() -> str | None:
     return err
 
 
+def consume_provider_last_error(provider: str) -> str | None:
+    global _dgis_last_error, _yandex_last_error
+    if provider == "dgis":
+        err = _dgis_last_error
+        _dgis_last_error = None
+        return err
+    if provider == "yandex":
+        err = _yandex_last_error
+        _yandex_last_error = None
+        return err
+    return consume_google_last_error()
+
+
 def _set_google_error(status: str | None, error_message: str | None = None, *, context: str = "") -> None:
     global _google_last_error
     parts = [p for p in (status, error_message, context) if p]
     if parts:
         _google_last_error = ": ".join(parts)
+
+
+def _set_provider_error(provider: str, message: str) -> None:
+    global _dgis_last_error, _yandex_last_error
+    if provider == "dgis":
+        _dgis_last_error = message
+    elif provider == "yandex":
+        _yandex_last_error = message
+
+
+def _parse_2gis_meta(data: dict) -> str | None:
+    meta = data.get("meta") or {}
+    code = meta.get("code")
+    if code and code != 200:
+        err = meta.get("error") or {}
+        return f"2ГИС {code}: {err.get('message') or err.get('type') or 'ошибка API'}"
+    return None
 
 
 @dataclass
@@ -113,16 +145,48 @@ class TrafficResult:
 
 
 def is_russia_context(user: "User", origin: str | None = None, destination: str | None = None) -> bool:
-    if (user.timezone or "") in RU_TIMEZONES:
+    """Detect Russia/CIS from the monitored addresses, not the user's timezone."""
+    blob = f"{origin or ''} {destination or ''}".lower()
+    if any(hint in blob for hint in RU_ADDRESS_HINTS):
         return True
-    blob = f"{origin or ''} {destination or ''} {getattr(user, 'traffic_origin', '') or ''} {getattr(user, 'traffic_destination', '') or ''}".lower()
-    return any(hint in blob for hint in RU_ADDRESS_HINTS)
+    latam_hints = (
+        "mexico",
+        "мексика",
+        "playa del carmen",
+        "playa",
+        "cancun",
+        "канкун",
+        "quintana roo",
+        "tulum",
+        "merida",
+        "usa",
+        "сша",
+        "new york",
+        "miami",
+        "london",
+        "paris",
+    )
+    if any(hint in blob for hint in latam_hints):
+        return False
+    if not origin and not destination:
+        return (user.timezone or "") in RU_TIMEZONES
+    return False
 
 
-def resolve_provider(user: "User", origin: str, destination: str) -> str:
-    explicit = getattr(user, "traffic_provider", None) or "auto"
-    if explicit in ("google", "yandex", "dgis"):
-        return explicit
+def resolve_provider(
+    user: "User",
+    origin: str,
+    destination: str,
+    *,
+    override: str | None = None,
+) -> str:
+    if override in ("google", "yandex", "dgis"):
+        return override
+
+    stored = getattr(user, "traffic_provider", None) or "auto"
+    if stored in ("google", "yandex", "dgis"):
+        return stored
+
     if is_russia_context(user, origin, destination):
         if settings.yandex_maps_api_key:
             return "yandex"
@@ -131,8 +195,14 @@ def resolve_provider(user: "User", origin: str, destination: str) -> str:
     return "google"
 
 
-async def fetch_traffic_for_user(user: "User", origin: str, destination: str) -> TrafficResult | None:
-    provider = resolve_provider(user, origin, destination)
+async def fetch_traffic_for_user(
+    user: "User",
+    origin: str,
+    destination: str,
+    *,
+    provider_override: str | None = None,
+) -> TrafficResult | None:
+    provider = resolve_provider(user, origin, destination, override=provider_override)
     fetchers = {
         "google": fetch_google_traffic,
         "yandex": fetch_yandex_traffic,
@@ -151,9 +221,14 @@ async def fetch_traffic_for_user(user: "User", origin: str, destination: str) ->
     return None
 
 
-async def fetch_area_traffic_for_user(user: "User", location: str) -> TrafficResult | None:
+async def fetch_area_traffic_for_user(
+    user: "User",
+    location: str,
+    *,
+    provider_override: str | None = None,
+) -> TrafficResult | None:
     """Probe traffic around a city, district or street."""
-    provider = resolve_provider(user, location, location)
+    provider = resolve_provider(user, location, location, override=provider_override)
     center = await _geocode(provider, location)
     if not center and provider != "google":
         center = await _geocode("google", location)
@@ -241,7 +316,7 @@ async def _route_delay(
         without_t = await _yandex_route_seconds([origin, dest], traffic_enabled=False)
     elif provider == "dgis":
         with_t = await _dgis_route_seconds([origin, dest], traffic_mode="jam")
-        without_t = await _dgis_route_seconds([origin, dest], traffic_mode="statistics")
+        without_t = await _dgis_route_seconds([origin, dest], traffic_mode="statistic")
     else:
         result = await fetch_google_traffic(o_str, d_str)
         if not result:
@@ -447,6 +522,11 @@ async def _dgis_geocode(address: str) -> tuple[float, float] | None:
             )
             resp.raise_for_status()
             data = resp.json()
+        err = _parse_2gis_meta(data)
+        if err:
+            _set_provider_error("dgis", err)
+            logger.warning("2GIS geocode failed for %s: %s", address, err)
+            return None
         items = data.get("result", {}).get("items") or data.get("items") or []
         if not items:
             return None
@@ -488,6 +568,12 @@ async def _dgis_route_seconds(
         logger.exception("2GIS route failed")
         return None
 
+    err = _parse_2gis_meta(data)
+    if err:
+        _set_provider_error("dgis", err)
+        logger.warning("2GIS route error: %s", err)
+        return None
+
     result = data.get("result") or data
     routes = result.get("routes") or []
     if not routes:
@@ -507,7 +593,7 @@ async def fetch_dgis_traffic(origin: str, destination: str) -> TrafficResult | N
 
     points = [origin_pt, dest_pt]
     with_traffic = await _dgis_route_seconds(points, traffic_mode="jam")
-    without_traffic = await _dgis_route_seconds(points, traffic_mode="statistics")
+    without_traffic = await _dgis_route_seconds(points, traffic_mode="statistic")
     if not with_traffic:
         return None
 
@@ -569,5 +655,58 @@ async def diagnose_google_maps() -> str | None:
     except Exception as exc:
         logger.exception("Google Maps diagnostic failed")
         return f"Сетевая ошибка при проверке Google Maps: {exc}"
+
+    return None
+
+
+async def diagnose_dgis() -> str | None:
+    api_key = settings.dgis_api_key
+    if not api_key:
+        return "DGIS_API_KEY не задан в секретах деплоя."
+
+    try:
+        async with httpx.AsyncClient(timeout=15.0) as client:
+            geocode = await client.get(
+                "https://catalog.api.2gis.com/3.0/items/geocode",
+                params={"q": "Москва, Красная площадь", "key": api_key, "fields": "items.point"},
+            )
+            geocode.raise_for_status()
+            geocode_data = geocode.json()
+            err = _parse_2gis_meta(geocode_data)
+            if err:
+                return f"Geocoder: {err}"
+            items = geocode_data.get("result", {}).get("items") or geocode_data.get("items") or []
+            if not items:
+                return "Geocoder: пустой ответ (проверьте API Геокодера в кабинете 2ГИС)"
+
+            point = items[0].get("point") or items[0].get("geometry", {}).get("centroid")
+            if not point:
+                return "Geocoder: нет координат в ответе"
+
+            route = await client.post(
+                "https://routing.api.2gis.com/routing/7.0.0/global",
+                params={"key": api_key},
+                json={
+                    "points": [
+                        {"type": "stop", "lon": point["lon"], "lat": point["lat"]},
+                        {"type": "stop", "lon": point["lon"] + 0.01, "lat": point["lat"] + 0.01},
+                    ],
+                    "transport": "driving",
+                    "route_mode": "fastest",
+                    "traffic_mode": "jam",
+                    "locale": "ru",
+                },
+            )
+            route.raise_for_status()
+            route_data = route.json()
+            err = _parse_2gis_meta(route_data)
+            if err:
+                return f"Routing: {err}"
+            routes = (route_data.get("result") or route_data).get("routes") or []
+            if not routes:
+                return "Routing: маршрут не построен (проверьте Routing API в кабинете 2ГИС)"
+    except Exception as exc:
+        logger.exception("2GIS diagnostic failed")
+        return f"Сетевая ошибка при проверке 2ГИС: {exc}"
 
     return None

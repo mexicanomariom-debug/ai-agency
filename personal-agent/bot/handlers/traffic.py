@@ -23,7 +23,7 @@ from services.traffic import (
     provider_label,
     traffic_check_error_hint_async,
 )
-from services.traffic_providers import diagnose_google_maps, is_russia_context, resolve_provider
+from services.traffic_providers import diagnose_dgis, diagnose_google_maps, is_russia_context, resolve_provider
 from services.user_service import user_service
 
 logger = logging.getLogger(__name__)
@@ -48,12 +48,17 @@ def _traffic_status(user: User) -> str:
     start = getattr(user, "traffic_check_start", None) or "07:00"
     end = getattr(user, "traffic_check_end", None) or "10:00"
     window = "сейчас в окне" if is_check_window(user) else "вне окна проверки"
-    provider = provider_label(getattr(user, "traffic_provider", None) or "auto")
-    if getattr(user, "traffic_provider", None) in (None, "auto") and origin != "—":
-        ref = dest if mode == "route" and dest != "—" else origin
-        provider = provider_label(resolve_provider(user, origin, ref or origin)) + " (авто)"
+    ref = dest if mode == "route" and dest != "—" else origin
+    auto_provider = resolve_provider(user, origin if origin != "—" else "", ref if ref != "—" else "")
+    provider = provider_label(auto_provider) + " (авто по городу)"
+    if getattr(user, "traffic_provider", None) in ("google", "yandex", "dgis"):
+        provider = provider_label(user.traffic_provider) + " (выбрано при настройке)"
 
-    region = "🇷🇺 Россия → Яндекс/2ГИС" if is_russia_context(user) else "🌍 Мир → Google"
+    region = (
+        "🇷🇺 Россия → Яндекс/2ГИС"
+        if is_russia_context(user, origin if origin != "—" else None, ref if ref != "—" else None)
+        else "🌍 Мир → Google"
+    )
     mode_line = MODE_LABELS.get(mode, mode)
     target_line = f"📍 {origin} → {dest}" if mode == "route" and dest != "—" else f"🏙 {origin}"
 
@@ -67,6 +72,7 @@ def _traffic_status(user: User) -> str:
         f"⏰ Окно: {start}–{end} ({window})\n"
         f"⚠️ Уведомлять при: +{threshold} мин\n\n"
         f"<b>Настроить:</b> 🛣 Маршрут или 🏙 Район/улица/город\n"
+        f"Кнопки 🗺 — разовая проверка через выбранные карты\n"
         f"Команды: /traffic check · /traffic hours 7:00 10:00"
     )
 
@@ -85,7 +91,7 @@ async def show_traffic_panel(message: Message, session: AsyncSession) -> None:
     )
 
 
-async def _run_check(message: Message, user: User) -> None:
+async def _run_check(message: Message, user: User, *, provider_override: str | None = None) -> None:
     if not getattr(user, "traffic_origin", None):
         await answer_menu(message, "Сначала настройте монитор: 🛣 Маршрут или 🏙 Район/улица")
         return
@@ -94,10 +100,15 @@ async def _run_check(message: Message, user: User) -> None:
         await answer_menu(message, "Сначала настройте маршрут: кнопка 🛣 Маршрут")
         return
 
-    await answer_menu(message, "⏳ Проверяю трафик…")
-    result = await check_user_traffic(user, manual=True)
+    label = provider_label(provider_override) if provider_override else "авто"
+    await answer_menu(message, f"⏳ Проверяю трафик ({label})…")
+    result = await check_user_traffic(user, manual=True, provider_override=provider_override)
     if not result:
-        await answer_menu(message, await traffic_check_error_hint_async(user), parse_mode="HTML")
+        await answer_menu(
+            message,
+            await traffic_check_error_hint_async(user, provider_override=provider_override),
+            parse_mode="HTML",
+        )
         return
     await answer_menu(
         message,
@@ -118,12 +129,10 @@ async def _save_route(
     user.traffic_origin = origin
     user.traffic_destination = destination
     user.traffic_mode = "route"
-    if provider:
+    if provider and provider != "auto":
         user.traffic_provider = provider
-    elif is_russia_context(user, origin, destination):
-        user.traffic_provider = "auto"
     else:
-        user.traffic_provider = "google"
+        user.traffic_provider = "auto"
     user.traffic_enabled = True
     await state.clear()
 
@@ -149,12 +158,10 @@ async def _save_area(
     user.traffic_origin = location
     user.traffic_destination = None
     user.traffic_mode = "area"
-    if provider:
+    if provider and provider != "auto":
         user.traffic_provider = provider
-    elif is_russia_context(user, location, location):
-        user.traffic_provider = "auto"
     else:
-        user.traffic_provider = "google"
+        user.traffic_provider = "auto"
     user.traffic_enabled = True
     await state.clear()
 
@@ -217,7 +224,7 @@ async def cmd_traffic(message: Message, session: AsyncSession, state: FSMContext
                     reply_markup=traffic_provider_keyboard(),
                 )
             else:
-                await _save_area(message, session, state, user, location, provider="google")
+                await _save_area(message, session, state, user, location)
         return
 
     if sub == "set" and len(parts) > 2:
@@ -240,18 +247,13 @@ async def cmd_traffic(message: Message, session: AsyncSession, state: FSMContext
         return
 
     if sub == "test":
-        await answer_menu(message, "⏳ Проверяю ключ Google Maps…")
-        error = await diagnose_google_maps()
-        if error:
-            await answer_menu(
-                message,
-                f"❌ Google Maps: <b>{error}</b>\n\n"
-                "Включите Geocoding API + Directions API, привяжите billing, "
-                "уберите HTTP referrer restriction с ключа (серверный ключ).",
-                parse_mode="HTML",
-            )
-        else:
-            await answer_menu(message, "✅ Google Maps ключ работает (Geocoding + Directions).")
+        await answer_menu(message, "⏳ Проверяю ключи карт…")
+        google_err = await diagnose_google_maps()
+        dgis_err = await diagnose_dgis()
+        lines = ["<b>Диагностика API карт</b>"]
+        lines.append(f"Google: {'✅ OK' if not google_err else '❌ ' + google_err}")
+        lines.append(f"2ГИС: {'✅ OK' if not dgis_err else '❌ ' + dgis_err}")
+        await answer_menu(message, "\n".join(lines), parse_mode="HTML")
         return
 
     if sub == "threshold" and len(parts) > 2:
@@ -275,9 +277,12 @@ async def cmd_traffic(message: Message, session: AsyncSession, state: FSMContext
         await answer_menu(message, f"Окно проверки: {times[0]}–{times[1]} (ваш часовой пояс)")
         return
 
-    if sub in ("yandex", "dgis", "google", "auto"):
-        user.traffic_provider = sub
-        await answer_menu(message, f"Карты: {provider_label(sub)}")
+    if sub in ("yandex", "dgis", "google"):
+        await _run_check(message, user, provider_override=sub)
+        return
+
+    if sub == "auto":
+        await _run_check(message, user)
         return
 
     await show_traffic_panel(message, session)
@@ -330,7 +335,7 @@ async def msg_traffic_destination(message: Message, session: AsyncSession, state
         )
         return
 
-    await _save_route(message, session, state, user, origin, destination, provider="google")
+    await _save_route(message, session, state, user, origin, destination)
 
 
 @router.message(TrafficSetupStates.waiting_area, F.text)
@@ -356,7 +361,7 @@ async def msg_traffic_area(message: Message, session: AsyncSession, state: FSMCo
         )
         return
 
-    await _save_area(message, session, state, user, location, provider="google")
+    await _save_area(message, session, state, user, location)
 
 
 @router.callback_query(F.data == "traffic:setup:route")
@@ -387,10 +392,17 @@ async def cb_traffic_setup_area(callback: CallbackQuery, state: FSMContext) -> N
 
 
 @router.callback_query(F.data == "traffic:check")
+@router.callback_query(F.data.startswith("traffic:check:"))
 async def cb_traffic_check(callback: CallbackQuery, session: AsyncSession) -> None:
     if not callback.from_user or not callback.message:
         await callback.answer()
         return
+    provider_override = None
+    if callback.data and callback.data.startswith("traffic:check:"):
+        provider_override = callback.data.split(":")[-1]
+        if provider_override not in ("yandex", "dgis", "google"):
+            provider_override = None
+
     user = await user_service.get_or_create(
         session,
         telegram_id=callback.from_user.id,
@@ -405,14 +417,15 @@ async def cb_traffic_check(callback: CallbackQuery, session: AsyncSession) -> No
         await callback.answer("Сначала настройте маршрут", show_alert=True)
         return
 
+    label = provider_label(provider_override) if provider_override else "авто"
     await callback.answer()
-    status_msg = await callback.message.answer("⏳ Проверяю трафик…")
+    status_msg = await callback.message.answer(f"⏳ Проверяю трафик ({label})…")
     result = None
     try:
-        result = await check_user_traffic(user, manual=True)
+        result = await check_user_traffic(user, manual=True, provider_override=provider_override)
         if not result:
             await status_msg.edit_text(
-                await traffic_check_error_hint_async(user),
+                await traffic_check_error_hint_async(user, provider_override=provider_override),
                 parse_mode="HTML",
             )
             return
@@ -430,7 +443,7 @@ async def cb_traffic_check(callback: CallbackQuery, session: AsyncSession) -> No
             )
         else:
             await callback.message.answer(
-                await traffic_check_error_hint_async(user),
+                await traffic_check_error_hint_async(user, provider_override=provider_override),
                 parse_mode="HTML",
             )
     except Exception:
@@ -466,31 +479,6 @@ async def cb_traffic_toggle(callback: CallbackQuery, session: AsyncSession) -> N
             reply_markup=traffic_menu_keyboard(enabled=user.traffic_enabled),
             parse_mode="HTML",
         )
-
-
-@router.callback_query(F.data.startswith("traffic:provider:"))
-async def cb_traffic_provider_quick(callback: CallbackQuery, session: AsyncSession) -> None:
-    if not callback.data or not callback.from_user:
-        await callback.answer()
-        return
-    provider = callback.data.split(":")[-1]
-    user = await user_service.get_or_create(
-        session,
-        telegram_id=callback.from_user.id,
-        username=callback.from_user.username,
-        first_name=callback.from_user.first_name,
-    )
-    user.traffic_provider = provider
-    await callback.answer(f"Карты: {provider_label(provider)}")
-    if callback.message:
-        try:
-            await callback.message.edit_text(
-                _traffic_status(user),
-                reply_markup=traffic_menu_keyboard(enabled=bool(user.traffic_enabled)),
-                parse_mode="HTML",
-            )
-        except TelegramBadRequest:
-            pass
 
 
 @router.callback_query(F.data.startswith("traffic:pick:"))
