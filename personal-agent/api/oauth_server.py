@@ -10,6 +10,7 @@ from sqlalchemy import select
 from config import settings
 from database.models import User
 from database.session import async_session_factory
+from services.calendar_sync import sync_user_calendar_by_telegram_id
 from services.google_calendar import google_calendar_service
 
 logger = logging.getLogger(__name__)
@@ -36,13 +37,7 @@ async def google_oauth_callback(request: web.Request) -> web.Response:
     if not saved:
         return web.Response(text="Пользователь не найден", content_type="text/html; charset=utf-8")
 
-    try:
-        await bot.send_message(
-            telegram_id,
-            "✅ Google Calendar подключён! Новые задачи будут синхронизироваться автоматически.",
-        )
-    except Exception:
-        logger.exception("Failed to notify user %s about calendar connect", telegram_id)
+    await _notify_calendar_connected(bot, telegram_id)
 
     return web.Response(
         text="<h2>Google Calendar подключён!</h2><p>Можете вернуться в Telegram.</p>",
@@ -71,13 +66,7 @@ async def internal_google_token(request: web.Request) -> web.Response:
         return web.json_response({"error": "user not found"}, status=404)
 
     bot: Bot = request.app["bot"]
-    try:
-        await bot.send_message(
-            telegram_id,
-            "✅ Google Calendar подключён! Новые задачи будут синхронизироваться автоматически.",
-        )
-    except Exception:
-        logger.exception("Failed to notify user %s about calendar connect", telegram_id)
+    await _notify_calendar_connected(bot, telegram_id)
 
     return web.json_response({"ok": True})
 
@@ -101,6 +90,21 @@ async def _save_google_token(telegram_id: int, refresh_token: str) -> bool:
     except Exception:
         logger.exception("Failed to save Google token for telegram_id=%s", telegram_id)
         return False
+
+
+async def _notify_calendar_connected(bot: Bot, telegram_id: int) -> None:
+    synced, failed = await sync_user_calendar_by_telegram_id(telegram_id)
+    text = "✅ Google Calendar подключён!"
+    if synced:
+        text += f"\n📅 В календарь добавлено задач: {synced}"
+    if failed:
+        text += f"\n⚠️ Не удалось синхронизировать: {failed}"
+    if not synced and not failed:
+        text += "\nНовые задачи будут попадать в календарь автоматически."
+    try:
+        await bot.send_message(telegram_id, text)
+    except Exception:
+        logger.exception("Failed to notify user %s about calendar connect", telegram_id)
 
 
 async def health(request: web.Request) -> web.Response:

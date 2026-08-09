@@ -12,6 +12,7 @@ from bot.copy import (
 )
 from config import settings
 from bot.utils.messages import answer_menu
+from services.calendar_sync import sync_pending_tasks_to_calendar
 from services.google_calendar import google_calendar_service
 from services.user_service import user_service
 
@@ -56,7 +57,36 @@ async def cmd_calendar_on(message: Message, session: AsyncSession) -> None:
         await answer_menu(message, "Сначала подключите календарь: /calendar")
         return
     user.google_calendar_enabled = True
-    await answer_menu(message, CALENDAR_ENABLED)
+    synced, failed = await sync_pending_tasks_to_calendar(session, user)
+    msg = CALENDAR_ENABLED
+    if synced:
+        msg += f"\n📅 В календарь добавлено задач: {synced}"
+    if failed:
+        msg += f"\n⚠️ Не удалось синхронизировать: {failed}"
+    await answer_menu(message, msg)
+
+
+@router.message(Command("calendar_sync"))
+async def cmd_calendar_sync(message: Message, session: AsyncSession) -> None:
+    user = await user_service.get_or_create(
+        session,
+        telegram_id=message.from_user.id,
+        username=message.from_user.username,
+        first_name=message.from_user.first_name,
+    )
+    if not user.google_refresh_token:
+        await answer_menu(message, "Сначала подключите календарь: /calendar")
+        return
+    if not user.google_calendar_enabled:
+        user.google_calendar_enabled = True
+    synced, failed = await sync_pending_tasks_to_calendar(session, user)
+    if synced == 0 and failed == 0:
+        await answer_menu(message, "Нет задач для синхронизации (или все уже в календаре).")
+        return
+    lines = [f"📅 Синхронизация завершена: добавлено {synced}"]
+    if failed:
+        lines.append(f"⚠️ Ошибок: {failed}")
+    await answer_menu(message, "\n".join(lines))
 
 
 @router.message(Command("calendar_off"))

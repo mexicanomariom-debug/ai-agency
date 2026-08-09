@@ -22,6 +22,7 @@ HELP_TEXT = (
     "Отправь голосовое сообщение — распознаю через Whisper.\n\n"
     "<b>📅 Google Calendar</b>\n"
     "/calendar — подключить\n"
+    "/calendar_sync — отправить активные задачи в Google Calendar\n"
     "/calendar_on · /calendar_off — вкл/выкл синхронизацию\n\n"
     "<b>📞 Телефон</b>\n"
     "/phone +79991234567 — привязать номер для звонков\n\n"
@@ -45,9 +46,12 @@ TASK_CREATED = (
     "✅ Задача #{task_id} создана\n"
     "<b>{title}</b>\n"
     "⏰ {due_at}\n"
-    "🔔 {notify_types}\n\n"
+    "🔔 {notify_types}{calendar_line}\n\n"
     "Список: кнопка <b>📋 Мои задачи</b>"
 )
+
+CALENDAR_SYNCED_LINE = "\n📅 Добавлено в Google Calendar"
+CALENDAR_NOT_SYNCED_LINE = "\n⚠️ В Google Calendar не добавлено (подключите 📅 Календарь)"
 
 TASK_LIST_EMPTY = "У тебя нет активных задач. Напиши, что нужно напомнить."
 
@@ -110,7 +114,7 @@ CALENDAR_NOT_CONNECTED = (
 CALENDAR_CONNECTED = "✅ Google Calendar подключён!"
 CALENDAR_ENABLED = "✅ Синхронизация с Google Calendar включена."
 CALENDAR_DISABLED = "Синхронизация с Google Calendar отключена."
-CALENDAR_STATUS = "📅 Календарь: {status}"
+CALENDAR_STATUS = "📅 Календарь: {status}\n\nСинхронизировать задачи: /calendar_sync"
 
 PHONE_SAVED = "📞 Номер сохранён: <b>{phone}</b>\nТеперь можно использовать «на телефон» в задачах."
 PHONE_CURRENT = "📞 Ваш номер: <b>{phone}</b>\nИзменить: /phone +79991234567\nУдалить: /phone удалить"

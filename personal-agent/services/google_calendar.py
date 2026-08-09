@@ -1,12 +1,11 @@
 from __future__ import annotations
 
+import asyncio
 import logging
 from datetime import datetime
-from pathlib import Path
 from zoneinfo import ZoneInfo
 
-from apscheduler.schedulers.asyncio import AsyncIOScheduler
-from apscheduler.jobstores.sqlalchemy import SQLAlchemyJobStore
+from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import Flow
 from googleapiclient.discovery import build
@@ -57,7 +56,7 @@ class GoogleCalendarService:
     def _credentials(self, user: User) -> Credentials | None:
         if not user.google_refresh_token:
             return None
-        return Credentials(
+        creds = Credentials(
             token=None,
             refresh_token=user.google_refresh_token,
             token_uri="https://oauth2.googleapis.com/token",
@@ -65,6 +64,13 @@ class GoogleCalendarService:
             client_secret=settings.google_client_secret,
             scopes=SCOPES,
         )
+        try:
+            if not creds.valid and creds.refresh_token:
+                creds.refresh(Request())
+        except Exception:
+            logger.exception("Failed to refresh Google credentials for user %s", user.telegram_id)
+            return None
+        return creds
 
     def _service(self, user: User):
         creds = self._credentials(user)
@@ -73,8 +79,8 @@ class GoogleCalendarService:
         return build("calendar", "v3", credentials=creds, cache_discovery=False)
 
     async def create_event(self, user: User, task: Task) -> str | None:
-        service = self._service(user)
-        if not service:
+        creds = self._credentials(user)
+        if not creds:
             return None
         try:
             start = task.due_at.astimezone(ZoneInfo(user.timezone))
@@ -89,18 +95,27 @@ class GoogleCalendarService:
                 "start": {"dateTime": start.isoformat(), "timeZone": user.timezone},
                 "end": {"dateTime": end.isoformat(), "timeZone": user.timezone},
             }
-            event = service.events().insert(calendarId="primary", body=body).execute()
+
+            def _insert() -> dict:
+                service = build("calendar", "v3", credentials=creds, cache_discovery=False)
+                return service.events().insert(calendarId="primary", body=body).execute()
+
+            event = await asyncio.to_thread(_insert)
             return event.get("id")
         except Exception:
-            logger.exception("Failed to create Google Calendar event")
+            logger.exception("Failed to create Google Calendar event for task %s", task.id)
             return None
 
     async def delete_event(self, user: User, event_id: str) -> None:
-        service = self._service(user)
-        if not service:
+        creds = self._credentials(user)
+        if not creds:
             return
         try:
-            service.events().delete(calendarId="primary", eventId=event_id).execute()
+            def _delete() -> None:
+                service = build("calendar", "v3", credentials=creds, cache_discovery=False)
+                service.events().delete(calendarId="primary", eventId=event_id).execute()
+
+            await asyncio.to_thread(_delete)
         except Exception:
             logger.exception("Failed to delete Google Calendar event %s", event_id)
 

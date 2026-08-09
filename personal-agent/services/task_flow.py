@@ -7,6 +7,8 @@ from aiogram.types import Message
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from bot.copy import (
+    CALENDAR_NOT_SYNCED_LINE,
+    CALENDAR_SYNCED_LINE,
     NOTIFY_BOTH,
     NOTIFY_CALL,
     NOTIFY_MESSAGE,
@@ -65,6 +67,11 @@ async def create_tasks_from_parsed(
             event_id = await google_calendar_service.create_event(user, task)
             if event_id:
                 task.google_event_id = event_id
+                task._calendar_synced = True  # type: ignore[attr-defined]
+            else:
+                task._calendar_synced = False  # type: ignore[attr-defined]
+        else:
+            task._calendar_synced = None  # type: ignore[attr-defined]
 
         if reminder_scheduler:
             reminder_scheduler.schedule_task(task.id, task.due_at)
@@ -78,6 +85,12 @@ def build_task_reply(user: User, tasks: list[Task], parsed: ParseResult) -> str:
         return parsed.reply
     lines = []
     for task in tasks:
+        calendar_line = ""
+        synced = getattr(task, "_calendar_synced", None)
+        if synced is True:
+            calendar_line = CALENDAR_SYNCED_LINE
+        elif synced is False:
+            calendar_line = CALENDAR_NOT_SYNCED_LINE
         lines.append(
             TASK_CREATED.format(
                 task_id=task.id,
@@ -86,6 +99,7 @@ def build_task_reply(user: User, tasks: list[Task], parsed: ParseResult) -> str:
                 notify_types=format_notify_types(
                     task.notify_message, task.notify_call, task.notify_phone
                 ),
+                calendar_line=calendar_line,
             )
         )
     return "\n\n".join(lines)
