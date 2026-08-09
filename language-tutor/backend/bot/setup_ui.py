@@ -10,13 +10,13 @@ async def setup_bot_ui(bot: Bot) -> None:
     """Commands menu only — no WebApp / Mini App button."""
     await bot.set_my_commands(
         [
-            BotCommand(command="start", description="✦ Opus 5 · начать"),
-            BotCommand(command="product", description="✦ О продукте"),
+            BotCommand(command="start", description="✦ Opus 5 · меню"),
             BotCommand(command="help", description="📖 Навигатор"),
-            BotCommand(command="test", description="📋 Мини-тест уровня"),
+            BotCommand(command="test", description="📋 Пройти тест уровня"),
             BotCommand(command="review", description="📚 Слова на сегодня"),
-            BotCommand(command="finish", description="✅ Итоги урока и CEFR"),
+            BotCommand(command="finish", description="✅ Итоги урока"),
             BotCommand(command="progress", description="📊 Мой прогресс"),
+            BotCommand(command="product", description="✦ О продукте"),
             BotCommand(command="settings", description="⚙️ Профиль"),
         ],
         scope=BotCommandScopeDefault(),

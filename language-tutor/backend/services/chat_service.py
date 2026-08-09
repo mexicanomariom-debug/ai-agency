@@ -10,7 +10,6 @@ from services.personas import persona_service
 from services.placement_service import build_placement_program_block
 from services.telegram_text import answer_model_text
 from services.tutor_context import build_tutor_system_prompt
-from services.telegram_voice import send_voice_reply
 from services.user_service import user_service
 
 
@@ -36,12 +35,13 @@ async def process_user_text(
         rag_context = await rag_service.format_context(chunks)
 
     cognitive_context = cognitive_profiler.build_context(user.cognitive_profile)
+    # User may speak by voice, but the bot always replies in text.
     system_prompt = build_tutor_system_prompt(
         persona,
         user=user,
         rag_context=rag_context,
         cognitive_context=cognitive_context,
-        voice_mode=from_voice,
+        voice_mode=False,
     )
     if placement_mode:
         system_prompt = f"{system_prompt}\n\n{build_placement_program_block(user)}"
@@ -61,10 +61,5 @@ async def process_user_text(
     await chat_history_service.add_message(session, user, MessageRole.ASSISTANT, response, persona)
     await cognitive_profiler.update_from_conversation(session, user, user_text, response)
 
-    if from_voice:
-        sent_voice = await send_voice_reply(message, response)
-        if not sent_voice:
-            await answer_model_text(message, response, prefix="🎙 ")
-    else:
-        await answer_model_text(message, response)
+    await answer_model_text(message, response)
     return response

@@ -2,6 +2,7 @@ from aiogram import Dispatcher
 
 from bot.handlers import (
     chat,
+    menu,
     payments,
     placement,
     product,
@@ -18,10 +19,10 @@ from bot.middlewares.errors import ErrorNotifyMiddleware
 def setup_dispatcher(dp: Dispatcher) -> None:
     dp.update.middleware(ErrorNotifyMiddleware())
     dp.update.middleware(DbSessionMiddleware())
-    # Command and media routers must precede the catch-all text handlers in
-    # placement.py (state catch-all) and chat.py, otherwise commands and voice
-    # messages are swallowed and forwarded to the LLM as plain text.
+    # Command, reply-menu and media routers must precede catch-all text handlers
+    # in placement.py / chat.py, otherwise buttons and voice are swallowed.
     dp.include_router(start.router)
+    dp.include_router(menu.router)
     dp.include_router(product.router)
     dp.include_router(progress.router)
     dp.include_router(vocab.router)
