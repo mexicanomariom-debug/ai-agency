@@ -11,6 +11,8 @@ else
   DOCKER="sudo docker"
 fi
 
+PROJECT="personal-agent"
+
 if ! command -v docker &>/dev/null; then
   echo "Installing Docker..."
   curl -fsSL https://get.docker.com | sudo sh
@@ -49,4 +51,4 @@ $DOCKER compose -p "$PROJECT" -f docker-compose.prod.yml logs bot --tail 20
 
 echo ""
 echo "=== Done ==="
-echo "Logs: $DOCKER compose -f docker-compose.prod.yml logs -f bot"
+echo "Logs: $DOCKER compose -p $PROJECT -f docker-compose.prod.yml logs -f bot"
