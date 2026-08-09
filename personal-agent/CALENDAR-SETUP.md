@@ -45,7 +45,25 @@ Settings → Environment Variables:
 ## Порты Oracle
 
 - **8081** — внутренний API бота (Vercel → Oracle)
-- Откройте TCP 8081 в Oracle Security List (как 8000)
+- Откройте TCP **8081** в Oracle Security List (как для **8000** у language-tutor)
+
+### Как открыть порт 8081 в Oracle Cloud
+
+1. [Oracle Cloud Console](https://cloud.oracle.com/) → **Networking** → **Virtual Cloud Networks**
+2. Выберите ваш VCN → **Security Lists** → **Default Security List**
+3. **Add Ingress Rules**:
+   - Source CIDR: `0.0.0.0/0`
+   - IP Protocol: **TCP**
+   - Destination Port Range: **8081**
+4. **Add Ingress Rules**
+
+Проверка с вашего ПК:
+```bash
+curl http://140.84.183.154:8081/health
+```
+Должно вернуть: `{"ok": true, "google_calendar": true}`
+
+На самом сервере (localhost) порт уже работает — блокировка только снаружи (Security List).
 
 ## Команды
 
