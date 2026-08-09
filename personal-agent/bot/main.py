@@ -10,6 +10,7 @@ from aiogram.fsm.storage.memory import MemoryStorage
 from bot.dispatcher import setup_dispatcher
 from config import settings
 from database.session import async_session_factory, init_db
+from services.digest import init_digest_service
 from services.notifier import init_notifier
 from services.scheduler import init_scheduler
 
@@ -38,6 +39,7 @@ async def main() -> None:
     setup_dispatcher(dp)
 
     notifier = init_notifier(bot, async_session_factory)
+    init_digest_service(bot, async_session_factory)
     scheduler = init_scheduler(async_session_factory, notifier)
     scheduler.start()
     try:

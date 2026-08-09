@@ -12,8 +12,22 @@ def task_actions_keyboard(task_id: int) -> InlineKeyboardMarkup:
                     callback_data=f"task:done:{task_id}",
                 ),
                 InlineKeyboardButton(
-                    text="⏰ Через 15 мин",
+                    text="⏰ 15 мин",
                     callback_data=f"task:snooze:{task_id}:15",
+                ),
+            ],
+            [
+                InlineKeyboardButton(
+                    text="+1 час",
+                    callback_data=f"task:reschedule:{task_id}:1h",
+                ),
+                InlineKeyboardButton(
+                    text="Завтра 9:00",
+                    callback_data=f"task:reschedule:{task_id}:t9",
+                ),
+                InlineKeyboardButton(
+                    text="Вечером",
+                    callback_data=f"task:reschedule:{task_id}:eve",
                 ),
             ],
             [
@@ -54,4 +68,22 @@ def task_list_edit_keyboard(tasks: list[Task], *, max_buttons: int = 12) -> Inli
             row = []
     if row:
         rows.append(row)
+    return InlineKeyboardMarkup(inline_keyboard=rows)
+
+
+def note_list_keyboard(notes) -> InlineKeyboardMarkup:
+    rows: list[list[InlineKeyboardButton]] = []
+    for note in notes[:12]:
+        rows.append(
+            [
+                InlineKeyboardButton(
+                    text=f"📖 #{note.id}",
+                    callback_data=f"note:view:{note.id}",
+                ),
+                InlineKeyboardButton(
+                    text=f"🗑 #{note.id}",
+                    callback_data=f"note:delete:{note.id}",
+                ),
+            ]
+        )
     return InlineKeyboardMarkup(inline_keyboard=rows)

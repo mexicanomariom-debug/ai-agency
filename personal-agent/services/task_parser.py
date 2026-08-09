@@ -10,6 +10,7 @@ import dateparser
 from openai import AsyncOpenAI
 
 from config import settings
+from services.recurrence import detect_recurrence, strip_recurrence_phrases
 
 NOTIFY_KEYWORDS_CALL = (r"\bзвонок\b", r"\bзвонком\b", r"\bзвони\b", r"\bпозвони\b", r"\bголосов\w*\b", r"\bcall\b")
 NOTIFY_KEYWORDS_MESSAGE = (r"\bсообщен\w*\b", r"\bнапиши\b", r"\bтекстом\b", r"\bmessage\b")
@@ -25,6 +26,7 @@ class ParsedTask:
     notify_call: bool = False
     notify_phone: bool = False
     description: str | None = None
+    recurrence_rule: str | None = None
 
 
 @dataclass
@@ -57,6 +59,7 @@ class TaskParser:
             "notify_message (bool), notify_call (bool).\n"
             "notify_call=true если пользователь просит звонок/голосовое напоминание.\n"
             "notify_message=true по умолчанию. Оба true если просит «сообщение и звонок».\n"
+            "recurrence_rule: daily|weekly|weekdays|monthly|weekly:N (0=пн) если повторяющаяся задача.\n"
             'Формат: {"tasks": [...], "reply": "краткое подтверждение на русском"}'
         )
         response = await self._openai.chat.completions.create(
@@ -83,13 +86,17 @@ class TaskParser:
                     notify_message=bool(item.get("notify_message", True)),
                     notify_call=bool(item.get("notify_call", False)),
                     notify_phone=bool(item.get("notify_phone", False)),
+                    recurrence_rule=item.get("recurrence_rule"),
                 )
             )
         return ParseResult(tasks=tasks, reply=data.get("reply"))
 
     def _parse_with_rules(self, text: str, timezone: str) -> ParseResult:
+        recurrence_rule = detect_recurrence(text)
         notify_message, notify_call, notify_phone = self._detect_notify_flags(text)
         cleaned = self._strip_notify_phrases(text)
+        if recurrence_rule:
+            cleaned = strip_recurrence_phrases(cleaned)
         settings_dict = {
             "TIMEZONE": timezone,
             "PREFER_DATES_FROM": "future",
@@ -111,6 +118,7 @@ class TaskParser:
                     notify_message=notify_message,
                     notify_call=notify_call,
                     notify_phone=notify_phone,
+                    recurrence_rule=recurrence_rule,
                 )
             ]
         )

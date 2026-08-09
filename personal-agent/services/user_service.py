@@ -85,6 +85,7 @@ class TaskService:
         notify_message: bool = True,
         notify_call: bool = False,
         notify_phone: bool = False,
+        recurrence_rule: str | None = None,
     ) -> Task:
         task = Task(
             user_id=user.id,
@@ -94,6 +95,7 @@ class TaskService:
             notify_message=notify_message,
             notify_call=notify_call,
             notify_phone=notify_phone,
+            recurrence_rule=recurrence_rule,
             status=TaskStatus.PENDING,
         )
         session.add(task)

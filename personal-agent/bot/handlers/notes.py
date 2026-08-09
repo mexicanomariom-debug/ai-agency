@@ -1,9 +1,18 @@
-from aiogram import Router
+from aiogram import F, Router
 from aiogram.filters import Command
-from aiogram.types import Message
+from aiogram.types import CallbackQuery, Message
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from bot.copy import NOTE_CREATED, NOTE_DELETED, NOTE_LIST_EMPTY, NOTE_LIST_HEADER, NOTE_NOT_FOUND
+from bot.copy import (
+    NOTE_CREATED,
+    NOTE_DELETE_CONFIRM,
+    NOTE_DELETED,
+    NOTE_LIST_EMPTY,
+    NOTE_LIST_HEADER,
+    NOTE_NOT_FOUND,
+    NOTE_VIEW,
+)
+from bot.keyboards.inline import note_list_keyboard
 from bot.utils.messages import answer_menu
 from services.note_service import note_service
 from services.user_service import user_service
@@ -27,9 +36,13 @@ async def cmd_notes(message: Message, session: AsyncSession) -> None:
 
     lines = [NOTE_LIST_HEADER.format(count=len(notes))]
     for note in notes:
-        preview = note.content[:120] + ("…" if len(note.content) > 120 else "")
+        preview = note.content[:80] + ("…" if len(note.content) > 80 else "")
         lines.append(f"#{note.id} — {preview}")
-    await answer_menu(message, "\n\n".join(lines))
+    await answer_menu(
+        message,
+        "\n\n".join(lines),
+        reply_markup=note_list_keyboard(notes),
+    )
 
 
 @router.message(Command("note"))
@@ -69,3 +82,42 @@ async def cmd_note_delete(message: Message, session: AsyncSession) -> None:
     note_id = note.id
     await note_service.delete(session, note)
     await answer_menu(message, NOTE_DELETED.format(note_id=note_id))
+
+
+@router.callback_query(F.data.regexp(r"^note:view:\d+$"))
+async def cb_note_view(callback: CallbackQuery, session: AsyncSession) -> None:
+    note_id = int(callback.data.split(":")[-1])
+    user = await user_service.get_or_create(
+        session,
+        telegram_id=callback.from_user.id,
+        username=callback.from_user.username,
+        first_name=callback.from_user.first_name,
+    )
+    note = await note_service.get(session, user, note_id)
+    if not note:
+        await callback.answer(NOTE_NOT_FOUND, show_alert=True)
+        return
+    await callback.answer()
+    if callback.message:
+        await callback.message.answer(
+            NOTE_VIEW.format(note_id=note.id, content=note.content)
+        )
+
+
+@router.callback_query(F.data.regexp(r"^note:delete:\d+$"))
+async def cb_note_delete(callback: CallbackQuery, session: AsyncSession) -> None:
+    note_id = int(callback.data.split(":")[-1])
+    user = await user_service.get_or_create(
+        session,
+        telegram_id=callback.from_user.id,
+        username=callback.from_user.username,
+        first_name=callback.from_user.first_name,
+    )
+    note = await note_service.get(session, user, note_id)
+    if not note:
+        await callback.answer(NOTE_NOT_FOUND, show_alert=True)
+        return
+    await note_service.delete(session, note)
+    await callback.answer("Удалено")
+    if callback.message:
+        await callback.message.answer(NOTE_DELETE_CONFIRM.format(note_id=note_id))

@@ -40,7 +40,8 @@ from database.models import TaskStatus
 from services.calendar_sync import remove_task_from_calendar, update_task_in_calendar
 from services.google_calendar import google_calendar_service
 from services.scheduler import reminder_scheduler
-from services.task_flow import format_due_at, format_notify_types
+from services.recurrence import recurrence_label
+from services.task_flow import complete_task, format_due_at, format_notify_types
 from services.user_service import task_service, user_service
 
 router = Router()
@@ -128,6 +129,9 @@ async def cmd_tasks(message: Message, session: AsyncSession) -> None:
 
     lines = [TASK_LIST_HEADER.format(count=len(tasks))]
     for task in tasks:
+        recurrence = ""
+        if task.recurrence_rule:
+            recurrence = f" · 🔁 {recurrence_label(task.recurrence_rule)}"
         lines.append(
             TASK_ITEM.format(
                 id=task.id,
@@ -136,6 +140,7 @@ async def cmd_tasks(message: Message, session: AsyncSession) -> None:
                 notify_types=format_notify_types(
                     task.notify_message, task.notify_call, task.notify_phone
                 ),
+                recurrence=recurrence,
             )
         )
     await answer_menu(
@@ -159,6 +164,9 @@ async def cmd_today(message: Message, session: AsyncSession) -> None:
         return
     lines = [TASK_TODAY_HEADER.format(count=len(tasks))]
     for task in tasks:
+        recurrence = ""
+        if task.recurrence_rule:
+            recurrence = f" · 🔁 {recurrence_label(task.recurrence_rule)}"
         lines.append(
             TASK_ITEM.format(
                 id=task.id,
@@ -167,6 +175,7 @@ async def cmd_today(message: Message, session: AsyncSession) -> None:
                 notify_types=format_notify_types(
                     task.notify_message, task.notify_call, task.notify_phone
                 ),
+                recurrence=recurrence,
             )
         )
     await answer_menu(message, "\n\n".join(lines))
@@ -191,15 +200,14 @@ async def cmd_done(message: Message, session: AsyncSession) -> None:
         await answer_menu(message, TASK_NOT_FOUND)
         return
 
-    had_event = bool(task.google_event_id)
-    removed = await remove_task_from_calendar(user, task)
-    await task_service.mark_done(session, task)
-    if reminder_scheduler:
-        reminder_scheduler.cancel_task(task.id)
-    await answer_menu(
-        message,
-        TASK_DONE.format(task_id=task_id) + _calendar_removal_suffix(removed, had_event),
-    )
+    _, suffix = await complete_task(session, user, task)
+    if task.recurrence_rule:
+        await answer_menu(
+            message,
+            f"✅ Задача #{task_id} «{task.title}» выполнена.{suffix}",
+        )
+    else:
+        await answer_menu(message, TASK_DONE.format(task_id=task_id) + suffix)
 
 
 @router.message(Command("cancel"))
@@ -222,6 +230,7 @@ async def cmd_cancel(message: Message, session: AsyncSession) -> None:
         return
 
     had_event = bool(task.google_event_id)
+    task.recurrence_rule = None
     removed = await remove_task_from_calendar(user, task)
     await task_service.cancel(session, task)
     if reminder_scheduler:
@@ -312,17 +321,21 @@ async def cb_task_done(callback: CallbackQuery, session: AsyncSession) -> None:
         await callback.answer(TASK_NOT_FOUND, show_alert=True)
         return
 
-    had_event = bool(task.google_event_id)
-    removed = await remove_task_from_calendar(user, task)
-    await task_service.mark_done(session, task)
-    if reminder_scheduler:
-        reminder_scheduler.cancel_task(task.id)
+    _, suffix = await complete_task(session, user, task)
+    if task.recurrence_rule:
+        await callback.answer("Задача выполнена")
+        await callback.message.edit_reply_markup(reply_markup=None)
+        await callback.message.answer(
+            f"✅ Задача #{task.id} «{task.title}» <b>выполнена</b>.{suffix}"
+        )
+        return
+
     await callback.answer("Задача выполнена")
     await callback.message.edit_reply_markup(reply_markup=None)
     await callback.message.answer(
         f"✅ Задача #{task.id} «{task.title}» отмечена <b>выполненной</b>.\n"
         "Она убрана из активных, но не удалена навсегда."
-        + _calendar_removal_suffix(removed, had_event)
+        + suffix
     )
 
 
@@ -341,6 +354,7 @@ async def cb_task_cancel(callback: CallbackQuery, session: AsyncSession) -> None
         return
 
     had_event = bool(task.google_event_id)
+    task.recurrence_rule = None
     removed = await remove_task_from_calendar(user, task)
     await task_service.cancel(session, task)
     if reminder_scheduler:
@@ -351,6 +365,110 @@ async def cb_task_cancel(callback: CallbackQuery, session: AsyncSession) -> None
         f"🗑 Задача #{task.id} «{task.title}» <b>отменена</b> и убрана из активных."
         + _calendar_removal_suffix(removed, had_event)
     )
+
+
+@router.callback_query(F.data.startswith("task:reschedule:"))
+async def cb_task_reschedule(callback: CallbackQuery, session: AsyncSession) -> None:
+    _, _, task_id_str, preset = callback.data.split(":", 3)
+    task_id = int(task_id_str)
+
+    user = await user_service.get_or_create(
+        session,
+        telegram_id=callback.from_user.id,
+        username=callback.from_user.username,
+        first_name=callback.from_user.first_name,
+    )
+    task = await task_service.get_pending(session, user, task_id)
+    if not task:
+        await callback.answer(TASK_NOT_FOUND, show_alert=True)
+        return
+
+    tz = ZoneInfo(user.timezone)
+    now_local = datetime.now(tz)
+
+    if preset == "1h":
+        new_due = datetime.now(ZoneInfo("UTC")) + timedelta(hours=1)
+        label = "через 1 час"
+    elif preset == "t9":
+        target = now_local.replace(hour=9, minute=0, second=0, microsecond=0)
+        if target <= now_local:
+            target += timedelta(days=1)
+        new_due = target.astimezone(ZoneInfo("UTC"))
+        label = "завтра в 9:00" if target.date() > now_local.date() else "сегодня в 9:00"
+    elif preset == "eve":
+        target = now_local.replace(hour=19, minute=0, second=0, microsecond=0)
+        if target <= now_local:
+            target += timedelta(days=1)
+        new_due = target.astimezone(ZoneInfo("UTC"))
+        label = "вечером (19:00)"
+    else:
+        minutes = int(preset)
+        new_due = datetime.now(ZoneInfo("UTC")) + timedelta(minutes=minutes)
+        label = f"через {minutes} мин"
+
+    task.due_at = new_due
+    calendar_updated = await update_task_in_calendar(user, task)
+    if reminder_scheduler:
+        reminder_scheduler.schedule_task(task.id, task.due_at)
+    new_time = format_due_at(task.due_at, user.timezone)
+    calendar_line = "\n📅 Время в Google Calendar обновлено." if calendar_updated else ""
+    await callback.answer(f"Перенесено: {label}")
+    await callback.message.answer(
+        f"⏰ Задача #{task.id} «{task.title}» <b>перенесена</b>.\n"
+        f"Новое время: {new_time}"
+        + calendar_line
+    )
+
+
+@router.message(Command("digest"))
+async def cmd_digest(message: Message, session: AsyncSession) -> None:
+    from bot.copy import DIGEST_DISABLED, DIGEST_ENABLED
+
+    user = await user_service.get_or_create(
+        session,
+        telegram_id=message.from_user.id,
+        username=message.from_user.username,
+        first_name=message.from_user.first_name,
+    )
+    parts = (message.text or "").split(maxsplit=1)
+    arg = parts[1].strip().lower() if len(parts) > 1 else ""
+    if arg in ("on", "вкл", "1", "да"):
+        user.digest_enabled = True
+        await answer_menu(message, DIGEST_ENABLED.format(hour=user.digest_hour))
+        return
+    if arg in ("off", "выкл", "0", "нет"):
+        user.digest_enabled = False
+        await answer_menu(message, DIGEST_DISABLED)
+        return
+    status = "включён" if user.digest_enabled else "выключен"
+    await answer_menu(
+        message,
+        f"☀️ Утренний дайджест: <b>{status}</b> ({user.digest_hour}:00)\n"
+        "/digest on · /digest off · /digest_time 8",
+    )
+
+
+@router.message(Command("digest_time"))
+async def cmd_digest_time(message: Message, session: AsyncSession) -> None:
+    from bot.copy import DIGEST_TIME_SET
+
+    user = await user_service.get_or_create(
+        session,
+        telegram_id=message.from_user.id,
+        username=message.from_user.username,
+        first_name=message.from_user.first_name,
+    )
+    parts = (message.text or "").split(maxsplit=1)
+    if len(parts) < 2 or not parts[1].strip().isdigit():
+        await answer_menu(message, "Использование: /digest_time 8 (час от 0 до 23)")
+        return
+    hour = int(parts[1].strip())
+    if not 0 <= hour <= 23:
+        await answer_menu(message, "Час должен быть от 0 до 23")
+        return
+    user.digest_hour = hour
+    user.digest_enabled = True
+    await answer_menu(message, DIGEST_TIME_SET.format(hour=hour))
 
 
 @router.callback_query(F.data.startswith("task:snooze:"))

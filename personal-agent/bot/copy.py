@@ -59,13 +59,15 @@ HELP_TEXT = (
     "<b>Команды задач</b>\n"
     "/tasks — все активные\n"
     "/edit &lt;id&gt; — изменить задачу (время, название)\n"
+    "/digest on · /digest off — утренний дайджест\n"
+    "/digest_time 8 — время дайджеста (час)\n"
     "/tasks_done — завершённые и отменённые\n"
     "/restore &lt;id&gt; — вернуть задачу в активные\n"
     "/done &lt;id&gt; · /cancel &lt;id&gt;\n"
     "/timezone — ваш часовой пояс (у каждого пользователя свой)\n\n"
     "<b>Кнопки при напоминании</b>\n"
-    "• Выполнено — убрать из активных и удалить из Google Calendar\n"
-    "• Через 15 мин — отложить (задача остаётся)\n"
+    "• Выполнено — убрать из активных (повторяющиеся — перенос на след. раз)\n"
+    "• Через 15 мин / +1ч / Завтра 9:00 / Вечером — отложить\n"
     "• Отменить — снять задачу и удалить из Google Calendar"
 )
 
@@ -73,7 +75,7 @@ TASK_CREATED = (
     "✅ Задача #{task_id} создана\n"
     "<b>{title}</b>\n"
     "⏰ {due_at}\n"
-    "🔔 {notify_types}{calendar_line}\n\n"
+    "🔔 {notify_types}{recurrence_line}{calendar_line}\n\n"
     "Список: кнопка <b>📋 Мои задачи</b>\n"
     "<i>Кнопки «Выполнено» / «15 мин» придут только когда наступит время напоминания.</i>"
 )
@@ -92,8 +94,18 @@ TASK_TODAY_HEADER = "<b>Задачи на сегодня ({count}):</b>"
 
 TASK_ITEM = (
     "#{id} — <b>{title}</b>\n"
-    "⏰ {due_at} · {notify_types}"
+    "⏰ {due_at} · {notify_types}{recurrence}"
 )
+
+DIGEST_HEADER = "☀️ <b>Доброе утро! Задачи на сегодня ({count}):</b>"
+DIGEST_EMPTY = "☀️ <b>Доброе утро!</b> На сегодня задач нет — отличный день!"
+DIGEST_ITEM = "#{id} — <b>{title}</b>\n⏰ {due_at} · {notify_types}{recurrence}"
+DIGEST_ENABLED = "☀️ Утренний дайджест включён ({hour}:00)."
+DIGEST_DISABLED = "Утренний дайджест отключён. Включить: /digest on"
+DIGEST_TIME_SET = "☀️ Дайджест будет приходить в <b>{hour}:00</b> (ваш часовой пояс)."
+
+NOTE_VIEW = "📝 <b>Заметка #{note_id}</b>\n\n{content}"
+NOTE_DELETE_CONFIRM = "🗑 Заметка #{note_id} удалена."
 
 TASK_DONE = "✅ Задача #{task_id} отмечена выполненной."
 TASK_CANCELLED = "🗑 Задача #{task_id} отменена."

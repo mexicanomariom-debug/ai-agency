@@ -24,7 +24,7 @@ from services.calendar_sync import update_task_in_calendar
 from services.google_calendar import google_calendar_service
 from services.scheduler import reminder_scheduler
 from services.task_editor import TaskEditChanges
-from services.task_parser import ParseResult
+from services.recurrence import recurrence_label
 from services.user_service import task_service
 
 
@@ -49,6 +49,47 @@ def format_due_at(due_at: datetime, timezone: str) -> str:
     return format_user_datetime(due_at, timezone)
 
 
+def _recurrence_line(rule: str | None) -> str:
+    if not rule:
+        return ""
+    return f"\n🔁 {recurrence_label(rule)}"
+
+
+async def complete_task(
+    session: AsyncSession,
+    user: User,
+    task: Task,
+) -> tuple[bool, str]:
+    """Mark task done or reschedule if recurring. Returns (removed_from_calendar, suffix)."""
+    from services.calendar_sync import remove_task_from_calendar, update_task_in_calendar
+    from services.recurrence import next_occurrence
+
+    if task.recurrence_rule:
+        task.due_at = next_occurrence(task.due_at, task.recurrence_rule, user.timezone)
+        task.reminded_at = None
+        calendar_updated = await update_task_in_calendar(user, task)
+        if reminder_scheduler:
+            reminder_scheduler.schedule_task(task.id, task.due_at)
+        calendar_line = "\n📅 Время в Google Calendar обновлено." if calendar_updated else ""
+        suffix = (
+            f"\n🔁 Следующее напоминание: {format_due_at(task.due_at, user.timezone)}"
+            + calendar_line
+        )
+        return False, suffix
+
+    had_event = bool(task.google_event_id)
+    removed = await remove_task_from_calendar(user, task)
+    await task_service.mark_done(session, task)
+    if reminder_scheduler:
+        reminder_scheduler.cancel_task(task.id)
+    suffix = ""
+    if removed:
+        suffix = "\n📅 Удалено из Google Calendar"
+    elif had_event:
+        suffix = "\n⚠️ Не удалось удалить из Google Calendar"
+    return removed, suffix
+
+
 async def create_tasks_from_parsed(
     session: AsyncSession,
     user: User,
@@ -65,6 +106,7 @@ async def create_tasks_from_parsed(
             notify_message=item.notify_message,
             notify_call=item.notify_call,
             notify_phone=item.notify_phone,
+            recurrence_rule=item.recurrence_rule,
         )
         if user.google_calendar_enabled and user.google_refresh_token:
             event_id = await google_calendar_service.create_event(user, task)
@@ -102,6 +144,7 @@ def build_task_reply(user: User, tasks: list[Task], parsed: ParseResult) -> str:
                 notify_types=format_notify_types(
                     task.notify_message, task.notify_call, task.notify_phone
                 ),
+                recurrence_line=_recurrence_line(task.recurrence_rule),
                 calendar_line=calendar_line,
             )
         )

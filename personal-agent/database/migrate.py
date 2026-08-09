@@ -12,11 +12,15 @@ USER_COLUMNS = {
     "google_refresh_token": "TEXT",
     "google_calendar_enabled": "BOOLEAN DEFAULT 0",
     "translate_target_lang": "VARCHAR(8) DEFAULT 'en'",
+    "digest_enabled": "BOOLEAN DEFAULT 1",
+    "digest_hour": "INTEGER DEFAULT 8",
+    "digest_last_sent": "VARCHAR(10)",
 }
 
 TASK_COLUMNS = {
     "notify_phone": "BOOLEAN DEFAULT 0",
     "google_event_id": "VARCHAR(255)",
+    "recurrence_rule": "VARCHAR(32)",
 }
 
 

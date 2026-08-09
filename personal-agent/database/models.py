@@ -29,6 +29,9 @@ class User(Base):
     google_refresh_token: Mapped[str | None] = mapped_column(Text)
     google_calendar_enabled: Mapped[bool] = mapped_column(Boolean, default=False)
     translate_target_lang: Mapped[str] = mapped_column(String(8), default="en")
+    digest_enabled: Mapped[bool] = mapped_column(Boolean, default=True)
+    digest_hour: Mapped[int] = mapped_column(default=8)
+    digest_last_sent: Mapped[str | None] = mapped_column(String(10))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
     tasks: Mapped[list[Task]] = relationship(back_populates="user", cascade="all, delete-orphan")
@@ -51,6 +54,7 @@ class Task(Base):
     notify_phone: Mapped[bool] = mapped_column(Boolean, default=False)
     google_event_id: Mapped[str | None] = mapped_column(String(255))
     status: Mapped[TaskStatus] = mapped_column(Enum(TaskStatus), default=TaskStatus.PENDING, index=True)
+    recurrence_rule: Mapped[str | None] = mapped_column(String(32))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     reminded_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
