@@ -1,0 +1,106 @@
+name: Deploy Personal Agent to Oracle
+
+on:
+  push:
+    branches: [cursor/personal-agent-task-scheduler-64cf, main]
+    paths:
+      - 'personal-agent/**'
+      - '.github/workflows/deploy-personal-agent-oracle.yml'
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup SSH agent
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.ORACLE_SSH_KEY }}
+
+      - name: Add Oracle host key
+        run: |
+          HOST="${{ secrets.ORACLE_HOST || '140.84.183.154' }}"
+          ssh-keyscan -H "$HOST" >> ~/.ssh/known_hosts 2>/dev/null || true
+
+      - name: Create production .env
+        env:
+          BOT_TOKEN: ${{ secrets.PERSONAL_AGENT_BOT_TOKEN || secrets.BOT_TOKEN }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
+          GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
+          TWILIO_ACCOUNT_SID: ${{ secrets.TWILIO_ACCOUNT_SID }}
+          TWILIO_AUTH_TOKEN: ${{ secrets.TWILIO_AUTH_TOKEN }}
+          TWILIO_FROM_NUMBER: ${{ secrets.TWILIO_FROM_NUMBER }}
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST || '140.84.183.154' }}
+        run: |
+          if [ -z "$BOT_TOKEN" ]; then
+            echo "::error::Set PERSONAL_AGENT_BOT_TOKEN (or BOT_TOKEN) in GitHub Secrets"
+            exit 1
+          fi
+          if [ -z "$OPENAI_API_KEY" ]; then
+            echo "::warning::OPENAI_API_KEY empty — voice and AI disabled"
+          fi
+          cat > personal-agent/.env <<EOF
+          BOT_TOKEN=${BOT_TOKEN}
+          OPENAI_API_KEY=${OPENAI_API_KEY}
+          OPENAI_MODEL=gpt-4o-mini
+          OPENAI_WHISPER_MODEL=whisper-1
+          DEFAULT_TIMEZONE=Europe/Moscow
+          DATABASE_URL=sqlite+aiosqlite:///./data/agent.db
+          SCHEDULER_DATABASE_URL=sqlite:///./data/scheduler.db
+          TTS_VOICE=ru-RU-DmitryNeural
+          ENVIRONMENT=production
+          GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
+          GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
+          GOOGLE_REDIRECT_URI=http://${ORACLE_HOST}:8081/oauth/google/callback
+          OAUTH_SERVER_PORT=8080
+          OAUTH_HOST_PORT=8081
+          TWILIO_ACCOUNT_SID=${TWILIO_ACCOUNT_SID}
+          TWILIO_AUTH_TOKEN=${TWILIO_AUTH_TOKEN}
+          TWILIO_FROM_NUMBER=${TWILIO_FROM_NUMBER}
+          EOF
+          sed -i 's/^          //' personal-agent/.env
+
+      - name: Deploy to Oracle
+        run: |
+          HOST="${{ secrets.ORACLE_HOST || '140.84.183.154' }}"
+          USER="${{ secrets.ORACLE_SSH_USER || 'ubuntu' }}"
+          REMOTE_DIR="/opt/personal-agent"
+
+          tar -czf /tmp/personal-agent-deploy.tar.gz \
+            --exclude=__pycache__ --exclude=.venv --exclude=.git --exclude=data \
+            -C personal-agent .
+
+          scp -o StrictHostKeyChecking=no /tmp/personal-agent-deploy.tar.gz "$USER@$HOST:/tmp/personal-agent-deploy.tar.gz"
+          ssh -o StrictHostKeyChecking=no "$USER@$HOST" "sudo mkdir -p $REMOTE_DIR && sudo chown -R \$(whoami):\$(whoami) $REMOTE_DIR"
+          scp -o StrictHostKeyChecking=no personal-agent/.env "$USER@$HOST:$REMOTE_DIR/.env"
+
+          ssh -o StrictHostKeyChecking=no "$USER@$HOST" "
+            cd $REMOTE_DIR
+            tar -xzf /tmp/personal-agent-deploy.tar.gz
+            rm -f /tmp/personal-agent-deploy.tar.gz
+            chmod +x oracle-redeploy.sh oracle-setup.sh
+            ./oracle-redeploy.sh
+          "
+
+      - name: Open OAuth port on VM firewall
+        run: |
+          HOST="${{ secrets.ORACLE_HOST || '140.84.183.154' }}"
+          USER="${{ secrets.ORACLE_SSH_USER || 'ubuntu' }}"
+          ssh -o StrictHostKeyChecking=no "${USER}@${HOST}" '
+            if command -v ufw >/dev/null; then sudo ufw allow 8081/tcp || true; fi
+            sudo iptables -C INPUT -p tcp --dport 8081 -j ACCEPT 2>/dev/null || \
+              sudo iptables -I INPUT -p tcp --dport 8081 -j ACCEPT || true
+          '
+
+      - name: Bot logs after deploy
+        run: |
+          HOST="${{ secrets.ORACLE_HOST || '140.84.183.154' }}"
+          USER="${{ secrets.ORACLE_SSH_USER || 'ubuntu' }}"
+          ssh -o StrictHostKeyChecking=no "${USER}@${HOST}" "
+            cd /opt/personal-agent
+            sudo docker compose -f docker-compose.prod.yml ps
+            sudo docker compose -f docker-compose.prod.yml logs bot --tail 40
+          "

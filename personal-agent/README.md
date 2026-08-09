@@ -71,7 +71,12 @@ personal-agent/
 └── api/              # OAuth callback сервер
 ```
 
-## Ограничения
+## Deploy on Oracle (рядом с language-tutor)
+
+См. [DEPLOY.md](./DEPLOY.md) — автодеплой через GitHub Actions или `deploy-to-oracle.ps1`.
+
+Сервер: `140.84.183.154` → `/opt/personal-agent`
+
 
 - «Звонок» в Telegram = голосовое сообщение (TTS)
 - Реальный звонок на телефон = Twilio + `/phone`
