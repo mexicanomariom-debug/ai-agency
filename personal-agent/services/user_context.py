@@ -66,6 +66,7 @@ async def build_user_context(session: AsyncSession, user: User) -> UserContext:
     journal_recent = await journal_service.list_recent(session, user, limit=8)
 
     kind_labels = {
+        "idea": "💡",
         "expense": "💸",
         "thought": "💭",
         "decision": "⚖️",

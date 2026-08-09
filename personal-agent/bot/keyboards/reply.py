@@ -9,7 +9,10 @@ def main_menu_keyboard() -> ReplyKeyboardMarkup:
                 KeyboardButton(text="📆 Сегодня"),
             ],
             [
+                KeyboardButton(text="💡 Блокнот-Идеи"),
                 KeyboardButton(text="📝 Заметки"),
+            ],
+            [
                 KeyboardButton(text="🌐 Переводчик"),
             ],
             [

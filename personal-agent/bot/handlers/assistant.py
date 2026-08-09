@@ -6,6 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from bot.copy import NOTE_CREATED, PARSE_FAILED
 from bot.handlers.tasks import cmd_tasks, cmd_today
 from bot.handlers.task_edit import try_one_shot_edit
+from bot.states.notebook import NotebookStates
 from bot.states.task_edit import TaskEditStates
 from bot.states.translator import TranslatorStates
 from bot.utils.messages import answer_menu
@@ -88,9 +89,13 @@ async def handle_text(message: Message, session: AsyncSession, state: FSMContext
     if await state.get_state() == TaskEditStates.waiting_changes.state:
         return
 
+    if await state.get_state() == NotebookStates.writing.state:
+        return
+
     quick_buttons = {
         "📋 Мои задачи",
         "❓ Помощь",
+        "💡 Блокнот-Идеи",
         "📝 Заметки",
         "📅 Календарь",
         "📞 Телефон",

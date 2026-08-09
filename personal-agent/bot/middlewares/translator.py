@@ -7,9 +7,11 @@ from aiogram.types import Message, TelegramObject
 MENU_BUTTONS = {
     "📋 Мои задачи",
     "📆 Сегодня",
+    "💡 Блокнот-Идеи",
     "📝 Заметки",
     "📅 Календарь",
     "📞 Телефон",
+    "🌐 Переводчик",
     "❓ Помощь",
 }
 

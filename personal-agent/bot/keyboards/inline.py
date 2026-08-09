@@ -71,6 +71,28 @@ def task_list_edit_keyboard(tasks: list[Task], *, max_buttons: int = 10) -> Inli
     return InlineKeyboardMarkup(inline_keyboard=rows)
 
 
+def journal_menu_keyboard() -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [
+                InlineKeyboardButton(text="💡 Идеи", callback_data="journal:filter:idea"),
+                InlineKeyboardButton(text="💭 Мысли", callback_data="journal:filter:thought"),
+            ],
+            [
+                InlineKeyboardButton(text="💸 Траты", callback_data="journal:filter:expense"),
+                InlineKeyboardButton(text="📊 Сводка", callback_data="journal:summary"),
+            ],
+            [
+                InlineKeyboardButton(text="📅 Вчера", callback_data="journal:yesterday"),
+                InlineKeyboardButton(text="🔄 Сегодня", callback_data="journal:today"),
+            ],
+            [
+                InlineKeyboardButton(text="❌ Выйти", callback_data="journal:exit"),
+            ],
+        ]
+    )
+
+
 def note_list_keyboard(notes) -> InlineKeyboardMarkup:
     rows: list[list[InlineKeyboardButton]] = []
     for note in notes[:12]:

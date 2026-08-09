@@ -105,6 +105,7 @@ class ChatMessage(Base):
 
 
 class JournalKind(str, enum.Enum):
+    IDEA = "idea"
     EXPENSE = "expense"
     THOUGHT = "thought"
     DECISION = "decision"
