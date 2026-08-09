@@ -19,6 +19,21 @@ if not exist ".env" (
     exit /b 1
 )
 
+findstr /B /I "ALLOW_LOCAL_BOT=true" .env >nul 2>&1
+if %errorlevel% neq 0 (
+    echo [СТОП] Локальный запуск отключён.
+    echo.
+    echo Бот @mychatbot7_bot работает на сервере Oracle 24/7.
+    echo Если запустить его ещё и здесь — Telegram конфликт,
+    echo и бот перестанет отвечать НИГДЕ.
+    echo.
+    echo Для разработки на ПК добавьте в .env строку:
+    echo   ALLOW_LOCAL_BOT=true
+    echo.
+    pause
+    exit /b 1
+)
+
 findstr /B "BOT_TOKEN=$" .env >nul 2>&1
 if %errorlevel%==0 (
     echo [ОШИБКА] BOT_TOKEN пустой в .env
@@ -60,8 +75,7 @@ if %errorlevel% neq 0 (
 )
 
 echo.
-echo Запускаю бота... Не закрывайте это окно!
-echo Остановить: Ctrl+C
+echo ЛОКАЛЬНЫЙ режим. Не забудьте остановить Ctrl+C после теста!
 echo.
 %PYTHON% -m bot.main
 pause
