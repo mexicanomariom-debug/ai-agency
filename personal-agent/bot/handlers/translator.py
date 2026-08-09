@@ -1,7 +1,7 @@
 from aiogram import F, Router
 from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
-from aiogram.types import CallbackQuery, Message
+from aiogram.types import Message
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from bot.copy import (
@@ -10,40 +10,26 @@ from bot.copy import (
     TRANSLATE_PROMPT,
     TRANSLATE_RESULT,
 )
-from bot.keyboards.inline import translator_languages_keyboard
 from bot.states.translator import TranslatorStates
 from services.translator import translator_service
 from services.user_service import user_service
 
 router = Router()
 
+AUTO_LANG = "auto"
 
-async def _enter_translator(message: Message, session: AsyncSession, state: FSMContext) -> None:
-    user = await user_service.get_or_create(
-        session,
-        telegram_id=message.from_user.id,
-        username=message.from_user.username,
-        first_name=message.from_user.first_name,
-    )
+
+async def _enter_translator(message: Message, state: FSMContext) -> None:
     if not translator_service.available:
         await message.answer(TRANSLATE_NEED_OPENAI)
         return
 
-    target = user.translate_target_lang or "en"
     await state.set_state(TranslatorStates.waiting_text)
-    await message.answer(
-        TRANSLATE_PROMPT.format(lang=translator_service.language_label(target)),
-        reply_markup=translator_languages_keyboard(target),
-    )
+    await message.answer(TRANSLATE_PROMPT)
 
 
-async def _translate_and_reply(
-    message: Message,
-    session: AsyncSession,
-    text: str,
-    target_lang: str,
-) -> bool:
-    result = await translator_service.translate(text, target_lang)
+async def _translate_and_reply(message: Message, text: str) -> bool:
+    result = await translator_service.translate(text, AUTO_LANG)
     if not result:
         await message.answer("Не удалось перевести. Попробуйте ещё раз.")
         return False
@@ -61,33 +47,8 @@ async def _translate_and_reply(
 
 @router.message(Command("translate"))
 @router.message(lambda m: m.text == "🌐 Переводчик")
-async def cmd_translator(message: Message, session: AsyncSession, state: FSMContext) -> None:
-    await _enter_translator(message, session, state)
-
-
-@router.callback_query(F.data.startswith("tr:lang:"))
-async def cb_set_language(callback: CallbackQuery, session: AsyncSession, state: FSMContext) -> None:
-    lang = callback.data.split(":")[-1]
-    user = await user_service.get_or_create(
-        session,
-        telegram_id=callback.from_user.id,
-        username=callback.from_user.username,
-        first_name=callback.from_user.first_name,
-    )
-    await user_service.set_translate_lang(session, user, lang)
-    await state.set_state(TranslatorStates.waiting_text)
-    await callback.answer(f"Язык: {translator_service.language_label(lang)}")
-    await callback.message.edit_text(
-        TRANSLATE_PROMPT.format(lang=translator_service.language_label(lang)),
-        reply_markup=translator_languages_keyboard(lang),
-    )
-
-
-@router.callback_query(F.data == "tr:exit")
-async def cb_exit_translator(callback: CallbackQuery, state: FSMContext) -> None:
-    await state.clear()
-    await callback.answer("Переводчик закрыт")
-    await callback.message.edit_text(TRANSLATE_EXIT)
+async def cmd_translator(message: Message, state: FSMContext) -> None:
+    await _enter_translator(message, state)
 
 
 @router.message(Command("translate_off"))
@@ -103,14 +64,12 @@ async def handle_translate_text(message: Message, session: AsyncSession, state: 
         await message.answer(TRANSLATE_EXIT)
         return
 
-    user = await user_service.get_or_create(
+    await user_service.get_or_create(
         session,
         telegram_id=message.from_user.id,
         username=message.from_user.username,
         first_name=message.from_user.first_name,
     )
-    target = user.translate_target_lang or "en"
-    text = message.text
 
     await message.bot.send_chat_action(message.chat.id, "typing")
-    await _translate_and_reply(message, session, text, target)
+    await _translate_and_reply(message, message.text)

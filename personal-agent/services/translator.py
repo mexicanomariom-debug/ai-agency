@@ -106,8 +106,10 @@ class TranslatorService:
 
         if target_lang == "auto":
             target_instruction = (
-                "Detect the source language. If the text is mostly Russian, translate to English. "
-                "Otherwise translate to Russian."
+                "Automatically detect the source language. "
+                "If the text is Russian, translate to English. "
+                "If the text is English, translate to Russian. "
+                "For any other language, translate to Russian."
             )
             resolved_target = "auto"
         else:

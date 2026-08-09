@@ -37,8 +37,7 @@ async def handle_voice(message: Message, session: AsyncSession, state: FSMContex
 
     if current_state == TranslatorStates.waiting_text.state:
         await message.answer(VOICE_TRANSCRIBED.format(text=text))
-        target = user.translate_target_lang or "en"
-        await _translate_and_reply(message, session, text, target)
+        await _translate_and_reply(message, text)
         return
 
     await message.answer(VOICE_TRANSCRIBED.format(text=text))
