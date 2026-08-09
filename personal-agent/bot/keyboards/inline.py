@@ -98,7 +98,10 @@ def traffic_menu_keyboard(*, enabled: bool) -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(
         inline_keyboard=[
             [
-                InlineKeyboardButton(text="📍 Настроить маршрут", callback_data="traffic:setup"),
+                InlineKeyboardButton(text="🛣 Маршрут", callback_data="traffic:setup:route"),
+                InlineKeyboardButton(text="🏙 Район/улица", callback_data="traffic:setup:area"),
+            ],
+            [
                 InlineKeyboardButton(text="🔄 Проверить", callback_data="traffic:check"),
             ],
             [

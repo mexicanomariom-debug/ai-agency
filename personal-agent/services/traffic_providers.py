@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+import math
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
@@ -85,6 +86,8 @@ class TrafficResult:
     distance_km: float
     summary: str
     provider: str = "google"
+    monitor_mode: str = "route"
+    area_detail: str | None = None
 
     @property
     def is_congested(self) -> bool:
@@ -128,6 +131,128 @@ async def fetch_traffic_for_user(user: "User", origin: str, destination: str) ->
             fallback.provider = "google"
         return fallback
     return None
+
+
+    return None
+
+
+async def fetch_area_traffic_for_user(user: "User", location: str) -> TrafficResult | None:
+    """Probe traffic around a city, district or street."""
+    provider = resolve_provider(user, location, location)
+    center = await _geocode(provider, location)
+    if not center and provider != "google":
+        center = await _geocode("google", location)
+        if center:
+            provider = "google"
+    if not center:
+        return None
+
+    probes = _probe_points(center[0], center[1])
+    delays: list[tuple[str, int, int, int]] = []
+
+    for lat, lon, direction in probes:
+        delay_info = await _route_delay(provider, center, (lat, lon))
+        if delay_info:
+            base_min, traffic_min, delay = delay_info
+            delays.append((direction, base_min, traffic_min, delay))
+
+    if not delays:
+        if provider != "google" and settings.google_maps_api_key:
+            for lat, lon, direction in probes:
+                delay_info = await _route_delay("google", center, (lat, lon))
+                if delay_info:
+                    base_min, traffic_min, delay = delay_info
+                    delays.append((direction, base_min, traffic_min, delay))
+            provider = "google"
+
+    if not delays:
+        return None
+
+    avg_base = sum(d[1] for d in delays) // len(delays)
+    avg_traffic = sum(d[2] for d in delays) // len(delays)
+    avg_delay = sum(d[3] for d in delays) // len(delays)
+    worst = max(delays, key=lambda x: x[3])
+    area_detail = f"средняя +{avg_delay} мин, макс. +{worst[3]} мин ({worst[0]})"
+
+    return TrafficResult(
+        origin=location,
+        destination="мониторинг района",
+        duration_min=avg_base,
+        duration_in_traffic_min=avg_traffic,
+        delay_min=avg_delay,
+        distance_km=0.0,
+        summary=PROVIDER_LABELS.get(provider, provider),
+        provider=provider,
+        monitor_mode="area",
+        area_detail=area_detail,
+    )
+
+
+def _probe_points(lat: float, lon: float, km: float = 2.0) -> list[tuple[float, float, str]]:
+    dlat = km / 111.0
+    cos_lat = math.cos(math.radians(lat)) or 0.01
+    dlon = km / (111.0 * cos_lat)
+    return [
+        (lat + dlat, lon, "север"),
+        (lat, lon + dlon, "восток"),
+        (lat - dlat, lon, "юг"),
+        (lat, lon - dlon, "запад"),
+    ]
+
+
+async def _geocode(provider: str, address: str) -> tuple[float, float] | None:
+    if provider == "yandex":
+        return await _yandex_geocode(address)
+    if provider == "dgis":
+        return await _dgis_geocode(address)
+    return await _google_geocode(address)
+
+
+async def _route_delay(
+    provider: str,
+    origin: tuple[float, float],
+    dest: tuple[float, float],
+) -> tuple[int, int, int] | None:
+    o_str = f"{origin[0]},{origin[1]}"
+    d_str = f"{dest[0]},{dest[1]}"
+    if provider == "yandex":
+        with_t = await _yandex_route_seconds([origin, dest], traffic_enabled=True)
+        without_t = await _yandex_route_seconds([origin, dest], traffic_enabled=False)
+    elif provider == "dgis":
+        with_t = await _dgis_route_seconds([origin, dest], traffic_mode="jam")
+        without_t = await _dgis_route_seconds([origin, dest], traffic_mode="statistics")
+    else:
+        result = await fetch_google_traffic(o_str, d_str)
+        if not result:
+            return None
+        return result.duration_min, result.duration_in_traffic_min, result.delay_min
+
+    if not with_t:
+        return None
+    base = max(1, (without_t or with_t) // 60)
+    traffic = max(1, with_t // 60)
+    return base, traffic, max(0, traffic - base)
+
+
+async def _google_geocode(address: str) -> tuple[float, float] | None:
+    api_key = settings.google_maps_api_key
+    if not api_key:
+        return None
+    try:
+        async with httpx.AsyncClient(timeout=15.0) as client:
+            resp = await client.get(
+                "https://maps.googleapis.com/maps/api/geocode/json",
+                params={"address": address, "key": api_key, "language": "ru"},
+            )
+            resp.raise_for_status()
+            data = resp.json()
+        if data.get("status") != "OK" or not data.get("results"):
+            return None
+        loc = data["results"][0]["geometry"]["location"]
+        return float(loc["lat"]), float(loc["lng"])
+    except Exception:
+        logger.exception("Google geocode failed for %s", address)
+        return None
 
 
 async def fetch_google_traffic(origin: str, destination: str) -> TrafficResult | None:

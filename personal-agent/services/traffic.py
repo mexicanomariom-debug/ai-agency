@@ -10,6 +10,7 @@ from zoneinfo import ZoneInfo
 from services.traffic_providers import (
     PROVIDER_LABELS,
     TrafficResult,
+    fetch_area_traffic_for_user,
     fetch_traffic_for_user,
     is_russia_context,
 )
@@ -44,19 +45,41 @@ def is_check_window(user: "User", now: datetime | None = None) -> bool:
     return t >= start or t <= end
 
 
+def provider_label(provider: str | None) -> str:
+    return PROVIDER_LABELS.get(provider or "google", provider or "Google Maps")
+
+
 async def fetch_traffic(user: "User", origin: str, destination: str) -> TrafficResult | None:
     return await fetch_traffic_for_user(user, origin, destination)
 
 
-def provider_label(provider: str | None) -> str:
-    return PROVIDER_LABELS.get(provider or "google", provider or "Google Maps")
+async def fetch_area_traffic(user: "User", location: str) -> TrafficResult | None:
+    return await fetch_area_traffic_for_user(user, location)
 
 
 def format_traffic_message(result: TrafficResult, *, alert: bool = False) -> str:
     emoji = "🚗🔴" if alert else "🚗"
     provider = provider_label(result.provider)
+
+    if result.monitor_mode == "area":
+        lines = [
+            f"{emoji} <b>Монитор траффика</b>",
+            f"🏙 {result.origin}",
+            f"🗺 {provider}",
+        ]
+        if result.area_detail:
+            lines.append(f"📊 {result.area_detail}")
+        lines.append(f"⏱ Без пробок: ~{result.duration_min} мин (среднее)")
+        lines.append(f"🚦 С пробками: ~{result.duration_in_traffic_min} мин (среднее)")
+        if result.delay_min > 0:
+            lines.append(f"⚠️ Средняя задержка: +{result.delay_min} мин")
+        else:
+            lines.append("✅ В районе дороги свободны")
+        return "\n".join(lines)
+
     lines = [
-        f"{emoji} <b>Пробки на маршруте</b>",
+        f"{emoji} <b>Монитор траффика</b>",
+        f"🛣 Маршрут",
         f"🗺 {provider}",
         f"📍 {result.origin} → {result.destination}",
         f"⏱ Без пробок: ~{result.duration_min} мин",
@@ -72,11 +95,19 @@ def format_traffic_message(result: TrafficResult, *, alert: bool = False) -> str
 
 
 async def check_user_traffic(user: "User") -> TrafficResult | None:
-    origin = getattr(user, "traffic_origin", None)
-    destination = getattr(user, "traffic_destination", None)
-    if not origin or not destination:
-        return None
     if not getattr(user, "traffic_enabled", False):
+        return None
+
+    origin = getattr(user, "traffic_origin", None)
+    if not origin:
+        return None
+
+    mode = getattr(user, "traffic_mode", None) or "route"
+    if mode == "area":
+        return await fetch_area_traffic(user, origin)
+
+    destination = getattr(user, "traffic_destination", None)
+    if not destination:
         return None
     return await fetch_traffic(user, origin, destination)
 
@@ -121,11 +152,16 @@ class TrafficMonitor:
         from database.models import User
 
         async with self.session_factory() as session:
+            from sqlalchemy import or_
+
             result = await session.execute(
                 select(User).where(
                     User.traffic_enabled == True,  # noqa: E712
                     User.traffic_origin.isnot(None),
-                    User.traffic_destination.isnot(None),
+                    or_(
+                        User.traffic_destination.isnot(None),
+                        User.traffic_mode == "area",
+                    ),
                 )
             )
             users = result.scalars().all()

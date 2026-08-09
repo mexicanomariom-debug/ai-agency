@@ -100,6 +100,7 @@ async def handle_text(message: Message, session: AsyncSession, state: FSMContext
         "📋 Мои задачи",
         "❓ Помощь",
         "💡 Блокнот-Идеи",
+        "🚗 Монитор траффика",
         "🚗 Пробки",
         "📅 Календарь",
         "📞 Телефон",
