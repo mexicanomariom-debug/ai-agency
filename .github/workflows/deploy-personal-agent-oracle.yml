@@ -5,6 +5,7 @@ on:
     branches: [cursor/personal-agent-task-scheduler-64cf, main]
     paths:
       - 'personal-agent/**'
+      - 'src/app/api/google/**'
       - '.github/workflows/deploy-personal-agent-oracle.yml'
   workflow_dispatch:
 
@@ -54,9 +55,10 @@ jobs:
           ENVIRONMENT=production
           GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
           GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
-          GOOGLE_REDIRECT_URI=http://${ORACLE_HOST}:8081/oauth/google/callback
+          GOOGLE_REDIRECT_URI=https://ai-agency-drab.vercel.app/api/google/oauth/callback
           OAUTH_SERVER_PORT=8080
           OAUTH_HOST_PORT=8081
+          PERSONAL_AGENT_INTERNAL_SECRET=${{ secrets.PERSONAL_AGENT_INTERNAL_SECRET || 'personal-agent-internal-2026' }}
           TWILIO_ACCOUNT_SID=${TWILIO_ACCOUNT_SID}
           TWILIO_AUTH_TOKEN=${TWILIO_AUTH_TOKEN}
           TWILIO_FROM_NUMBER=${TWILIO_FROM_NUMBER}

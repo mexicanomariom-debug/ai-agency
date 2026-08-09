@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import logging
 
 from aiohttp import web
@@ -31,14 +32,9 @@ async def google_oauth_callback(request: web.Request) -> web.Response:
     if not refresh_token:
         return web.Response(text="Не удалось получить токен Google", content_type="text/html; charset=utf-8")
 
-    async with async_session_factory() as session:
-        result = await session.execute(select(User).where(User.telegram_id == telegram_id))
-        user = result.scalar_one_or_none()
-        if not user:
-            return web.Response(text="Пользователь не найден", content_type="text/html; charset=utf-8")
-        user.google_refresh_token = refresh_token
-        user.google_calendar_enabled = True
-        await session.commit()
+    saved = await _save_google_token(telegram_id, refresh_token)
+    if not saved:
+        return web.Response(text="Пользователь не найден", content_type="text/html; charset=utf-8")
 
     try:
         await bot.send_message(
@@ -54,10 +50,55 @@ async def google_oauth_callback(request: web.Request) -> web.Response:
     )
 
 
+async def internal_google_token(request: web.Request) -> web.Response:
+    if settings.internal_api_secret:
+        secret = request.headers.get("X-Internal-Secret", "")
+        if secret != settings.internal_api_secret:
+            return web.json_response({"error": "unauthorized"}, status=401)
+
+    try:
+        data = await request.json()
+    except json.JSONDecodeError:
+        return web.json_response({"error": "invalid json"}, status=400)
+
+    telegram_id = data.get("telegram_id")
+    refresh_token = data.get("refresh_token")
+    if not isinstance(telegram_id, int) or not refresh_token:
+        return web.json_response({"error": "missing fields"}, status=400)
+
+    saved = await _save_google_token(telegram_id, refresh_token)
+    if not saved:
+        return web.json_response({"error": "user not found"}, status=404)
+
+    bot: Bot = request.app["bot"]
+    try:
+        await bot.send_message(
+            telegram_id,
+            "✅ Google Calendar подключён! Новые задачи будут синхронизироваться автоматически.",
+        )
+    except Exception:
+        logger.exception("Failed to notify user %s about calendar connect", telegram_id)
+
+    return web.json_response({"ok": True})
+
+
+async def _save_google_token(telegram_id: int, refresh_token: str) -> bool:
+    async with async_session_factory() as session:
+        result = await session.execute(select(User).where(User.telegram_id == telegram_id))
+        user = result.scalar_one_or_none()
+        if not user:
+            return False
+        user.google_refresh_token = refresh_token
+        user.google_calendar_enabled = True
+        await session.commit()
+    return True
+
+
 def create_oauth_app(bot: Bot) -> web.Application:
     app = web.Application()
     app["bot"] = bot
     app.router.add_get("/oauth/google/callback", google_oauth_callback)
+    app.router.add_post("/internal/google-token", internal_google_token)
     return app
 
 

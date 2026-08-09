@@ -17,8 +17,9 @@ class Settings(BaseSettings):
     # Google Calendar OAuth
     google_client_id: str = ""
     google_client_secret: str = ""
-    google_redirect_uri: str = "http://localhost:8080/oauth/google/callback"
+    google_redirect_uri: str = "https://ai-agency-drab.vercel.app/api/google/oauth/callback"
     oauth_server_port: int = 8080
+    internal_api_secret: str = ""
 
     # Twilio phone calls
     twilio_account_sid: str = ""
