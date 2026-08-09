@@ -70,3 +70,5 @@ http://140.84.183.154:8081/oauth/google/callback
 ```
 
 И в Oracle Security List откройте TCP **8081** (как для 8000 у language-tutor).
+
+<!-- deploy trigger 2026-08-09 -->
