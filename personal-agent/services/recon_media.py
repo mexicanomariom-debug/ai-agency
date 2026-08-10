@@ -9,6 +9,7 @@ from pathlib import Path
 
 from services.recon_providers import ContentItem
 from services.translator import translator_service
+from services.ytdlp_cmd import ytdlp_command
 
 logger = logging.getLogger(__name__)
 
@@ -17,15 +18,14 @@ _MAX_VIDEO_BYTES = 48 * 1024 * 1024
 
 async def _run_ytdlp_download(url: str, out_dir: Path) -> Path | None:
     out_template = str(out_dir / "%(id)s.%(ext)s")
-    cmd = [
-        "yt-dlp",
+    cmd = ytdlp_command(
         "-f",
         "best[filesize<?48M]/best",
         "--no-playlist",
         "-o",
         out_template,
         url,
-    ]
+    )
     try:
         proc = await asyncio.create_subprocess_exec(
             *cmd,

@@ -12,6 +12,7 @@ import httpx
 
 from config import settings
 from services.recon_providers import ContentItem, FetchResult, _build_result, _hash_content, _item_id, _normalize_text
+from services.ytdlp_cmd import ytdlp_command
 
 logger = logging.getLogger(__name__)
 
@@ -121,14 +122,13 @@ async def _fetch_tiktok_ytdlp(handle: str) -> list[ContentItem]:
 
     profile = normalize_tiktok_handle(handle)
     url = f"https://www.tiktok.com/@{profile}"
-    cmd = [
-        "yt-dlp",
+    cmd = ytdlp_command(
         "--flat-playlist",
         "--dump-single-json",
         "--playlist-end",
         "12",
         url,
-    ]
+    )
     try:
         proc = await asyncio.create_subprocess_exec(
             *cmd,
@@ -158,7 +158,7 @@ async def _fetch_tiktok_ytdlp(handle: str) -> list[ContentItem]:
         if not video_id:
             continue
         page_url = entry.get("webpage_url") or entry.get("url") or f"{url}/video/{video_id}"
-        caption = (entry.get("title") or entry.get("description") or "").strip()
+        caption = (entry.get("description") or entry.get("title") or "").strip()
         if not caption:
             caption = f"TikTok #{video_id}"
         items.append(

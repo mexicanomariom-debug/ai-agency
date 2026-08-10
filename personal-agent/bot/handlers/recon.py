@@ -29,7 +29,7 @@ from bot.states.recon import ReconSetupStates
 from bot.utils.menu_forward import try_forward_menu_button
 from bot.utils.html import h as html_escape
 from bot.utils.messages import answer_menu
-from services.recon import format_event_message, get_recon_monitor
+from services.recon import format_event_message, get_recon_monitor, ReconFetchError
 from services.recon_providers import _parse_source_input, fetch_source_content
 from services.recon_service import (
     SOURCE_TYPE_LABELS,
@@ -637,7 +637,7 @@ async def cb_recon_list(callback: CallbackQuery, session: AsyncSession) -> None:
     )
 
 
-@router.callback_query(F.data.startswith("recon:src:"))
+@router.callback_query(F.data.regexp(r"^recon:src:\d+$"))
 async def cb_recon_src(callback: CallbackQuery, session: AsyncSession) -> None:
     if not callback.data or not callback.from_user or not callback.message:
         await callback.answer()
@@ -669,7 +669,7 @@ async def cb_recon_src(callback: CallbackQuery, session: AsyncSession) -> None:
         )
 
 
-@router.callback_query(F.data.startswith("recon:check:"))
+@router.callback_query(F.data.regexp(r"^recon:check:\d+$"))
 async def cb_recon_check_one(callback: CallbackQuery, session: AsyncSession) -> None:
     if not callback.data or not callback.from_user or not callback.message:
         await callback.answer()
@@ -688,7 +688,14 @@ async def cb_recon_check_one(callback: CallbackQuery, session: AsyncSession) -> 
     await callback.answer("Проверяю…")
     monitor = get_recon_monitor()
     if monitor:
-        result = await monitor.check_source(source, force=True)
+        try:
+            result = await monitor.check_source(source, force=True)
+        except ReconFetchError:
+            await callback.message.answer(
+                "❌ Не удалось получить данные из источника.\n"
+                "Проверьте ссылку, доступность аккаунта или попробуйте позже."
+            )
+            return
         if result:
             events = result if isinstance(result, list) else [result]
             for event in events:
@@ -747,6 +754,10 @@ async def cb_recon_check_all(callback: CallbackQuery, session: AsyncSession) -> 
             for source in sources:
                 try:
                     result = await monitor.check_source(source, force=True)
+                except ReconFetchError:
+                    name = html_escape((source.label or source.url_or_handle)[:30])
+                    failed.append(f"#{source.id} {name} (нет данных)")
+                    continue
                 except Exception:
                     logger.exception("Recon check failed for source %s", source.id)
                     name = html_escape((source.label or source.url_or_handle)[:30])

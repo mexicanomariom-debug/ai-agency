@@ -33,6 +33,10 @@ logger = logging.getLogger(__name__)
 _MAX_NEW_ITEMS_PER_CHECK = 3
 
 
+class ReconFetchError(Exception):
+    """Source could not be fetched (network, auth, invalid URL)."""
+
+
 def _source_label(source: ReconSource) -> str:
     if source.label:
         return source.label
@@ -89,7 +93,7 @@ class ReconMonitor:
 
             if not fetched:
                 await session.commit()
-                return None
+                raise ReconFetchError(f"source #{db_source.id}")
 
             db_source.last_preview = fetched.content[:500]
 
