@@ -205,11 +205,16 @@ def recon_type_keyboard() -> InlineKeyboardMarkup:
                 InlineKeyboardButton(text="📢 Telegram", callback_data="recon:type:telegram"),
             ],
             [
-                InlineKeyboardButton(text="📊 Эко-календарь", callback_data="recon:type:econ_calendar"),
+                InlineKeyboardButton(text="💬 WhatsApp", callback_data="recon:type:whatsapp"),
+                InlineKeyboardButton(text="🎵 TikTok", callback_data="recon:type:tiktok"),
             ],
             [
                 InlineKeyboardButton(text="📸 Instagram", callback_data="recon:type:instagram"),
-                InlineKeyboardButton(text="🎵 TikTok", callback_data="recon:type:tiktok"),
+                InlineKeyboardButton(text="🐦 Twitter/X", callback_data="recon:type:twitter"),
+            ],
+            [
+                InlineKeyboardButton(text="📘 Facebook", callback_data="recon:type:facebook"),
+                InlineKeyboardButton(text="📊 Эко-календарь", callback_data="recon:type:econ_calendar"),
             ],
             [
                 InlineKeyboardButton(text="❌ Отмена", callback_data="recon:cancel"),
@@ -220,7 +225,7 @@ def recon_type_keyboard() -> InlineKeyboardMarkup:
 
 def recon_sources_keyboard(sources) -> InlineKeyboardMarkup:
     rows: list[list[InlineKeyboardButton]] = []
-    for src in sources[:10]:
+    for src in sources[:15]:
         label = (src.label or src.url_or_handle)[:28]
         status = "✅" if src.enabled else "⏸"
         rows.append(

@@ -63,6 +63,11 @@ class Settings(BaseSettings):
         ),
     )
 
+    rsshub_base_url: str = Field(
+        default="https://rsshub.app",
+        validation_alias=AliasChoices("RSSHUB_BASE_URL"),
+    )
+
     @property
     def has_openai(self) -> bool:
         return bool(self.openai_api_key)

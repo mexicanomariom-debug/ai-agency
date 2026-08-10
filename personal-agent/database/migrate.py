@@ -44,6 +44,12 @@ RECON_SOURCE_COLUMNS = {
     "last_seen_item_ids": "TEXT",
 }
 
+RECON_EVENT_COLUMNS = {
+    "media_url": "TEXT",
+    "media_type": "VARCHAR(16)",
+    "translated_excerpt": "TEXT",
+}
+
 
 async def migrate(engine: AsyncEngine) -> None:
     async with engine.begin() as conn:
@@ -116,5 +122,12 @@ async def migrate(engine: AsyncEngine) -> None:
                     if name not in existing:
                         sync_conn.execute(text(f"ALTER TABLE recon_sources ADD COLUMN {name} {ddl}"))
                         logger.info("Added column recon_sources.%s", name)
+
+            if "recon_events" in tables:
+                existing = {c["name"] for c in inspector.get_columns("recon_events")}
+                for name, ddl in RECON_EVENT_COLUMNS.items():
+                    if name not in existing:
+                        sync_conn.execute(text(f"ALTER TABLE recon_events ADD COLUMN {name} {ddl}"))
+                        logger.info("Added column recon_events.%s", name)
 
         await conn.run_sync(_migrate)

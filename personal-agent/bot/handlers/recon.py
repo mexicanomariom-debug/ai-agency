@@ -136,7 +136,7 @@ async def apply_recon_interest(
 def _panel_text(sources_count: int, enabled_count: int) -> str:
     return (
         "🔍 <b>Разведка и Вериф</b>\n\n"
-        "Мониторинг сайтов, Telegram и эко-календаря.\n"
+        "Мониторинг сайтов, Telegram, TikTok, соцсетей и WhatsApp.\n"
         "Укажите <b>интерес</b> — бот пришлёт только подходящие сообщения.\n\n"
         f"Источников: {sources_count} (активных: {enabled_count})\n\n"
         "<b>Кнопки:</b> ➕ Источник · 📋 Список · ✅ Вериф · 📜 История"
@@ -389,6 +389,20 @@ async def _add_source_from_text(
         username=message.from_user.username,
         first_name=message.from_user.first_name,
     )
+
+    duplicate = await recon_service.find_duplicate(
+        session, user, source_type=parsed_type, url_or_handle=url
+    )
+    if duplicate:
+        await answer_menu(
+            message,
+            f"⚠️ Такой источник уже есть: <b>#{duplicate.id}</b> "
+            f"{html_escape(duplicate.label or duplicate.url_or_handle)}",
+            reply_markup=recon_source_actions_keyboard(duplicate.id, enabled=duplicate.enabled),
+            parse_mode="HTML",
+        )
+        return
+
     await answer_menu(message, "⏳ Добавляю источник и проверяю…")
 
     source = await recon_service.add_source(
@@ -504,8 +518,11 @@ async def cb_recon_type(callback: CallbackQuery, state: FSMContext) -> None:
     hints = {
         "website": "Отправьте URL сайта или RSS:\n• https://example.com/feed.xml",
         "telegram": "Отправьте публичный канал:\n• @channelname\n• @channel интерес: ваши темы",
-        "instagram": "Ссылка Instagram:\n• https://instagram.com/username",
-        "tiktok": "Ссылка TikTok:\n• https://tiktok.com/@username",
+        "whatsapp": "Ссылка WhatsApp-канала:\n• https://whatsapp.com/channel/0029…",
+        "tiktok": "TikTok профиль или видео:\n• @username\n• https://tiktok.com/@user",
+        "instagram": "Instagram:\n• @username\n• https://instagram.com/username",
+        "twitter": "Twitter/X:\n• @username\n• https://x.com/username",
+        "facebook": "Facebook страница:\n• https://facebook.com/pagename",
         "econ_calendar": "Напишите <code>auto</code> или любой текст — подключу календарь на неделю",
     }
     label = SOURCE_TYPE_LABELS.get(source_type, source_type)
@@ -675,15 +692,21 @@ async def cb_recon_check_one(callback: CallbackQuery, session: AsyncSession) -> 
         if result:
             events = result if isinstance(result, list) else [result]
             for event in events:
-                await callback.message.answer(
-                    format_event_message(source, event),
-                    parse_mode="HTML",
+                media_path = getattr(event, "_media_path", None)
+                await monitor._notify_user(
+                    callback.from_user.id,
+                    source,
+                    event,
+                    media_path=media_path,
                 )
             return
 
     fetched = await fetch_source_content(source.source_type, source.url_or_handle)
     if not fetched:
-        await callback.message.answer("Не удалось получить данные из источника.")
+        await callback.message.answer(
+            "❌ Не удалось получить данные.\n"
+            "Проверьте ссылку или попробуйте позже."
+        )
         return
     await callback.message.answer(
         f"🔍 <b>{fetched.title}</b>\n\n<i>{fetched.content[:600]}…</i>",
@@ -718,22 +741,41 @@ async def cb_recon_check_all(callback: CallbackQuery, session: AsyncSession) -> 
 
     async def _run() -> None:
         checked = 0
+        failed: list[str] = []
+        empty = 0
         try:
             for source in sources:
-                result = await monitor.check_source(source, force=True)
+                try:
+                    result = await monitor.check_source(source, force=True)
+                except Exception:
+                    logger.exception("Recon check failed for source %s", source.id)
+                    name = html_escape((source.label or source.url_or_handle)[:30])
+                    failed.append(f"#{source.id} {name}")
+                    continue
                 if not result:
+                    empty += 1
                     continue
                 events = result if isinstance(result, list) else [result]
                 for event in events:
                     checked += 1
-                    await callback.message.answer(
-                        format_event_message(source, event),
-                        parse_mode="HTML",
-                    )
-            if not checked:
-                await status_msg.edit_text("Новых совпадений не найдено.")
-            else:
-                await status_msg.edit_text(f"✅ Готово. Найдено совпадений: {checked}.")
+                    media_path = getattr(event, "_media_path", None)
+                    if monitor and callback.message:
+                        await monitor._notify_user(
+                            callback.from_user.id,
+                            source,
+                            event,
+                            media_path=media_path,
+                        )
+            lines = []
+            if checked:
+                lines.append(f"✅ Готово. Найдено совпадений: {checked}.")
+            elif not failed:
+                lines.append("Новых совпадений не найдено.")
+            if failed:
+                lines.append(f"❌ Ошибки ({len(failed)}): " + ", ".join(failed[:5]))
+            if empty and not checked and not failed:
+                lines.append(f"Проверено без изменений: {empty}.")
+            await status_msg.edit_text("\n".join(lines))
         except Exception:
             logger.exception("Recon check_all failed")
             await status_msg.edit_text("❌ Проверка прервалась. Попробуйте ещё раз.")

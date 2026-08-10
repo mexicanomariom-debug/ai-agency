@@ -67,6 +67,9 @@ class ReconSourceType(str, enum.Enum):
     TELEGRAM = "telegram"
     INSTAGRAM = "instagram"
     TIKTOK = "tiktok"
+    TWITTER = "twitter"
+    FACEBOOK = "facebook"
+    WHATSAPP = "whatsapp"
     ECON_CALENDAR = "econ_calendar"
 
 
@@ -107,6 +110,9 @@ class ReconEvent(Base):
     confidence: Mapped[float | None] = mapped_column()
     summary: Mapped[str | None] = mapped_column(Text)
     notified: Mapped[bool] = mapped_column(Boolean, default=False)
+    media_url: Mapped[str | None] = mapped_column(Text)
+    media_type: Mapped[str | None] = mapped_column(String(16))
+    translated_excerpt: Mapped[str | None] = mapped_column(Text)
 
     source: Mapped[ReconSource] = relationship(back_populates="events")
 

@@ -26,6 +26,10 @@ class ContentItem:
     item_id: str
     text: str
     title: str | None = None
+    page_url: str | None = None
+    media_type: str | None = None  # video, photo, text, link
+    media_path: str | None = None
+    translated_text: str | None = None
 
 
 @dataclass
@@ -69,10 +73,16 @@ def _detect_source_type(text: str) -> str | None:
         return ReconSourceType.ECON_CALENDAR.value
     if lowered.startswith("@") or "t.me/" in lowered or "telegram.me/" in lowered:
         return ReconSourceType.TELEGRAM.value
+    if "whatsapp.com/channel" in lowered or lowered.startswith("channel/"):
+        return ReconSourceType.WHATSAPP.value
     if "instagram.com" in lowered:
         return ReconSourceType.INSTAGRAM.value
     if "tiktok.com" in lowered:
         return ReconSourceType.TIKTOK.value
+    if "twitter.com" in lowered or "x.com/" in lowered:
+        return ReconSourceType.TWITTER.value
+    if "facebook.com" in lowered or "fb.com" in lowered:
+        return ReconSourceType.FACEBOOK.value
     if lowered.startswith("http") or "." in lowered:
         return ReconSourceType.WEBSITE.value
     return None
@@ -108,15 +118,56 @@ def _parse_source_input(text: str, source_type: str | None = None) -> tuple[str,
         handle = _normalize_telegram_handle(raw)
         return detected, handle, label or f"@{handle}", filter_query
 
+    if detected == ReconSourceType.TIKTOK.value:
+        from services.recon_social import normalize_tiktok_handle
+
+        handle = normalize_tiktok_handle(raw)
+        return detected, handle, label or f"@{handle}", filter_query
+
+    if detected == ReconSourceType.TWITTER.value:
+        from services.recon_social import normalize_twitter_handle
+
+        handle = normalize_twitter_handle(raw)
+        return detected, handle, label or f"@{handle}", filter_query
+
+    if detected == ReconSourceType.INSTAGRAM.value:
+        from services.recon_social import normalize_instagram_handle
+
+        handle = normalize_instagram_handle(raw)
+        return detected, handle, label or f"@{handle}", filter_query
+
+    if detected == ReconSourceType.FACEBOOK.value:
+        from services.recon_social import normalize_facebook_page
+
+        page = normalize_facebook_page(raw)
+        return detected, page, label or page, filter_query
+
+    if detected == ReconSourceType.WHATSAPP.value:
+        from services.recon_social import normalize_whatsapp_channel
+
+        channel = normalize_whatsapp_channel(raw)
+        return detected, channel, label or f"WA {channel[:12]}…", filter_query
+
     return detected, raw, label, filter_query
 
 
 async def fetch_source_content(source_type: str, url_or_handle: str) -> FetchResult | None:
+    from services.recon_social import (
+        fetch_facebook,
+        fetch_instagram,
+        fetch_tiktok,
+        fetch_twitter,
+        fetch_whatsapp,
+    )
+
     fetchers = {
         ReconSourceType.WEBSITE.value: _fetch_website,
         ReconSourceType.TELEGRAM.value: _fetch_telegram,
-        ReconSourceType.INSTAGRAM.value: _fetch_social_stub,
-        ReconSourceType.TIKTOK.value: _fetch_social_stub,
+        ReconSourceType.INSTAGRAM.value: fetch_instagram,
+        ReconSourceType.TIKTOK.value: fetch_tiktok,
+        ReconSourceType.TWITTER.value: fetch_twitter,
+        ReconSourceType.FACEBOOK.value: fetch_facebook,
+        ReconSourceType.WHATSAPP.value: fetch_whatsapp,
         ReconSourceType.ECON_CALENDAR.value: _fetch_econ_calendar,
     }
     fetcher = fetchers.get(source_type)
@@ -271,21 +322,6 @@ async def _fetch_telegram(handle: str) -> FetchResult | None:
         return None
 
     return _build_result(f"Telegram @{channel}", items)
-
-
-async def _fetch_social_stub(url: str) -> FetchResult | None:
-    """Instagram/TikTok need official API — return profile URL marker for manual verify."""
-    target = url.strip()
-    if not target.startswith("http"):
-        target = f"https://{target}"
-    content = f"Мониторинг {target}: публичный API недоступен. Перешлите пост боту для верификации."
-    item = ContentItem(item_id=_item_id(target), text=content)
-    return FetchResult(
-        title=urlparse(target).netloc or target,
-        content=content,
-        content_hash=_hash_content(target),
-        items=[item],
-    )
 
 
 async def _fetch_econ_calendar(_: str) -> FetchResult | None:

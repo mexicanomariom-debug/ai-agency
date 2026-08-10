@@ -15,8 +15,17 @@ SOURCE_TYPE_LABELS = {
     "telegram": "📢 Telegram",
     "instagram": "📸 Instagram",
     "tiktok": "🎵 TikTok",
+    "twitter": "🐦 Twitter/X",
+    "facebook": "📘 Facebook",
+    "whatsapp": "💬 WhatsApp",
     "econ_calendar": "📊 Эко-календарь",
 }
+
+ITEM_BASED_SOURCE_TYPES = frozenset(
+    {"telegram", "tiktok", "instagram", "twitter", "facebook", "whatsapp"}
+)
+
+MEDIA_SOURCE_TYPES = frozenset({"tiktok", "instagram"})
 
 VERDICT_LABELS = {
     "confirmed": "✅ Подтверждено",
@@ -59,6 +68,37 @@ def keyword_prefilter(text: str, keywords: str | None) -> bool:
     return False
 
 
+def normalize_source_key(source_type: str, url_or_handle: str) -> str:
+    value = (url_or_handle or "").strip().lower()
+    if source_type == "telegram":
+        from services.recon_providers import _normalize_telegram_handle
+
+        return f"telegram:{_normalize_telegram_handle(value)}"
+    if source_type == "tiktok":
+        from services.recon_social import normalize_tiktok_handle
+
+        return f"tiktok:{normalize_tiktok_handle(value)}"
+    if source_type == "twitter":
+        from services.recon_social import normalize_twitter_handle
+
+        return f"twitter:{normalize_twitter_handle(value)}"
+    if source_type == "instagram":
+        from services.recon_social import normalize_instagram_handle
+
+        return f"instagram:{normalize_instagram_handle(value)}"
+    if source_type == "facebook":
+        from services.recon_social import normalize_facebook_page
+
+        return f"facebook:{normalize_facebook_page(value)}"
+    if source_type == "whatsapp":
+        from services.recon_social import normalize_whatsapp_channel
+
+        return f"whatsapp:{normalize_whatsapp_channel(value)}"
+    if source_type == "econ_calendar":
+        return "econ_calendar:ff_calendar_thisweek"
+    return f"{source_type}:{value.rstrip('/')}"
+
+
 class ReconService:
     async def list_sources(self, session: AsyncSession, user: User) -> list[ReconSource]:
         result = await session.execute(
@@ -73,6 +113,20 @@ class ReconService:
             select(ReconSource).where(ReconSource.id == source_id, ReconSource.user_id == user.id)
         )
         return result.scalar_one_or_none()
+
+    async def find_duplicate(
+        self,
+        session: AsyncSession,
+        user: User,
+        *,
+        source_type: str,
+        url_or_handle: str,
+    ) -> ReconSource | None:
+        key = normalize_source_key(source_type, url_or_handle)
+        for source in await self.list_sources(session, user):
+            if normalize_source_key(source.source_type, source.url_or_handle) == key:
+                return source
+        return None
 
     async def add_source(
         self,
