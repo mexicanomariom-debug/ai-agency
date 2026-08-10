@@ -272,6 +272,8 @@ class ReconMonitor:
                         event,
                         media_path=media_path,
                     )
+            except ReconFetchError:
+                logger.warning("Recon fetch failed for source %s", source.id)
             except Exception:
                 logger.exception("Recon check failed for source %s", source.id)
         logger.info("Recon monitor: scheduled checks finished (%s sources)", len(sources))
