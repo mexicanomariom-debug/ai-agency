@@ -96,7 +96,20 @@ def journal_menu_keyboard() -> InlineKeyboardMarkup:
 def journal_entries_keyboard(entries, *, back_callback: str = "journal:today") -> InlineKeyboardMarkup:
     from services.smart_journal import smart_journal_service
 
-    rows: list[list[InlineKeyboardButton]] = []
+    rows: list[list[InlineKeyboardButton]] = [
+        [
+            InlineKeyboardButton(text="💡 Идеи", callback_data="journal:filter:idea"),
+            InlineKeyboardButton(text="💭 Мысли", callback_data="journal:filter:thought"),
+        ],
+        [
+            InlineKeyboardButton(text="💸 Траты", callback_data="journal:filter:expense"),
+            InlineKeyboardButton(text="📊 Сводка", callback_data="journal:summary"),
+        ],
+        [
+            InlineKeyboardButton(text="📅 Вчера", callback_data="journal:yesterday"),
+            InlineKeyboardButton(text="🔄 Сегодня", callback_data="journal:today"),
+        ],
+    ]
     for entry in entries[:8]:
         icon = {"idea": "💡", "thought": "💭", "expense": "💸"}.get(entry.kind, "📔")
         preview = smart_journal_service.button_preview(entry.content)

@@ -6,6 +6,7 @@ from aiogram.types import ErrorEvent
 from bot.handlers import (
     assistant,
     calendar,
+    fallback,
     journal,
     notes,
     phone,
@@ -56,3 +57,4 @@ def setup_dispatcher(dp: Dispatcher) -> None:
     dp.include_router(translator.router)
     dp.include_router(voice.router)
     dp.include_router(assistant.router)
+    dp.include_router(fallback.router)

@@ -19,8 +19,8 @@ from bot.keyboards.inline import (
     recon_sources_keyboard,
     recon_type_keyboard,
 )
-from bot.middlewares.translator import MENU_BUTTONS
 from bot.states.recon import ReconSetupStates
+from bot.utils.menu_forward import try_forward_menu_button
 from bot.utils.html import h as html_escape
 from bot.utils.messages import answer_menu
 from services.recon import format_event_message, get_recon_monitor
@@ -381,9 +381,9 @@ async def cb_recon_type(callback: CallbackQuery, state: FSMContext) -> None:
 
 @router.message(ReconSetupStates.waiting_url, F.text)
 async def msg_recon_url(message: Message, session: AsyncSession, state: FSMContext) -> None:
-    if not message.text or message.text.startswith("/") or message.text in MENU_BUTTONS:
-        if message.text in MENU_BUTTONS and message.text != RECON_BUTTON:
-            await state.clear()
+    if not message.text or message.text.startswith("/"):
+        return
+    if await try_forward_menu_button(message, session, state):
         return
     data = await state.get_data()
     source_type = data.get("recon_source_type")
@@ -394,8 +394,7 @@ async def msg_recon_url(message: Message, session: AsyncSession, state: FSMConte
 async def msg_recon_interest(message: Message, session: AsyncSession, state: FSMContext) -> None:
     if not message.text or not message.from_user:
         return
-    if message.text in MENU_BUTTONS and message.text != RECON_BUTTON:
-        await state.clear()
+    if await try_forward_menu_button(message, session, state):
         return
     await apply_recon_interest(message, session, state, message.text)
 

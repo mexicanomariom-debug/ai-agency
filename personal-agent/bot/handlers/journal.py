@@ -14,8 +14,8 @@ from bot.keyboards.inline import (
     journal_entry_view_keyboard,
     journal_menu_keyboard,
 )
-from bot.middlewares.translator import MENU_BUTTONS
 from bot.states.notebook import NotebookStates
+from bot.utils.menu_forward import try_forward_menu_button
 from bot.utils.messages import answer_menu
 from services.journal_service import journal_service
 from services.smart_journal import smart_journal_service
@@ -37,6 +37,7 @@ NOTEBOOK_MODE_ON = (
     "Пишите или диктуйте — всё попадёт в дневник.\n"
     "Выйти: кнопка ❌ Выйти или любая кнопка меню."
 )
+TELEGRAM_TEXT_LIMIT = 4096
 
 
 def _journal_back_callback(*, filter_kind: str | None, day_offset: int) -> str:
@@ -103,6 +104,9 @@ async def show_journal(
     if enter_mode and state is not None:
         await state.set_state(NotebookStates.writing)
         text = f"{text}\n\n{NOTEBOOK_MODE_ON}"
+
+    if len(text) > TELEGRAM_TEXT_LIMIT:
+        text = text[: TELEGRAM_TEXT_LIMIT - 20].rstrip() + "\n\n… (обрезано)"
 
     back_cb = _journal_back_callback(filter_kind=filter_kind, day_offset=day_offset)
     markup = (
@@ -174,10 +178,14 @@ async def cmd_journal(message: Message, session: AsyncSession, state: FSMContext
 
 
 @router.message(NotebookStates.writing, F.text)
-async def msg_notebook_write(message: Message, session: AsyncSession) -> None:
+async def msg_notebook_write(
+    message: Message,
+    session: AsyncSession,
+    state: FSMContext,
+) -> None:
     if not message.text or message.text.startswith("/"):
         return
-    if message.text in MENU_BUTTONS:
+    if await try_forward_menu_button(message, session, state):
         return
 
     user = await user_service.get_or_create(

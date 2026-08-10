@@ -14,6 +14,7 @@ from bot.copy import (
     TRANSLATE_UNKNOWN_LANG,
 )
 from bot.states.translator import TranslatorStates
+from bot.utils.menu_forward import try_forward_menu_button
 from bot.utils.messages import answer_menu
 from services.task_flow import reply_with_created_tasks
 from services.task_parser import task_parser
@@ -151,6 +152,9 @@ async def handle_translate_text(message: Message, session: AsyncSession, state: 
     if message.text in ("❌ Выйти", "/translate_off"):
         await state.clear()
         await answer_menu(message, TRANSLATE_EXIT)
+        return
+
+    if await try_forward_menu_button(message, session, state):
         return
 
     text = message.text or ""

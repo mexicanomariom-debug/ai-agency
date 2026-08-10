@@ -20,6 +20,7 @@ from bot.copy import (
 )
 from bot.keyboards.inline import task_edit_keyboard, task_list_edit_keyboard
 from bot.states.task_edit import TaskEditStates
+from bot.utils.menu_forward import try_forward_menu_button
 from bot.utils.html import h
 from bot.utils.messages import answer_menu
 from services.task_editor import TaskEditChanges, task_editor
@@ -208,6 +209,9 @@ async def msg_edit_exit(message: Message, state: FSMContext) -> None:
 
 @router.message(TaskEditStates.waiting_changes, F.text)
 async def msg_edit_changes(message: Message, session: AsyncSession, state: FSMContext) -> None:
+    if await try_forward_menu_button(message, session, state):
+        return
+
     data = await state.get_data()
     task_id = data.get("task_id")
     if not task_id:

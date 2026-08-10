@@ -12,8 +12,8 @@ from aiogram.types import CallbackQuery, Message
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from bot.keyboards.inline import traffic_menu_keyboard, traffic_provider_keyboard
-from bot.middlewares.translator import MENU_BUTTONS
 from bot.states.traffic import TrafficSetupStates
+from bot.utils.menu_forward import try_forward_menu_button
 from bot.utils.messages import answer_menu
 from database.models import User
 from services.traffic import (
@@ -289,8 +289,10 @@ async def cmd_traffic(message: Message, session: AsyncSession, state: FSMContext
 
 
 @router.message(TrafficSetupStates.waiting_origin, F.text)
-async def msg_traffic_origin(message: Message, state: FSMContext) -> None:
-    if not message.text or message.text.startswith("/") or message.text in MENU_BUTTONS:
+async def msg_traffic_origin(message: Message, session: AsyncSession, state: FSMContext) -> None:
+    if not message.text or message.text.startswith("/"):
+        return
+    if await try_forward_menu_button(message, session, state):
         return
     await state.update_data(traffic_origin=message.text.strip())
     await state.set_state(TrafficSetupStates.waiting_destination)
@@ -304,7 +306,9 @@ async def msg_traffic_origin(message: Message, state: FSMContext) -> None:
 
 @router.message(TrafficSetupStates.waiting_destination, F.text)
 async def msg_traffic_destination(message: Message, session: AsyncSession, state: FSMContext) -> None:
-    if not message.text or message.text.startswith("/") or message.text in MENU_BUTTONS:
+    if not message.text or message.text.startswith("/"):
+        return
+    if await try_forward_menu_button(message, session, state):
         return
 
     data = await state.get_data()
@@ -340,7 +344,9 @@ async def msg_traffic_destination(message: Message, session: AsyncSession, state
 
 @router.message(TrafficSetupStates.waiting_area, F.text)
 async def msg_traffic_area(message: Message, session: AsyncSession, state: FSMContext) -> None:
-    if not message.text or message.text.startswith("/") or message.text in MENU_BUTTONS:
+    if not message.text or message.text.startswith("/"):
+        return
+    if await try_forward_menu_button(message, session, state):
         return
 
     location = message.text.strip()
