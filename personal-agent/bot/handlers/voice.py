@@ -90,6 +90,25 @@ async def handle_voice(message: Message, session: AsyncSession, state: FSMContex
             await apply_recon_interest(message, session, state, text)
         return
 
+    if current_state == ReconSetupStates.waiting_verify.state:
+        from bot.handlers.recon import _verify_claim
+
+        await message.bot.send_chat_action(message.chat.id, "typing")
+        text = await transcribe_for_user(message, in_translator=False)
+        if text:
+            await state.clear()
+            await _verify_claim(message, text)
+        return
+
+    if current_state == ReconSetupStates.waiting_keywords.state:
+        from bot.handlers.recon import apply_recon_keywords
+
+        await message.bot.send_chat_action(message.chat.id, "typing")
+        text = await transcribe_for_user(message, in_translator=False)
+        if text:
+            await apply_recon_keywords(message, session, state, text)
+        return
+
     if current_state == ReconSetupStates.waiting_url.state:
         from bot.handlers.recon import _add_source_from_text
 

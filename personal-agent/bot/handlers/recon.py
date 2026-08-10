@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import asyncio
 import logging
+from datetime import datetime
+from zoneinfo import ZoneInfo
 
 from aiogram import F, Router
 from aiogram.exceptions import TelegramBadRequest
@@ -13,8 +15,12 @@ from aiogram.types import CallbackQuery, Message
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from bot.keyboards.inline import (
+    recon_event_view_keyboard,
+    recon_events_keyboard,
     recon_interest_prompt_keyboard,
+    recon_interval_keyboard,
     recon_menu_keyboard,
+    recon_settings_keyboard,
     recon_source_actions_keyboard,
     recon_sources_keyboard,
     recon_type_keyboard,
@@ -40,6 +46,53 @@ router = Router(name="recon")
 
 RECON_BUTTON = "🔍 Разведка и Вериф"
 _SKIP_INTEREST = {"-", "skip", "всё", "все", "всё подряд", "без фильтра", "нет"}
+
+
+async def apply_recon_keywords(
+    message: Message,
+    session: AsyncSession,
+    state: FSMContext,
+    text: str,
+) -> bool:
+    """Save keywords for a recon source. Returns False if state is invalid."""
+    if not message.from_user:
+        return False
+
+    data = await state.get_data()
+    source_id = data.get("recon_source_id")
+    if not source_id:
+        await state.clear()
+        return False
+
+    user = await user_service.get_or_create(
+        session,
+        telegram_id=message.from_user.id,
+        username=message.from_user.username,
+        first_name=message.from_user.first_name,
+    )
+    cleaned = text.strip()
+    if cleaned.lower() in _SKIP_INTEREST:
+        source = await recon_service.update_settings(session, user, int(source_id), keywords="")
+        reply = "Ключевые слова сняты."
+    else:
+        source = await recon_service.update_settings(session, user, int(source_id), keywords=cleaned)
+        reply = f"🔑 Сохранено: <b>{html_escape(cleaned)}</b>"
+
+    await state.clear()
+    if not source:
+        await answer_menu(message, "Источник не найден.")
+        return False
+    await answer_menu(
+        message,
+        reply,
+        reply_markup=recon_settings_keyboard(
+            source.id,
+            verify_enabled=source.verify_enabled,
+            interval_min=source.check_interval_min,
+        ),
+        parse_mode="HTML",
+    )
+    return True
 
 
 async def apply_recon_interest(
@@ -83,13 +136,44 @@ async def apply_recon_interest(
 def _panel_text(sources_count: int, enabled_count: int) -> str:
     return (
         "🔍 <b>Разведка и Вериф</b>\n\n"
-        "Мониторинг сайтов, Telegram, эко-календаря и соцсетей.\n"
-        "Укажите <b>интерес</b> — бот пришлёт только подходящие сообщения, а не весь канал подряд.\n\n"
+        "Мониторинг сайтов, Telegram и эко-календаря.\n"
+        "Укажите <b>интерес</b> — бот пришлёт только подходящие сообщения.\n\n"
         f"Источников: {sources_count} (активных: {enabled_count})\n\n"
-        "<b>Добавить:</b> ➕ Источник → <code>@канал</code>\n"
-        "С интересом сразу: <code>/recon add @канал интерес: решения FOMC, CPI</code>\n"
-        "<b>Фильтр:</b> <code>/recon filter 3 ваш интерес</code>\n"
-        "<b>Верификация:</b> /recon verify ваш текст"
+        "<b>Кнопки:</b> ➕ Источник · 📋 Список · ✅ Вериф · 📜 История"
+    )
+
+
+def _format_event_time(dt: datetime | None, timezone: str = "UTC") -> str:
+    if not dt:
+        return "—"
+    try:
+        tz = ZoneInfo(timezone)
+    except Exception:
+        tz = ZoneInfo("UTC")
+    local = dt.astimezone(tz) if dt.tzinfo else dt.replace(tzinfo=ZoneInfo("UTC")).astimezone(tz)
+    return local.strftime("%d.%m %H:%M")
+
+
+def _event_list_line(event, *, timezone: str = "UTC") -> str:
+    verdict = VERDICT_LABELS.get(event.verdict or "info", "ℹ️")
+    when = _format_event_time(event.detected_at, timezone)
+    source = getattr(event, "source", None)
+    src_name = html_escape((source.label or source.url_or_handle)[:30] if source else "—")
+    title = html_escape((event.title or event.excerpt or "—")[:60])
+    return f"#{event.id} {when} · {verdict}\n   {src_name}: {title}"
+
+
+def _settings_text(source) -> str:
+    type_label = SOURCE_TYPE_LABELS.get(source.source_type, source.source_type)
+    name = html_escape(source.label or source.url_or_handle)
+    keywords = html_escape(source.keywords) if source.keywords else "не заданы"
+    return (
+        f"⚙️ <b>Настройки #{source.id}</b>\n"
+        f"{type_label}: <b>{name}</b>\n\n"
+        f"Верификация AI: {'✅ вкл' if source.verify_enabled else '❌ выкл'}\n"
+        f"Интервал проверки: <b>{source.check_interval_min}</b> мин\n"
+        f"🔑 Ключевые слова: {keywords}\n\n"
+        "<i>Ключевые слова — быстрый отсев до AI (через запятую).</i>"
     )
 
 
@@ -181,8 +265,61 @@ async def _verify_claim(message: Message, claim: str) -> None:
     await answer_menu(
         message,
         f"🔍 <b>Верификация</b>\n\n{verdict} ({conf})\n\n{result.summary}",
+        reply_markup=recon_menu_keyboard(),
         parse_mode="HTML",
     )
+
+
+async def _show_history(
+    message: Message,
+    session: AsyncSession,
+    *,
+    actor_id: int,
+    username: str | None = None,
+    first_name: str | None = None,
+    source_id: int | None = None,
+    edit: bool = False,
+    back_callback: str = "recon:panel",
+) -> None:
+    user = await user_service.get_or_create(
+        session,
+        telegram_id=actor_id,
+        username=username,
+        first_name=first_name,
+    )
+    if source_id is not None:
+        source = await recon_service.get_source(session, user, source_id)
+        if not source:
+            await answer_menu(message, "Источник не найден.")
+            return
+        events = await recon_service.recent_events_for_source(session, user, source_id, limit=10)
+        title = f"📜 <b>История #{source_id}</b>\n{html_escape(source.label or source.url_or_handle)}\n"
+        back = f"recon:src:{source_id}"
+    else:
+        events = await recon_service.recent_events(session, user, limit=10)
+        title = "📜 <b>История алертов</b>\n"
+        back = back_callback
+
+    if not events:
+        text = title + "\nПока пусто — алерты появятся после изменений в источниках."
+        markup = recon_menu_keyboard() if source_id is None else recon_source_actions_keyboard(
+            source_id, enabled=source.enabled
+        )
+    else:
+        lines = [title, ""]
+        for event in events:
+            lines.append(_event_list_line(event, timezone=user.timezone or "UTC"))
+        text = "\n".join(lines)
+        markup = recon_events_keyboard(events, back_callback=back)
+
+    if edit:
+        try:
+            await message.edit_text(text, reply_markup=markup, parse_mode="HTML")
+            return
+        except TelegramBadRequest:
+            logger.debug("Could not edit recon history message")
+
+    await answer_menu(message, text, reply_markup=markup, parse_mode="HTML")
 
 
 async def _show_sources(
@@ -397,6 +534,28 @@ async def msg_recon_interest(message: Message, session: AsyncSession, state: FSM
     if await try_forward_menu_button(message, session, state):
         return
     await apply_recon_interest(message, session, state, message.text)
+
+
+@router.message(ReconSetupStates.waiting_verify, F.text)
+async def msg_recon_verify(message: Message, session: AsyncSession, state: FSMContext) -> None:
+    if not message.text or message.text.startswith("/"):
+        return
+    if await try_forward_menu_button(message, session, state):
+        return
+    claim = message.text.strip()
+    if not claim:
+        return
+    await state.clear()
+    await _verify_claim(message, claim)
+
+
+@router.message(ReconSetupStates.waiting_keywords, F.text)
+async def msg_recon_keywords(message: Message, session: AsyncSession, state: FSMContext) -> None:
+    if not message.text or not message.from_user:
+        return
+    if await try_forward_menu_button(message, session, state):
+        return
+    await apply_recon_keywords(message, session, state, message.text)
 
 
 @router.callback_query(F.data.startswith("recon:interest_skip:"))
@@ -638,12 +797,277 @@ async def cb_recon_delete(callback: CallbackQuery, session: AsyncSession) -> Non
         )
 
 
+@router.callback_query(F.data == "recon:panel")
+async def cb_recon_panel(callback: CallbackQuery, session: AsyncSession, state: FSMContext) -> None:
+    await state.clear()
+    if not callback.from_user or not callback.message:
+        await callback.answer()
+        return
+    await callback.answer()
+    user = await user_service.get_or_create(
+        session,
+        telegram_id=callback.from_user.id,
+        username=callback.from_user.username,
+        first_name=callback.from_user.first_name,
+    )
+    sources = await recon_service.list_sources(session, user)
+    enabled = sum(1 for s in sources if s.enabled)
+    text = _panel_text(len(sources), enabled)
+    try:
+        await callback.message.edit_text(
+            text,
+            reply_markup=recon_menu_keyboard(),
+            parse_mode="HTML",
+        )
+    except TelegramBadRequest:
+        await callback.message.answer(text, reply_markup=recon_menu_keyboard(), parse_mode="HTML")
+
+
+@router.callback_query(F.data == "recon:verify")
+async def cb_recon_verify(callback: CallbackQuery, state: FSMContext) -> None:
+    await state.set_state(ReconSetupStates.waiting_verify)
+    await callback.answer()
+    if callback.message:
+        await callback.message.answer(
+            "✅ <b>Верификация утверждения</b>\n\n"
+            "Напишите или продиктуйте текст для проверки.\n"
+            "Например: <code>ФРС повысила ставку на 25 б.п.</code>",
+            parse_mode="HTML",
+        )
+
+
+@router.callback_query(F.data == "recon:history")
+async def cb_recon_history(callback: CallbackQuery, session: AsyncSession) -> None:
+    if not callback.from_user or not callback.message:
+        await callback.answer()
+        return
+    await callback.answer()
+    await _show_history(
+        callback.message,
+        session,
+        actor_id=callback.from_user.id,
+        username=callback.from_user.username,
+        first_name=callback.from_user.first_name,
+        edit=True,
+        back_callback="recon:panel",
+    )
+
+
+@router.callback_query(F.data.startswith("recon:src_history:"))
+async def cb_recon_src_history(callback: CallbackQuery, session: AsyncSession) -> None:
+    if not callback.data or not callback.from_user or not callback.message:
+        await callback.answer()
+        return
+    source_id = int(callback.data.split(":")[-1])
+    await callback.answer()
+    await _show_history(
+        callback.message,
+        session,
+        actor_id=callback.from_user.id,
+        username=callback.from_user.username,
+        first_name=callback.from_user.first_name,
+        source_id=source_id,
+        edit=True,
+    )
+
+
+@router.callback_query(F.data.startswith("recon:event:"))
+async def cb_recon_event(callback: CallbackQuery, session: AsyncSession) -> None:
+    if not callback.data or not callback.from_user or not callback.message:
+        await callback.answer()
+        return
+    event_id = int(callback.data.split(":")[-1])
+    user = await user_service.get_or_create(
+        session,
+        telegram_id=callback.from_user.id,
+        username=callback.from_user.username,
+        first_name=callback.from_user.first_name,
+    )
+    event = await recon_service.get_event(session, user, event_id)
+    if not event or not event.source:
+        await callback.answer("Событие не найдено", show_alert=True)
+        return
+    await callback.answer()
+    when = _format_event_time(event.detected_at, user.timezone or "UTC")
+    text = f"🕐 {when}\n\n{format_event_message(event.source, event)}"
+    back = f"recon:src_history:{event.source_id}"
+    try:
+        await callback.message.edit_text(
+            text,
+            reply_markup=recon_event_view_keyboard(event.id, back_callback=back),
+            parse_mode="HTML",
+        )
+    except TelegramBadRequest:
+        await callback.message.answer(
+            text,
+            reply_markup=recon_event_view_keyboard(event.id, back_callback=back),
+            parse_mode="HTML",
+        )
+
+
+@router.callback_query(F.data.startswith("recon:settings:"))
+async def cb_recon_settings(callback: CallbackQuery, session: AsyncSession) -> None:
+    if not callback.data or not callback.from_user or not callback.message:
+        await callback.answer()
+        return
+    source_id = int(callback.data.split(":")[-1])
+    user = await user_service.get_or_create(
+        session,
+        telegram_id=callback.from_user.id,
+        username=callback.from_user.username,
+        first_name=callback.from_user.first_name,
+    )
+    source = await recon_service.get_source(session, user, source_id)
+    if not source:
+        await callback.answer("Не найден", show_alert=True)
+        return
+    await callback.answer()
+    text = _settings_text(source)
+    markup = recon_settings_keyboard(
+        source.id,
+        verify_enabled=source.verify_enabled,
+        interval_min=source.check_interval_min,
+    )
+    try:
+        await callback.message.edit_text(text, reply_markup=markup, parse_mode="HTML")
+    except TelegramBadRequest:
+        await callback.message.answer(text, reply_markup=markup, parse_mode="HTML")
+
+
+@router.callback_query(F.data.startswith("recon:verify_toggle:"))
+async def cb_recon_verify_toggle(callback: CallbackQuery, session: AsyncSession) -> None:
+    if not callback.data or not callback.from_user or not callback.message:
+        await callback.answer()
+        return
+    source_id = int(callback.data.split(":")[-1])
+    user = await user_service.get_or_create(
+        session,
+        telegram_id=callback.from_user.id,
+        username=callback.from_user.username,
+        first_name=callback.from_user.first_name,
+    )
+    source = await recon_service.get_source(session, user, source_id)
+    if not source:
+        await callback.answer("Не найден", show_alert=True)
+        return
+    source = await recon_service.update_settings(
+        session, user, source_id, verify_enabled=not source.verify_enabled
+    )
+    status = "Верификация включена" if source and source.verify_enabled else "Верификация выключена"
+    await callback.answer(status)
+    if callback.message and source:
+        text = _settings_text(source)
+        markup = recon_settings_keyboard(
+            source.id,
+            verify_enabled=source.verify_enabled,
+            interval_min=source.check_interval_min,
+        )
+        try:
+            await callback.message.edit_text(text, reply_markup=markup, parse_mode="HTML")
+        except TelegramBadRequest:
+            pass
+
+
+@router.callback_query(F.data.startswith("recon:interval_menu:"))
+async def cb_recon_interval_menu(callback: CallbackQuery, session: AsyncSession) -> None:
+    if not callback.data or not callback.from_user or not callback.message:
+        await callback.answer()
+        return
+    source_id = int(callback.data.split(":")[-1])
+    user = await user_service.get_or_create(
+        session,
+        telegram_id=callback.from_user.id,
+        username=callback.from_user.username,
+        first_name=callback.from_user.first_name,
+    )
+    source = await recon_service.get_source(session, user, source_id)
+    if not source:
+        await callback.answer("Не найден", show_alert=True)
+        return
+    await callback.answer()
+    text = (
+        f"⏱ <b>Интервал проверки #{source_id}</b>\n\n"
+        f"Сейчас: <b>{source.check_interval_min}</b> мин\n"
+        "Выберите новый интервал:"
+    )
+    markup = recon_interval_keyboard(source_id)
+    try:
+        await callback.message.edit_text(text, reply_markup=markup, parse_mode="HTML")
+    except TelegramBadRequest:
+        await callback.message.answer(text, reply_markup=markup, parse_mode="HTML")
+
+
+@router.callback_query(F.data.startswith("recon:set_interval:"))
+async def cb_recon_set_interval(callback: CallbackQuery, session: AsyncSession) -> None:
+    if not callback.data or not callback.from_user or not callback.message:
+        await callback.answer()
+        return
+    parts = callback.data.split(":")
+    source_id = int(parts[2])
+    minutes = int(parts[3])
+    user = await user_service.get_or_create(
+        session,
+        telegram_id=callback.from_user.id,
+        username=callback.from_user.username,
+        first_name=callback.from_user.first_name,
+    )
+    source = await recon_service.update_settings(
+        session, user, source_id, check_interval_min=minutes
+    )
+    if not source:
+        await callback.answer("Не найден", show_alert=True)
+        return
+    await callback.answer(f"Интервал: {minutes} мин")
+    text = _settings_text(source)
+    markup = recon_settings_keyboard(
+        source.id,
+        verify_enabled=source.verify_enabled,
+        interval_min=source.check_interval_min,
+    )
+    try:
+        await callback.message.edit_text(text, reply_markup=markup, parse_mode="HTML")
+    except TelegramBadRequest:
+        pass
+
+
+@router.callback_query(F.data.startswith("recon:keywords:"))
+async def cb_recon_keywords(callback: CallbackQuery, state: FSMContext) -> None:
+    if not callback.data:
+        await callback.answer()
+        return
+    source_id = int(callback.data.split(":")[-1])
+    await state.set_state(ReconSetupStates.waiting_keywords)
+    await state.update_data(recon_source_id=source_id)
+    await callback.answer()
+    if callback.message:
+        await callback.message.answer(
+            f"🔑 <b>Ключевые слова для #{source_id}</b>\n\n"
+            "Через запятую — быстрый отсев до AI.\n"
+            "Например: <code>FOMC, CPI, ставка</code>\n\n"
+            "Напишите <code>-</code> чтобы снять.",
+            parse_mode="HTML",
+        )
+
+
 @router.callback_query(F.data == "recon:cancel")
-async def cb_recon_cancel(callback: CallbackQuery, state: FSMContext) -> None:
+async def cb_recon_cancel(callback: CallbackQuery, state: FSMContext, session: AsyncSession) -> None:
     await state.clear()
     await callback.answer("Отменено")
-    if callback.message:
+    if callback.message and callback.from_user:
         try:
             await callback.message.edit_reply_markup(reply_markup=None)
         except TelegramBadRequest:
             pass
+        user = await user_service.get_or_create(
+            session,
+            telegram_id=callback.from_user.id,
+            username=callback.from_user.username,
+            first_name=callback.from_user.first_name,
+        )
+        sources = await recon_service.list_sources(session, user)
+        enabled = sum(1 for s in sources if s.enabled)
+        await callback.message.answer(
+            _panel_text(len(sources), enabled),
+            reply_markup=recon_menu_keyboard(),
+            parse_mode="HTML",
+        )

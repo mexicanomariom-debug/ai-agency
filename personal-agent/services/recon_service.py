@@ -118,6 +118,27 @@ class ReconService:
             source.keywords = keywords.strip() if keywords.strip() else None
         return source
 
+    async def update_settings(
+        self,
+        session: AsyncSession,
+        user: User,
+        source_id: int,
+        *,
+        verify_enabled: bool | None = None,
+        check_interval_min: int | None = None,
+        keywords: str | None = None,
+    ) -> ReconSource | None:
+        source = await self.get_source(session, user, source_id)
+        if not source:
+            return None
+        if verify_enabled is not None:
+            source.verify_enabled = verify_enabled
+        if check_interval_min is not None:
+            source.check_interval_min = max(15, min(360, check_interval_min))
+        if keywords is not None:
+            source.keywords = keywords.strip() if keywords.strip() else None
+        return source
+
     async def delete_source(self, session: AsyncSession, user: User, source_id: int) -> bool:
         source = await self.get_source(session, user, source_id)
         if not source:
@@ -135,6 +156,33 @@ class ReconService:
             .limit(limit)
         )
         return list(result.scalars().all())
+
+    async def recent_events_for_source(
+        self,
+        session: AsyncSession,
+        user: User,
+        source_id: int,
+        *,
+        limit: int = 10,
+    ) -> list[ReconEvent]:
+        result = await session.execute(
+            select(ReconEvent)
+            .join(ReconSource)
+            .where(ReconSource.user_id == user.id, ReconSource.id == source_id)
+            .options(selectinload(ReconEvent.source))
+            .order_by(ReconEvent.detected_at.desc())
+            .limit(limit)
+        )
+        return list(result.scalars().all())
+
+    async def get_event(self, session: AsyncSession, user: User, event_id: int) -> ReconEvent | None:
+        result = await session.execute(
+            select(ReconEvent)
+            .join(ReconSource)
+            .where(ReconSource.user_id == user.id, ReconEvent.id == event_id)
+            .options(selectinload(ReconEvent.source))
+        )
+        return result.scalar_one_or_none()
 
 
 recon_service = ReconService()

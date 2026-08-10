@@ -187,6 +187,10 @@ def recon_menu_keyboard() -> InlineKeyboardMarkup:
                 InlineKeyboardButton(text="📋 Список", callback_data="recon:list"),
             ],
             [
+                InlineKeyboardButton(text="✅ Вериф", callback_data="recon:verify"),
+                InlineKeyboardButton(text="📜 История", callback_data="recon:history"),
+            ],
+            [
                 InlineKeyboardButton(text="🔄 Проверить всё", callback_data="recon:check_all"),
             ],
         ]
@@ -256,12 +260,89 @@ def recon_source_actions_keyboard(source_id: int, *, enabled: bool) -> InlineKey
                 InlineKeyboardButton(text="🎯 Фильтр", callback_data=f"recon:filter:{source_id}"),
             ],
             [
+                InlineKeyboardButton(text="⚙️ Настройки", callback_data=f"recon:settings:{source_id}"),
+                InlineKeyboardButton(text="📜 История", callback_data=f"recon:src_history:{source_id}"),
+            ],
+            [
                 InlineKeyboardButton(text=toggle, callback_data=f"recon:toggle:{source_id}"),
                 InlineKeyboardButton(text="🗑 Удалить", callback_data=f"recon:delete:{source_id}"),
             ],
             [
                 InlineKeyboardButton(text="◀️ Назад", callback_data="recon:list"),
             ],
+        ]
+    )
+
+
+def recon_settings_keyboard(source_id: int, *, verify_enabled: bool, interval_min: int) -> InlineKeyboardMarkup:
+    verify_btn = "✅ Вериф вкл" if verify_enabled else "❌ Вериф выкл"
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [
+                InlineKeyboardButton(
+                    text=verify_btn,
+                    callback_data=f"recon:verify_toggle:{source_id}",
+                ),
+            ],
+            [
+                InlineKeyboardButton(
+                    text=f"⏱ Интервал: {interval_min} мин",
+                    callback_data=f"recon:interval_menu:{source_id}",
+                ),
+            ],
+            [
+                InlineKeyboardButton(
+                    text="🔑 Ключевые слова",
+                    callback_data=f"recon:keywords:{source_id}",
+                ),
+            ],
+            [
+                InlineKeyboardButton(text="◀️ К источнику", callback_data=f"recon:src:{source_id}"),
+            ],
+        ]
+    )
+
+
+def recon_interval_keyboard(source_id: int) -> InlineKeyboardMarkup:
+    intervals = [15, 30, 60, 120, 240]
+    rows: list[list[InlineKeyboardButton]] = []
+    row: list[InlineKeyboardButton] = []
+    for minutes in intervals:
+        row.append(
+            InlineKeyboardButton(
+                text=f"{minutes} мин",
+                callback_data=f"recon:set_interval:{source_id}:{minutes}",
+            )
+        )
+        if len(row) == 3:
+            rows.append(row)
+            row = []
+    if row:
+        rows.append(row)
+    rows.append([InlineKeyboardButton(text="◀️ Назад", callback_data=f"recon:settings:{source_id}")])
+    return InlineKeyboardMarkup(inline_keyboard=rows)
+
+
+def recon_events_keyboard(events, *, back_callback: str = "recon:history") -> InlineKeyboardMarkup:
+    rows: list[list[InlineKeyboardButton]] = []
+    for event in events[:10]:
+        title = (event.title or event.excerpt or "Событие")[:28]
+        rows.append(
+            [
+                InlineKeyboardButton(
+                    text=f"#{event.id} {title}",
+                    callback_data=f"recon:event:{event.id}",
+                ),
+            ]
+        )
+    rows.append([InlineKeyboardButton(text="◀️ Назад", callback_data=back_callback)])
+    return InlineKeyboardMarkup(inline_keyboard=rows)
+
+
+def recon_event_view_keyboard(event_id: int, *, back_callback: str = "recon:history") -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [InlineKeyboardButton(text="◀️ Назад", callback_data=back_callback)],
         ]
     )
 
