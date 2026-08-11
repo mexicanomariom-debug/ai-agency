@@ -21,6 +21,8 @@ logger = logging.getLogger(__name__)
 
 
 async def main() -> None:
+    logger.info("Personal agent booting (env=%s, build=%s)", settings.environment, settings.bot_build_id)
+
     if not settings.bot_token:
         raise RuntimeError("BOT_TOKEN is required. Copy env.example to .env and set your token.")
 
@@ -31,7 +33,9 @@ async def main() -> None:
             "Cloud Agent / Cursor VM не должен запускать bot.main — иначе два ответа в Telegram."
         )
 
+    logger.info("Initializing database…")
     await init_db()
+    logger.info("Database ready")
 
     bot = Bot(
         token=settings.bot_token,
@@ -57,7 +61,7 @@ async def main() -> None:
         settings.bot_build_id,
     )
     try:
-        await dp.start_polling(bot)
+        await dp.start_polling(bot, drop_pending_updates=True)
     finally:
         scheduler.shutdown()
 

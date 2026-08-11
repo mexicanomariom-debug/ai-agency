@@ -2,7 +2,7 @@ name: Deploy Personal Agent to Oracle
 
 on:
   push:
-    branches: [cursor/personal-agent-task-scheduler-64cf, main]
+    branches: [cursor/personal-agent-task-scheduler-64cf, cursor/bot-restart-fix-64cf, main]
     paths:
       - 'personal-agent/**'
       - 'src/app/api/google/**'
@@ -187,6 +187,24 @@ jobs:
           print('GOOGLE_CLIENT_SECRET chars:', vals.get('GOOGLE_CLIENT_SECRET', 0))
           PY
             sudo docker compose -f docker-compose.prod.yml ps
-            sudo docker compose -f docker-compose.prod.yml logs bot --tail 20
-            sudo docker compose -f docker-compose.prod.yml logs oauth --tail 20
+            echo '--- waiting for bot polling (up to 90s) ---'
+            for i in 1 2 3 4 5 6 7 8 9; do
+              if sudo docker compose -f docker-compose.prod.yml logs bot 2>&1 | grep -q 'Start polling'; then
+                echo 'Bot polling confirmed'
+                break
+              fi
+              echo \"attempt \$i: no polling yet, waiting 10s...\"
+              sleep 10
+            done
+            if ! sudo docker compose -f docker-compose.prod.yml logs bot 2>&1 | grep -q 'Start polling'; then
+              echo 'Bot not polling — restarting container'
+              sudo docker compose -f docker-compose.prod.yml restart bot
+              sleep 15
+            fi
+            sudo docker compose -f docker-compose.prod.yml logs bot --tail 30
+            sudo docker compose -f docker-compose.prod.yml logs oauth --tail 10
+            if ! sudo docker compose -f docker-compose.prod.yml logs bot 2>&1 | grep -q 'Start polling'; then
+              echo '::error::Bot failed to start polling after deploy'
+              exit 1
+            fi
           "

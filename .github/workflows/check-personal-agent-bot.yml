@@ -3,8 +3,9 @@ name: Check Personal Agent Bot
 on:
   workflow_dispatch:
   push:
-    branches: [cursor/personal-agent-task-scheduler-64cf]
+    branches: [cursor/personal-agent-task-scheduler-64cf, cursor/bot-restart-fix-64cf]
     paths:
+      - 'personal-agent/**'
       - '.github/workflows/check-personal-agent-bot.yml'
 
 jobs:
@@ -25,11 +26,20 @@ jobs:
             echo "=== CONTAINERS ==="
             sudo docker compose -f docker-compose.prod.yml ps -a
             echo "=== BOT STATUS ==="
-            sudo docker inspect -f "{{.State.Status}} started={{.State.StartedAt}}" personal-agent-bot 2>/dev/null || echo missing
-            echo "=== BOT LOGS (last 60) ==="
-            sudo docker compose -f docker-compose.prod.yml logs bot --tail 60
-            echo "=== RESTART BOT ==="
-            sudo docker compose -f docker-compose.prod.yml restart bot
-            sleep 6
-            sudo docker compose -f docker-compose.prod.yml logs bot --tail 15
+            sudo docker inspect -f "status={{.State.Status}} started={{.State.StartedAt}} restarts={{.RestartCount}}" personal-agent-bot 2>/dev/null || echo missing
+            echo "=== BOT LOGS (last 80) ==="
+            sudo docker compose -f docker-compose.prod.yml logs bot --tail 80
+            if ! sudo docker compose -f docker-compose.prod.yml logs bot 2>&1 | grep -q "Start polling"; then
+              echo "=== BOT NOT POLLING — RESTART ==="
+              sudo docker compose -f docker-compose.prod.yml restart bot
+              sleep 12
+              sudo docker compose -f docker-compose.prod.yml logs bot --tail 40
+            fi
+            echo "=== FINAL STATUS ==="
+            sudo docker inspect -f "status={{.State.Status}} restarts={{.RestartCount}}" personal-agent-bot 2>/dev/null || echo missing
+            if ! sudo docker compose -f docker-compose.prod.yml logs bot 2>&1 | grep -q "Start polling"; then
+              echo "::error::Bot is not polling after restart"
+              exit 1
+            fi
+            echo "Bot polling OK"
           '

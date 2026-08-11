@@ -1,12 +1,17 @@
+import asyncio
+import logging
 from collections.abc import AsyncGenerator
 from pathlib import Path
 
 from sqlalchemy import event, text
+from sqlalchemy.exc import OperationalError
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
 from config import settings
 from database.migrate import migrate
 from database.models import Base
+
+logger = logging.getLogger(__name__)
 
 _db_path = settings.database_url.split("///")[-1]
 if _db_path and not _db_path.startswith(":"):
@@ -32,9 +37,23 @@ async_session_factory = async_sessionmaker(engine, class_=AsyncSession, expire_o
 
 
 async def init_db() -> None:
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
-    await migrate(engine)
+    """Initialize schema; retry on SQLite lock (bot + oauth start together)."""
+    last_error: Exception | None = None
+    for attempt in range(6):
+        try:
+            async with engine.begin() as conn:
+                await conn.run_sync(Base.metadata.create_all)
+            await migrate(engine)
+            return
+        except OperationalError as exc:
+            last_error = exc
+            if "locked" not in str(exc).lower():
+                raise
+            wait = 2 * (attempt + 1)
+            logger.warning("Database locked during init (attempt %s), retry in %ss", attempt + 1, wait)
+            await asyncio.sleep(wait)
+    if last_error:
+        raise last_error
 
 
 async def get_session() -> AsyncGenerator[AsyncSession, None]:
