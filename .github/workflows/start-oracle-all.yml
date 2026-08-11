@@ -1,0 +1,73 @@
+name: Start All Oracle Services
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [cursor/personal-agent-task-scheduler-64cf]
+    paths:
+      - '.github/workflows/start-oracle-all.yml'
+
+jobs:
+  start:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.ORACLE_SSH_KEY }}
+
+      - name: Start personal-agent + language-tutor
+        run: |
+          HOST="${{ secrets.ORACLE_HOST || '140.84.183.154' }}"
+          USER="${{ secrets.ORACLE_SSH_USER || 'ubuntu' }}"
+          ssh-keyscan -H "$HOST" >> ~/.ssh/known_hosts 2>/dev/null || true
+          ssh -o StrictHostKeyChecking=no "${USER}@${HOST}" '
+            set -e
+            echo "========== PERSONAL AGENT (/opt/personal-agent) =========="
+            if [ -d /opt/personal-agent ]; then
+              cd /opt/personal-agent
+              sudo docker compose -f docker-compose.prod.yml up -d
+              sudo docker compose -f docker-compose.prod.yml restart bot oauth
+              sleep 10
+              sudo docker compose -f docker-compose.prod.yml ps -a
+            else
+              echo "WARN: /opt/personal-agent missing"
+            fi
+
+            echo ""
+            echo "========== LANGUAGE TUTOR (/opt/opus5) =========="
+            if [ -d /opt/opus5 ]; then
+              cd /opt/opus5
+              sudo docker compose -f docker-compose.prod.yml up -d
+              sudo docker compose -f docker-compose.prod.yml restart db api bot
+              sleep 15
+              sudo docker compose -f docker-compose.prod.yml ps -a
+            else
+              echo "WARN: /opt/opus5 missing"
+            fi
+
+            echo ""
+            echo "========== HEALTH CHECKS =========="
+            curl -sS --connect-timeout 5 http://127.0.0.1:8081/health || echo "personal-agent oauth: FAIL"
+            echo
+            curl -sS --connect-timeout 5 http://127.0.0.1:8000/health || echo "language-tutor api: FAIL"
+            echo
+
+            echo "========== PERSONAL AGENT BOT =========="
+            if sudo docker compose -f /opt/personal-agent/docker-compose.prod.yml logs bot 2>&1 | grep -q "Start polling"; then
+              echo "@mychatbot7_bot polling OK"
+            else
+              echo "WARN: personal-agent bot not polling yet"
+              sudo docker compose -f /opt/personal-agent/docker-compose.prod.yml logs bot --tail 20
+            fi
+
+            echo ""
+            echo "========== LANGUAGE TUTOR BOT =========="
+            sudo docker compose -f /opt/opus5/docker-compose.prod.yml logs bot --tail 15 2>/dev/null || true
+          '
+
+      - name: Verify from outside
+        run: |
+          curl -sf --connect-timeout 8 http://140.84.183.154:8081/health
+          echo " — personal-agent oauth OK"
+          curl -sf --connect-timeout 8 http://140.84.183.154:8000/health
+          echo " — language-tutor api OK"
