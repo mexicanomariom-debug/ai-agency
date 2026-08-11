@@ -1,4 +1,6 @@
-# Language Tutor — Deployment Guide
+# Language Tutor / Repetitor (@repetitors_ai_bot) — Deployment Guide
+
+Локальные проекты на ПК: `C:\Users\DavidPC\Projects` — см. **[PROJECTS.md](./PROJECTS.md)**.
 
 Auto-deploy: push to `main` triggers GitHub Actions (Oracle + Vercel build check).
 
@@ -22,10 +24,11 @@ cd ai-agency\language-tutor
 # 2. Checkout branch with language-tutor
 git checkout cursor/language-tutor-recreate-a360
 
-# 3. Create .env with BOT_TOKEN and OPENAI_API_KEY (copy from .env.example)
+# 3. .env: BOT_TOKEN для @repetitors_ai_bot (из Projects\opus5\.env или .env.example)
+#    .\scripts\sync-secrets.ps1
 
 # 4. Deploy (with SSH key if needed)
-.\deploy-to-oracle.ps1
+.\scripts\deploy-from-projects.ps1
 # or with explicit key:
 .\deploy-to-oracle.ps1 -KeyPath "C:\Users\DavidPC\.ssh\oracle_key"
 ```
@@ -164,7 +167,7 @@ Set environment variables in Vercel:
 | Variable | Description |
 |----------|-------------|
 | `BOT_TOKEN` | Telegram bot token from @BotFather |
-| `BOT_USERNAME` | Bot username (default: All_languages_bot) |
+| `BOT_USERNAME` | Bot username (default: repetitors_ai_bot) |
 | `OPENAI_API_KEY` | OpenAI API key |
 | `DATABASE_URL` | PostgreSQL connection string |
 | `TWA_URL` | Telegram Web App URL |

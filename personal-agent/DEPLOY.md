@@ -9,14 +9,14 @@
 
 | Проект | Бот в Telegram | Secret в GitHub |
 |--------|--------------|-----------------|
-| Language Tutor | @All_languages_bot | `BOT_TOKEN` |
+| Language Tutor | @repetitors_ai_bot | `BOT_TOKEN` |
 | Personal Agent | @mychatbot7_bot | `PERSONAL_AGENT_BOT_TOKEN` |
 
 ## Два бота на одном сервере — это нормально
 
 | Бот | Secret |
 |-----|--------|
-| @All_languages_bot | `BOT_TOKEN` |
+| @repetitors_ai_bot | `BOT_TOKEN` |
 | @mychatbot7_bot | `PERSONAL_AGENT_BOT_TOKEN` |
 
 **Не запускайте `bot.main` в двух местах с одним токеном** — Telegram пришлёт два ответа на каждое сообщение (разные базы задач).

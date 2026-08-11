@@ -44,7 +44,7 @@ jobs:
           fi
           cat > language-tutor/.env <<EOF
           BOT_TOKEN=${BOT_TOKEN}
-          BOT_USERNAME=All_languages_bot
+          BOT_USERNAME=repetitors_ai_bot
           OPENAI_API_KEY=${OPENAI_API_KEY}
           OPENAI_MODEL=gpt-4o
           OPENAI_TTS_VOICE=shimmer
@@ -133,7 +133,19 @@ jobs:
         run: |
           HOST="${{ secrets.ORACLE_HOST || '140.84.183.154' }}"
           USER="${{ secrets.ORACLE_SSH_USER || 'ubuntu' }}"
-          ssh -o StrictHostKeyChecking=no "${USER}@${HOST}" "
+          ssh -o StrictHostKeyChecking=no "${USER}@${HOST}" '
             cd /opt/opus5
+            TOKEN=$(grep "^BOT_TOKEN=" .env | cut -d= -f2-)
+            ME=$(curl -sS "https://api.telegram.org/bot${TOKEN}/getMe")
+            echo "getMe: $ME" | head -c 400
+            echo
+            if ! echo "$ME" | grep -q "repetitors_ai_bot"; then
+              echo "::error::BOT_TOKEN is not @repetitors_ai_bot — update GitHub secret or local Projects .env"
+              exit 1
+            fi
             sudo docker compose -f docker-compose.prod.yml logs bot --tail 30
-          "
+            if sudo docker compose -f docker-compose.prod.yml logs bot 2>&1 | grep -qi "TelegramConflictError"; then
+              echo "::error::TelegramConflictError — stop @repetitors_ai_bot elsewhere"
+              exit 1
+            fi
+          '

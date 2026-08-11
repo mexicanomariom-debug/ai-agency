@@ -5,14 +5,15 @@ $ErrorActionPreference = "Stop"
 $Target = Join-Path $PSScriptRoot "..\.env"
 $Target = (Resolve-Path (Split-Path $Target -Parent)).Path + "\.env"
 
+# Local secrets live in C:\Users\DavidPC\Projects — see PROJECTS.md
 $candidates = @(
     (Join-Path $PSScriptRoot "..\.env"),
-    (Join-Path $PSScriptRoot "..\..\opus5\.env"),
-    (Join-Path $PSScriptRoot "..\..\language-tutor-secrets\.env"),
-    (Join-Path $PSScriptRoot "..\..\ai-agency-secrets\.env"),
     "$env:USERPROFILE\Projects\opus5\.env",
     "$env:USERPROFILE\Projects\language-tutor\.env",
-    "$env:USERPROFILE\Projects\ai-agency\language-tutor\.env"
+    "$env:USERPROFILE\Projects\ai-agency\language-tutor\.env",
+    (Join-Path $PSScriptRoot "..\..\opus5\.env"),
+    (Join-Path $PSScriptRoot "..\..\language-tutor-secrets\.env"),
+    (Join-Path $PSScriptRoot "..\..\ai-agency-secrets\.env")
 )
 
 $source = $null

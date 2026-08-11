@@ -91,7 +91,7 @@ foreach ($u in $users) {
         Write-Host "Deploy complete!" -ForegroundColor Green
         Write-Host "   API:     http://140.84.183.154:8000/health"
         Write-Host "   Web App: https://webapp-bay-three-75.vercel.app/app"
-        Write-Host "   Bot:     https://t.me/All_languages_bot"
+        Write-Host "   Bot:     https://t.me/repetitors_ai_bot"
         exit 0
     }
 }

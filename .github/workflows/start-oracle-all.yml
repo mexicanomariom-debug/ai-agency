@@ -64,12 +64,12 @@ jobs:
             echo "========== LANGUAGE TUTOR BOT =========="
             sudo docker compose -f /opt/opus5/docker-compose.prod.yml logs bot --tail 20 2>/dev/null || true
             if sudo docker compose -f /opt/opus5/docker-compose.prod.yml logs bot 2>&1 | grep -q "Start polling"; then
-              echo "@All_languages_bot polling OK"
+              echo "@repetitors_ai_bot polling OK"
             else
-              echo "WARN: language-tutor bot not polling"
+              echo "WARN: @repetitors_ai_bot not polling"
             fi
             if sudo docker compose -f /opt/opus5/docker-compose.prod.yml logs bot 2>&1 | grep -qi "TelegramConflictError"; then
-              echo "ERROR: @All_languages_bot TelegramConflictError — stop duplicate on old server"
+              echo "ERROR: @repetitors_ai_bot TelegramConflictError — stop duplicate elsewhere"
               exit 1
             fi
           '

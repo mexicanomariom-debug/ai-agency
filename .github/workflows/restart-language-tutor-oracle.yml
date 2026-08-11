@@ -92,21 +92,29 @@ jobs:
           ssh -o StrictHostKeyChecking=no "${USER}@${HOST}" '
             cd /opt/opus5
             sudo docker compose -f docker-compose.prod.yml ps -a
+            TOKEN=$(grep '^BOT_TOKEN=' .env | cut -d= -f2-)
+            ME=$(curl -sS "https://api.telegram.org/bot${TOKEN}/getMe")
+            echo "getMe: $ME" | head -c 400
+            echo
+            if ! echo "$ME" | grep -q 'repetitors_ai_bot'; then
+              echo "::error::BOT_TOKEN is not @repetitors_ai_bot — update GitHub Actions secret BOT_TOKEN"
+              exit 1
+            fi
             echo "--- waiting for Start polling (up to 60s) ---"
             for i in 1 2 3 4 5 6; do
               if sudo docker compose -f docker-compose.prod.yml logs bot 2>&1 | grep -q "Start polling"; then
-                echo "@All_languages_bot polling confirmed"
+                echo "@repetitors_ai_bot polling confirmed"
                 break
               fi
               sleep 10
             done
             sudo docker compose -f docker-compose.prod.yml logs bot --tail 30
             if sudo docker compose -f docker-compose.prod.yml logs bot 2>&1 | grep -qi "TelegramConflictError"; then
-              echo "::error::TelegramConflictError — stop @All_languages_bot elsewhere"
+              echo "::error::TelegramConflictError — stop @repetitors_ai_bot elsewhere"
               exit 1
             fi
             if ! sudo docker compose -f docker-compose.prod.yml logs bot 2>&1 | grep -q "Start polling"; then
-              echo "::error::@All_languages_bot failed to start polling"
+              echo "::error::@repetitors_ai_bot failed to start polling"
               exit 1
             fi
           '
