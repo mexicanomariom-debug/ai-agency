@@ -18,6 +18,7 @@ jobs:
 
       - name: Start and verify personal-agent containers
         run: |
+          # Restarts @mychatbot7_bot on Oracle (140.84.183.154)
           HOST="${{ secrets.ORACLE_HOST || '140.84.183.154' }}"
           USER="${{ secrets.ORACLE_SSH_USER || 'ubuntu' }}"
           ssh-keyscan -H "$HOST" >> ~/.ssh/known_hosts 2>/dev/null || true
