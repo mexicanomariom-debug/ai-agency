@@ -534,14 +534,14 @@ async def _add_source_from_text(
 
     parsed_type = final_type
     type_label = SOURCE_TYPE_LABELS.get(parsed_type, parsed_type)
-    label = label or f"@{url}" if parsed_type == "tiktok" and not label else label
+    display_label = label or f"@{url}"
 
     source = await recon_service.add_source(
         session,
         user,
         source_type=parsed_type,
         url_or_handle=url,
-        label=label or (f"@{url}" if parsed_type in ("tiktok", "telegram", "instagram", "twitter") else url),
+        label=display_label,
         filter_query=filter_query,
     )
 
