@@ -14,16 +14,22 @@ from services.stt import stt_service
 router = Router()
 
 
-async def transcribe_for_user(message: Message, *, in_translator: bool = False) -> str | None:
+async def transcribe_for_user(
+    message: Message,
+    *,
+    in_translator: bool = False,
+    target_lang: str | None = None,
+) -> str | None:
     if not stt_service.available:
         await answer_menu(message, VOICE_HINT)
         return None
 
-    # В переводчике — автоопределение языка (es, en, ru…). Для задач — тоже auto.
     text = await stt_service.transcribe_telegram_voice(
         message.bot,
         message.voice.file_id,
         language=None,
+        target_lang=target_lang,
+        in_translator=in_translator,
     )
     if not text:
         await answer_menu(message, VOICE_FAILED)

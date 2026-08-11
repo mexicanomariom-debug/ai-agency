@@ -18,6 +18,10 @@ class ChatHistoryService:
             .limit(limit)
         )
         messages = list(reversed(result.scalars().all()))
+        return self.to_openai_messages(messages)
+
+    @staticmethod
+    def to_openai_messages(messages: list[ChatMessage]) -> list[dict[str, str]]:
         return [{"role": m.role, "content": m.content} for m in messages]
 
 

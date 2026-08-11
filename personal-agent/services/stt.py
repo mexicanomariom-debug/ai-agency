@@ -5,20 +5,17 @@ import tempfile
 from pathlib import Path
 
 from aiogram import Bot
-from openai import AsyncOpenAI
 
-from config import settings
+from services.openai_speech import openai_speech_service
+from services.whisper_prompt import whisper_prompt_for
 
 logger = logging.getLogger(__name__)
 
 
 class SpeechToText:
-    def __init__(self) -> None:
-        self._client = AsyncOpenAI(api_key=settings.openai_api_key) if settings.openai_api_key else None
-
     @property
     def available(self) -> bool:
-        return self._client is not None
+        return openai_speech_service.available
 
     async def transcribe_telegram_voice(
         self,
@@ -26,8 +23,10 @@ class SpeechToText:
         file_id: str,
         *,
         language: str | None = None,
+        target_lang: str | None = None,
+        in_translator: bool = False,
     ) -> str | None:
-        if not self._client:
+        if not openai_speech_service.available:
             return None
 
         file = await bot.get_file(file_id)
@@ -38,16 +37,15 @@ class SpeechToText:
 
         try:
             await bot.download_file(file.file_path, tmp_path)
-            with tmp_path.open("rb") as audio_file:
-                kwargs: dict = {
-                    "model": settings.openai_whisper_model,
-                    "file": audio_file,
-                }
-                if language:
-                    kwargs["language"] = language
-                response = await self._client.audio.transcriptions.create(**kwargs)
-            text = (response.text or "").strip()
-            return text or None
+            audio_bytes = tmp_path.read_bytes()
+            mime = "audio/ogg" if suffix in {".ogg", ".oga"} else "application/octet-stream"
+            prompt = whisper_prompt_for(target_lang=target_lang, in_translator=in_translator)
+            return await openai_speech_service.transcribe_bytes(
+                audio_bytes,
+                mime,
+                language=language,
+                prompt=prompt,
+            )
         except Exception:
             logger.exception("Voice transcription failed")
             return None

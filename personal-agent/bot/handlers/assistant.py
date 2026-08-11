@@ -12,7 +12,9 @@ from bot.states.recon import ReconSetupStates
 from bot.states.task_edit import TaskEditStates
 from bot.states.traffic import TrafficSetupStates
 from bot.states.translator import TranslatorStates
+from bot.keyboards.reply import main_menu_keyboard
 from bot.utils.messages import answer_menu
+from services.telegram_text import answer_model_text
 from database.models import User
 from services.assistant import Intent, assistant_service
 from services.chat_history import chat_history_service
@@ -76,7 +78,7 @@ async def process_user_message(
     await chat_history_service.add(session, user, "assistant", reply)
     if ambient_acks:
         reply = reply + "\n\n🌊 " + "\n".join(ambient_acks)
-    await answer_menu(message, reply)
+    await answer_model_text(message, reply, reply_markup=main_menu_keyboard())
 
 
 @router.message(F.text)

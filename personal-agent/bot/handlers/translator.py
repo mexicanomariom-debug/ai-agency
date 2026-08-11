@@ -169,8 +169,18 @@ async def handle_translate_text(message: Message, session: AsyncSession, state: 
 async def handle_translate_voice(message: Message, session: AsyncSession, state: FSMContext) -> None:
     from bot.handlers.voice import transcribe_for_user
 
+    user = await user_service.get_or_create(
+        session,
+        telegram_id=message.from_user.id,
+        username=message.from_user.username,
+        first_name=message.from_user.first_name,
+    )
     await message.bot.send_chat_action(message.chat.id, "typing")
-    text = await transcribe_for_user(message, in_translator=True)
+    text = await transcribe_for_user(
+        message,
+        in_translator=True,
+        target_lang=user.translate_target_lang,
+    )
     if not text:
         return
 

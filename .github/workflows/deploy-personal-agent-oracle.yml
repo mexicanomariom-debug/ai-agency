@@ -2,7 +2,7 @@ name: Deploy Personal Agent to Oracle
 
 on:
   push:
-    branches: [cursor/personal-agent-task-scheduler-64cf, cursor/bot-restart-fix-64cf, main]
+    branches: [cursor/personal-agent-task-scheduler-64cf, cursor/bot-restart-fix-64cf, cursor/agent-tutor-modules-64cf, main]
     paths:
       - 'personal-agent/**'
       - 'src/app/api/google/**'
@@ -33,6 +33,7 @@ jobs:
         env:
           BOT_TOKEN: ${{ secrets.PERSONAL_AGENT_BOT_TOKEN }}
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
           GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
           PERSONAL_AGENT_INTERNAL_SECRET: ${{ secrets.PERSONAL_AGENT_INTERNAL_SECRET || 'personal-agent-internal-2026' }}
@@ -66,6 +67,10 @@ jobs:
               "OPENAI_API_KEY": os.environ.get("OPENAI_API_KEY", ""),
               "OPENAI_MODEL": "gpt-4o-mini",
               "OPENAI_WHISPER_MODEL": "whisper-1",
+              "OPENAI_TTS_MODEL": "tts-1",
+              "OPENAI_TTS_VOICE": "nova",
+              "ANTHROPIC_API_KEY": os.environ.get("ANTHROPIC_API_KEY", ""),
+              "ANTHROPIC_MODEL": "claude-sonnet-4-5-20250929",
               "DEFAULT_TIMEZONE": "America/Cancun",
               "DATABASE_URL": "sqlite+aiosqlite:///./data/agent.db",
               "SCHEDULER_DATABASE_URL": "sqlite:///./data/scheduler.db",

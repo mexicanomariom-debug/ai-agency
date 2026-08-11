@@ -14,6 +14,10 @@ class Settings(BaseSettings):
     openai_api_key: str = ""
     openai_model: str = "gpt-4o-mini"
     openai_whisper_model: str = "whisper-1"
+    openai_tts_model: str = "tts-1"
+    openai_tts_voice: str = "nova"
+    anthropic_api_key: str = ""
+    anthropic_model: str = "claude-sonnet-4-5-20250929"
     default_timezone: str = "UTC"
     bot_build_id: str = "dev"
     database_url: str = "sqlite+aiosqlite:///./data/agent.db"
@@ -71,6 +75,14 @@ class Settings(BaseSettings):
     @property
     def has_openai(self) -> bool:
         return bool(self.openai_api_key)
+
+    @property
+    def has_anthropic(self) -> bool:
+        return bool(self.anthropic_api_key)
+
+    @property
+    def has_llm(self) -> bool:
+        return self.has_openai or self.has_anthropic
 
     @property
     def has_google_calendar(self) -> bool:
