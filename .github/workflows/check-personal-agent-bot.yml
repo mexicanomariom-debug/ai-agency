@@ -27,7 +27,8 @@ jobs:
             sudo docker compose -f docker-compose.prod.yml ps -a || true
             echo "=== START CONTAINERS ==="
             sudo docker compose -f docker-compose.prod.yml up -d
-            sleep 10
+            sudo docker compose -f docker-compose.prod.yml restart bot oauth
+            sleep 12
             echo "=== AFTER UP ==="
             sudo docker compose -f docker-compose.prod.yml ps -a
             echo "=== BOT STATUS ==="
