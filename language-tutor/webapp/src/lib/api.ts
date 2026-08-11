@@ -4,7 +4,7 @@ export const API_URL =
   (typeof window !== "undefined" ? "/api/proxy" : "http://140.84.183.154:8000");
 export const TWA_URL = process.env.NEXT_PUBLIC_TWA_URL || "https://webapp-bay-three-75.vercel.app";
 export const DEMO_MODE = process.env.NEXT_PUBLIC_DEMO_MODE === "true";
-export const BOT_USERNAME = process.env.NEXT_PUBLIC_BOT_USERNAME || "All_languages_bot";
+export const BOT_USERNAME = process.env.NEXT_PUBLIC_BOT_USERNAME || "repetitors_ai_bot";
 
 export interface Persona {
   id: number;

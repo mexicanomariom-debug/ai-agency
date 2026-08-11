@@ -16,7 +16,7 @@ jobs:
         with:
           ssh-private-key: ${{ secrets.ORACLE_SSH_KEY }}
 
-      - name: Start and verify language-tutor bot (@All_languages_bot)
+      - name: Start and verify language-tutor bot (@repetitors_ai_bot)
         run: |
           HOST="${{ secrets.ORACLE_HOST || '140.84.183.154' }}"
           USER="${{ secrets.ORACLE_SSH_USER || 'ubuntu' }}"
@@ -34,9 +34,14 @@ jobs:
             exit 1
           fi
 
-          echo "=== TELEGRAM getMe ==="
-          curl -sS "https://api.telegram.org/bot${TOKEN}/getMe" | head -c 280
+          echo "=== TELEGRAM getMe (must be @repetitors_ai_bot) ==="
+          ME=$(curl -sS "https://api.telegram.org/bot${TOKEN}/getMe")
+          echo "$ME" | head -c 400
           echo
+          if ! echo "$ME" | grep -q 'repetitors_ai_bot'; then
+            echo "ERROR: BOT_TOKEN on server is NOT @repetitors_ai_bot — update GitHub secret BOT_TOKEN"
+            exit 1
+          fi
 
           echo "=== DELETE WEBHOOK ==="
           curl -sS "https://api.telegram.org/bot${TOKEN}/deleteWebhook?drop_pending_updates=true"
@@ -51,11 +56,11 @@ jobs:
           sudo docker compose -f docker-compose.prod.yml logs bot --tail 40
 
           if sudo docker compose -f docker-compose.prod.yml logs bot 2>&1 | grep -qi "TelegramConflictError"; then
-            echo "ERROR: TelegramConflictError — stop @All_languages_bot on old server or other PC"
+            echo "ERROR: TelegramConflictError — stop @repetitors_ai_bot on old server or other PC"
             exit 1
           fi
           if ! sudo docker compose -f docker-compose.prod.yml logs bot 2>&1 | grep -q "Start polling"; then
-            echo "ERROR: @All_languages_bot not polling"
+            echo "ERROR: @repetitors_ai_bot not polling"
             exit 1
           fi
           echo "Language tutor bot polling OK"

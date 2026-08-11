@@ -5,7 +5,7 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
 
     bot_token: str = ""
-    bot_username: str = "All_languages_bot"
+    bot_username: str = "repetitors_ai_bot"
     openai_api_key: str = ""
     openai_model: str = "gpt-4o"
     openai_tts_voice: str = "shimmer"

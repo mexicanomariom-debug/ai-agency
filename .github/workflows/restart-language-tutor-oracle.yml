@@ -37,12 +37,12 @@ jobs:
           API_SECRET_KEY: ${{ secrets.API_SECRET_KEY || 'opus5-api-secret-2026' }}
         run: |
           if [ -z "$BOT_TOKEN" ]; then
-            echo "::error::BOT_TOKEN secret is required for @All_languages_bot"
+            echo "::error::BOT_TOKEN secret is required for @repetitors_ai_bot"
             exit 1
           fi
           cat > language-tutor/.env <<EOF
           BOT_TOKEN=${BOT_TOKEN}
-          BOT_USERNAME=All_languages_bot
+          BOT_USERNAME=repetitors_ai_bot
           OPENAI_API_KEY=${OPENAI_API_KEY}
           OPENAI_MODEL=gpt-4o
           OPENAI_TTS_VOICE=shimmer
