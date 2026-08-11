@@ -60,6 +60,8 @@ async def main() -> None:
         settings.environment,
         settings.bot_build_id,
     )
+    # Clear webhook if set — otherwise polling receives nothing.
+    await bot.delete_webhook(drop_pending_updates=True)
     try:
         await dp.start_polling(bot, drop_pending_updates=True)
     finally:
