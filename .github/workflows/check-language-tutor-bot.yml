@@ -1,0 +1,62 @@
+name: Check Language Tutor Bot
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [cursor/personal-agent-task-scheduler-64cf, main]
+    paths:
+      - 'language-tutor/backend/**'
+      - '.github/workflows/check-language-tutor-bot.yml'
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.ORACLE_SSH_KEY }}
+
+      - name: Start and verify language-tutor bot (@All_languages_bot)
+        run: |
+          HOST="${{ secrets.ORACLE_HOST || '140.84.183.154' }}"
+          USER="${{ secrets.ORACLE_SSH_USER || 'ubuntu' }}"
+          ssh-keyscan -H "$HOST" >> ~/.ssh/known_hosts 2>/dev/null || true
+          ssh -o StrictHostKeyChecking=no "${USER}@${HOST}" "bash -s" <<'REMOTE'
+          set -e
+          cd /opt/opus5
+
+          echo "=== CONTAINERS ==="
+          sudo docker compose -f docker-compose.prod.yml ps -a
+
+          TOKEN=$(grep '^BOT_TOKEN=' .env | cut -d= -f2-)
+          if [ -z "$TOKEN" ]; then
+            echo "ERROR: BOT_TOKEN missing in /opt/opus5/.env"
+            exit 1
+          fi
+
+          echo "=== TELEGRAM getMe ==="
+          curl -sS "https://api.telegram.org/bot${TOKEN}/getMe" | head -c 280
+          echo
+
+          echo "=== DELETE WEBHOOK ==="
+          curl -sS "https://api.telegram.org/bot${TOKEN}/deleteWebhook?drop_pending_updates=true"
+          echo
+
+          echo "=== START ALL SERVICES ==="
+          sudo docker compose -f docker-compose.prod.yml up -d
+          sudo docker compose -f docker-compose.prod.yml restart bot
+          sleep 15
+
+          echo "=== BOT LOGS ==="
+          sudo docker compose -f docker-compose.prod.yml logs bot --tail 40
+
+          if sudo docker compose -f docker-compose.prod.yml logs bot 2>&1 | grep -qi "TelegramConflictError"; then
+            echo "ERROR: TelegramConflictError — stop @All_languages_bot on old server or other PC"
+            exit 1
+          fi
+          if ! sudo docker compose -f docker-compose.prod.yml logs bot 2>&1 | grep -q "Start polling"; then
+            echo "ERROR: @All_languages_bot not polling"
+            exit 1
+          fi
+          echo "Language tutor bot polling OK"
+          REMOTE

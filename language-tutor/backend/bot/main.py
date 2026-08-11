@@ -36,7 +36,8 @@ async def main() -> None:
     await setup_bot_ui(bot)
 
     logger.info("Starting bot @%s", settings.bot_username)
-    await dp.start_polling(bot)
+    await bot.delete_webhook(drop_pending_updates=True)
+    await dp.start_polling(bot, drop_pending_updates=True)
 
 
 if __name__ == "__main__":
