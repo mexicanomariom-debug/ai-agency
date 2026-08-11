@@ -22,6 +22,11 @@ try_file() {
   pick_token "$t"
 }
 
+try_path_env() {
+  local d="$1"
+  try_file "${d%/}/.env"
+}
+
 # 1) Explicit env (CI secrets)
 if [ -n "${REPETITORS_BOT_TOKEN:-}" ]; then
   if pick_token "$REPETITORS_BOT_TOKEN"; then exit 0; fi
@@ -32,6 +37,9 @@ fi
 
 # 2) Local / server Projects layout
 candidates=(
+  "/home/ubuntu/Projects/ai-ege-tutor-bot 2/ai-ege-tutor-bot/.env"
+  "/home/ubuntu/Projects/ai-ege-tutor-bot/ai-ege-tutor-bot/.env"
+  "/home/ubuntu/Projects/ai-ege-tutor-bot/.env"
   "/opt/opus5/.env"
   "/opt/opus5/.env.production"
   "/opt/opus5/.env.local"
@@ -41,6 +49,8 @@ candidates=(
   "/home/ubuntu/Projects/ai-agency/language-tutor/.env"
   "/home/ubuntu/ai-agency/language-tutor/.env"
   "/home/ubuntu/opus5/.env"
+  "$HOME/Projects/ai-ege-tutor-bot 2/ai-ege-tutor-bot/.env"
+  "$HOME/Projects/ai-ege-tutor-bot/.env"
   "$HOME/Projects/opus5/.env"
   "$HOME/Projects/language-tutor/.env"
   "$HOME/Projects/ai-agency/language-tutor/.env"
@@ -54,6 +64,13 @@ fi
 
 for f in "${candidates[@]}"; do
   if try_file "$f"; then exit 0; fi
+done
+
+for d in \
+  "/home/ubuntu/Projects/ai-ege-tutor-bot 2/ai-ege-tutor-bot" \
+  "/home/ubuntu/Projects/ai-ege-tutor-bot/ai-ege-tutor-bot" \
+  "/home/ubuntu/Projects/ai-ege-tutor-bot"; do
+  if try_path_env "$d"; then exit 0; fi
 done
 
 if [ -d /home/ubuntu/Projects ]; then

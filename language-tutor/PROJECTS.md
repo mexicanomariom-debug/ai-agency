@@ -1,52 +1,45 @@
 # Локальные проекты (Windows) → Oracle
 
-Токены и `.env` меняете **локально** в `C:\Users\DavidPC\Projects`. Деплой только на **наш** сервер `140.84.183.154`.
+Токены и `.env` — в `C:\Users\DavidPC\Projects`. Сервер только **140.84.183.154**.
 
-## Карта папок
+## Репетитор @repetitors_ai_bot — основной проект
 
-| Локально (`C:\Users\DavidPC\Projects\…`) | Бот Telegram | На сервере Oracle |
-|------------------------------------------|--------------|-------------------|
-| `opus5` | @repetitors_ai_bot | `/opt/opus5` |
-| `language-tutor` | @repetitors_ai_bot | `/opt/opus5` (тот же деплой) |
-| `ai-agency\language-tutor` | @repetitors_ai_bot | `/opt/opus5` |
+| Локально | Бот | Oracle |
+|----------|-----|--------|
+| **`ai-ege-tutor-bot 2\ai-ege-tutor-bot`** | @repetitors_ai_bot | `/opt/opus5` |
+| `ai-ege-tutor-bot` | @repetitors_ai_bot | `/opt/opus5` |
 | `ai-agency\personal-agent` | @mychatbot7_bot | `/opt/personal-agent` |
 
-`opus5` на диске и `language-tutor` в монорепо — **один и тот же репетитор** (код language-tutor). Путь `/opt/opus5` на сервере — историческое имя, не старый `@All_languages_bot`.
+`language-tutor` и `opus5` в ai-agency — **старый** language-tutor, не ваш EGE-репетитор.
 
-## Токены в `.env`
+## Деплой репетитора (одна команда)
 
-В `.env` репетитора (любая из папок выше, кроме personal-agent):
+```powershell
+cd C:\Users\DavidPC\Projects\ai-agency
+git pull origin cursor/personal-agent-task-scheduler-64cf
+.\scripts\deploy-ai-ege-tutor-oracle.ps1
+```
+
+Проект: `C:\Users\DavidPC\Projects\ai-ege-tutor-bot 2\ai-ege-tutor-bot`  
+Токен: `.env` в этой папке (`BOT_TOKEN` для @repetitors_ai_bot).
+
+## `.env` репетитора
 
 ```env
-BOT_TOKEN=...          # токен @repetitors_ai_bot от BotFather
+BOT_TOKEN=...
 BOT_USERNAME=repetitors_ai_bot
 OPENAI_API_KEY=...
-ANTHROPIC_API_KEY=...  # опционально
 ```
 
-Для personal-agent — отдельный токен `@mychatbot7_bot` (не `BOT_TOKEN` репетитора).
-
-## Деплой репетитора с ПК
+## Personal agent
 
 ```powershell
-cd C:\Users\DavidPC\Projects\ai-agency\language-tutor
-.\scripts\sync-secrets.ps1
-.\deploy-to-oracle.ps1 -KeyPath "C:\Users\DavidPC\.ssh\oracle_key"
+cd C:\Users\DavidPC\Projects\ai-agency\personal-agent
+.\deploy-to-oracle.ps1
 ```
 
-Если работаете из standalone `opus5`:
-
-```powershell
-cd C:\Users\DavidPC\Projects\opus5
-.\deploy-to-oracle.ps1 -KeyPath "C:\Users\DavidPC\.ssh\oracle_key"
-```
-
-Скрипт копирует **ваш локальный** `.env` на сервер — GitHub Secrets не нужны для ручного деплоя.
+Отдельный токен `@mychatbot7_bot`.
 
 ## GitHub Actions
 
-Workflow **Restart Language Tutor on Oracle** берёт `BOT_TOKEN` из GitHub Secrets. Если секрет — токен старого `@All_languages_bot`, на сервере снова поднимется не тот бот. Обновите секрет `BOT_TOKEN` на токен `@repetitors_ai_bot` (тот же, что в локальном `.env`).
-
-## Не запускать боты в двух местах
-
-Один токен = один процесс polling. Остановите бот на старом сервере / втором ПК, если видите `TelegramConflictError`.
+Секрет `REPETITORS_BOT_TOKEN` или `BOT_TOKEN` = токен @repetitors_ai_bot (не @All_languages_bot).

@@ -9,6 +9,7 @@ on:
       - main
     paths:
       - 'language-tutor/**'
+      - 'scripts/deploy-ai-ege-tutor-oracle.ps1'
       - '.github/workflows/restart-language-tutor-oracle.yml'
 
 concurrency:
@@ -74,7 +75,7 @@ jobs:
               ls -la /home/ubuntu/Projects 2>/dev/null || echo "no /home/ubuntu/Projects"
               find /home/ubuntu -maxdepth 4 -name ".env" 2>/dev/null | head -30 || true
             ' || true
-            echo "::error::No @repetitors_ai_bot token. Add GitHub secret REPETITORS_BOT_TOKEN or copy .env to server /home/ubuntu/Projects/opus5/.env"
+            echo "::error::No @repetitors_ai_bot token. Add REPETITORS_BOT_TOKEN secret or .env in ai-ege-tutor-bot on PC/server"
             exit 1
           fi
 
@@ -113,26 +114,58 @@ jobs:
           EOF
           sed -i 's/^          //' language-tutor/.env
 
-      - name: Deploy language-tutor to Oracle
+      - name: Deploy ai-ege-tutor-bot to Oracle
         run: |
           HOST="${{ secrets.ORACLE_HOST || '140.84.183.154' }}"
           USER="${{ secrets.ORACLE_SSH_USER || 'ubuntu' }}"
           REMOTE_DIR="/opt/opus5"
 
-          tar -czf /tmp/opus5-deploy.tar.gz \
-            --exclude=node_modules --exclude=.next --exclude=__pycache__ --exclude=.venv --exclude=.git \
-            -C language-tutor .
+          scp -o StrictHostKeyChecking=no language-tutor/.env "$USER@$HOST:/tmp/repetitors.env"
+          scp -o StrictHostKeyChecking=no language-tutor/scripts/resolve-repetitors-token.sh "$USER@$HOST:/tmp/resolve-repetitors-token.sh"
 
-          scp -o StrictHostKeyChecking=no /tmp/opus5-deploy.tar.gz "$USER@$HOST:/tmp/opus5-deploy.tar.gz"
-          ssh -o StrictHostKeyChecking=no "$USER@$HOST" "sudo mkdir -p $REMOTE_DIR && sudo chown -R \$(whoami):\$(whoami) $REMOTE_DIR"
-          scp -o StrictHostKeyChecking=no language-tutor/.env "$USER@$HOST:$REMOTE_DIR/.env"
-          ssh -o StrictHostKeyChecking=no "$USER@$HOST" "
-            cd $REMOTE_DIR
-            tar -xzf /tmp/opus5-deploy.tar.gz
-            rm -f /tmp/opus5-deploy.tar.gz
-            chmod +x oracle-redeploy.sh oracle-setup.sh
+          ssh -o StrictHostKeyChecking=no "$USER@$HOST" bash -s <<'REMOTE'
+          set -euo pipefail
+          REMOTE_DIR="/opt/opus5"
+          sudo mkdir -p "$REMOTE_DIR"
+          sudo chown -R "$(whoami):$(whoami)" "$REMOTE_DIR"
+
+          SRC=""
+          for p in \
+            "/home/ubuntu/Projects/ai-ege-tutor-bot 2/ai-ege-tutor-bot" \
+            "/home/ubuntu/Projects/ai-ege-tutor-bot/ai-ege-tutor-bot" \
+            "/home/ubuntu/Projects/ai-ege-tutor-bot"; do
+            if [ -d "$p" ]; then SRC="$p"; break; fi
+          done
+
+          if [ -n "$SRC" ]; then
+            echo "Deploying ai-ege-tutor-bot from server: $SRC"
+            tar -czf /tmp/ai-ege-deploy.tar.gz -C "$SRC" \
+              --exclude=node_modules --exclude=.next --exclude=__pycache__ --exclude=.venv --exclude=.git .
+            cd "$REMOTE_DIR"
+            tar -xzf /tmp/ai-ege-deploy.tar.gz
+            rm -f /tmp/ai-ege-deploy.tar.gz
+          elif [ -f "$REMOTE_DIR/docker-compose.prod.yml" ] || [ -f "$REMOTE_DIR/docker-compose.yml" ]; then
+            echo "Redeploy existing stack in $REMOTE_DIR (run deploy-ai-ege-tutor-oracle.ps1 from Windows to update code)"
+            cd "$REMOTE_DIR"
+          else
+            echo "::error::No ai-ege-tutor-bot on server. Run: cd ai-agency && .\scripts\deploy-ai-ege-tutor-oracle.ps1"
+            exit 1
+          fi
+
+          cp /tmp/repetitors.env "$REMOTE_DIR/.env"
+
+          if [ -f oracle-redeploy.sh ]; then
+            chmod +x oracle-redeploy.sh oracle-setup.sh 2>/dev/null || true
             ./oracle-redeploy.sh
-          "
+          elif [ -f docker-compose.prod.yml ]; then
+            sudo docker compose -f docker-compose.prod.yml up -d --build
+          elif [ -f docker-compose.yml ]; then
+            sudo docker compose up -d --build
+          else
+            echo "::error::No docker-compose in $REMOTE_DIR"
+            exit 1
+          fi
+          REMOTE
 
       - name: Verify @repetitors_ai_bot is running
         run: |
