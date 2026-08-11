@@ -127,6 +127,7 @@ async def _fetch_tiktok_ytdlp(handle: str) -> list[ContentItem]:
         "--dump-single-json",
         "--playlist-end",
         "12",
+        "--no-warnings",
         url,
     )
     try:

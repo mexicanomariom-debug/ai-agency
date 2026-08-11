@@ -22,6 +22,7 @@ from bot.keyboards.inline import (
     recon_menu_keyboard,
     recon_settings_keyboard,
     recon_source_actions_keyboard,
+    recon_source_type_keyboard,
     recon_sources_keyboard,
     recon_type_keyboard,
 )
@@ -36,6 +37,7 @@ from services.recon_service import (
     VERDICT_LABELS,
     dump_seen_item_ids,
     recon_service,
+    resolve_recon_type_name,
 )
 from services.recon_verifier import recon_verifier
 from services.user_service import user_service
@@ -51,6 +53,42 @@ _SKIP_INTEREST = {"-", "skip", "всё", "все", "всё подряд", "бе�
 def _fetch_error_label(exc: ReconFetchError) -> str:
     label = FETCH_REASON_LABELS.get(exc.reason, "ошибка")
     return label
+
+
+def _split_add_args(text: str) -> tuple[str | None, str]:
+    """Optional leading type: 'tiktok @user' or '@user'."""
+    parts = text.strip().split(maxsplit=1)
+    if not parts:
+        return None, ""
+    maybe_type = resolve_recon_type_name(parts[0])
+    if maybe_type and len(parts) > 1:
+        return maybe_type, parts[1]
+    return None, text.strip()
+
+
+async def _probe_source_content(
+    source_type: str,
+    handle: str,
+) -> tuple[object, str, str]:
+    """Fetch probe; auto-fix Telegram mis-type as TikTok when possible."""
+    try:
+        fetched = await fetch_source_content(source_type, handle)
+        if fetched:
+            return fetched, source_type, ""
+        raise FetchFailure("empty", user_hint="Источник пуст или недоступен.")
+    except FetchFailure as exc:
+        if source_type == "telegram" and exc.reason == "not_public":
+            try:
+                tiktok_fetched = await fetch_source_content("tiktok", handle)
+            except FetchFailure:
+                tiktok_fetched = None
+            if tiktok_fetched:
+                return (
+                    tiktok_fetched,
+                    "tiktok",
+                    "⚠️ Это TikTok, не Telegram — сохраняю как 🎵 TikTok.",
+                )
+        raise
 
 
 async def apply_recon_keywords(
@@ -233,7 +271,12 @@ async def cmd_recon(message: Message, session: AsyncSession, state: FSMContext) 
         return
 
     if sub == "add" and len(parts) > 2:
-        await _add_source_from_text(message, session, state, " ".join(parts[2:]))
+        explicit_type, payload = _split_add_args(" ".join(parts[2:]))
+        await _add_source_from_text(message, session, state, payload, source_type=explicit_type)
+        return
+
+    if sub == "type" and len(parts) > 2:
+        await _set_type_from_command(message, session, parts[2])
         return
 
     if sub == "filter" and len(parts) > 2:
@@ -367,6 +410,75 @@ async def _show_sources(
     await answer_menu(message, text, reply_markup=markup, parse_mode="HTML")
 
 
+async def _set_type_from_command(message: Message, session: AsyncSession, args: str) -> None:
+    parts = args.strip().split(maxsplit=1)
+    if len(parts) < 2:
+        await answer_menu(
+            message,
+            "Формат: <code>/recon type 2 tiktok</code>\n"
+            "Типы: telegram, tiktok, instagram, twitter, facebook, whatsapp, website",
+            parse_mode="HTML",
+        )
+        return
+    try:
+        source_id = int(parts[0].lstrip("#"))
+    except ValueError:
+        await answer_menu(message, "Укажите номер источника: <code>/recon type 2 tiktok</code>", parse_mode="HTML")
+        return
+    new_type = resolve_recon_type_name(parts[1].strip())
+    if not new_type:
+        await answer_menu(message, f"Неизвестный тип: {parts[1]}")
+        return
+    user = await user_service.get_or_create(
+        session,
+        telegram_id=message.from_user.id,
+        username=message.from_user.username,
+        first_name=message.from_user.first_name,
+    )
+    source = await recon_service.get_source(session, user, source_id)
+    if not source:
+        await answer_menu(message, "Источник не найден.")
+        return
+    await answer_menu(message, f"⏳ Меняю тип #{source_id} на {SOURCE_TYPE_LABELS.get(new_type, new_type)}…")
+    await _apply_source_type_change(message, session, user, source, new_type)
+
+
+async def _apply_source_type_change(
+    message: Message,
+    session: AsyncSession,
+    user,
+    source,
+    new_type: str,
+) -> None:
+    handle = source.url_or_handle
+    try:
+        fetched, final_type, type_note = await _probe_source_content(new_type, handle)
+    except FetchFailure as exc:
+        await answer_menu(message, f"❌ {html_escape(exc.user_hint)}", parse_mode="HTML")
+        return
+
+    updated = await recon_service.update_source_type(
+        session,
+        user,
+        source.id,
+        source_type=final_type,
+        url_or_handle=handle,
+    )
+    if not updated:
+        await answer_menu(message, "Источник не найден.")
+        return
+    await _seed_source_baseline(updated, fetched)
+    type_label = SOURCE_TYPE_LABELS.get(final_type, final_type)
+    note = f"\n{type_note}" if type_note else ""
+    await answer_menu(
+        message,
+        f"✅ #{source.id} теперь <b>{type_label}</b>{note}\n"
+        f"Прочитано элементов: {len(fetched.items or [])}",
+        reply_markup=recon_source_actions_keyboard(source.id, enabled=updated.enabled),
+        parse_mode="HTML",
+    )
+
+
 async def _seed_source_baseline(source, fetched) -> None:
     source.last_preview = fetched.content[:500]
     source.last_content_hash = fetched.content_hash
@@ -383,7 +495,11 @@ async def _add_source_from_text(
     *,
     source_type: str | None = None,
 ) -> None:
-    parsed_type, url, label, filter_query = _parse_source_input(text, source_type)
+    try:
+        parsed_type, url, label, filter_query = _parse_source_input(text, source_type)
+    except FetchFailure as exc:
+        await answer_menu(message, f"⚠️ {html_escape(exc.user_hint)}", parse_mode="HTML")
+        return
     if not url:
         await answer_menu(message, "Укажите адрес, @канал или ссылку.")
         return
@@ -410,37 +526,30 @@ async def _add_source_from_text(
 
     await answer_menu(message, "⏳ Добавляю источник и проверяю…")
 
+    try:
+        fetched, final_type, type_note = await _probe_source_content(parsed_type, url)
+    except FetchFailure as exc:
+        await answer_menu(message, f"⚠️ {html_escape(exc.user_hint)}", parse_mode="HTML")
+        return
+
+    parsed_type = final_type
+    type_label = SOURCE_TYPE_LABELS.get(parsed_type, parsed_type)
+    label = label or f"@{url}" if parsed_type == "tiktok" and not label else label
+
     source = await recon_service.add_source(
         session,
         user,
         source_type=parsed_type,
         url_or_handle=url,
-        label=label,
+        label=label or (f"@{url}" if parsed_type in ("tiktok", "telegram", "instagram", "twitter") else url),
         filter_query=filter_query,
     )
 
-    try:
-        fetched = await fetch_source_content(parsed_type, url)
-    except FetchFailure as exc:
-        fetched = None
-        probe = f"\n\n⚠️ {html_escape(exc.user_hint or 'Не удалось прочитать источник.')}"
-    else:
-        probe = ""
-        if fetched:
-            await _seed_source_baseline(source, fetched)
-            preview = fetched.content[:200].replace("<", "").replace(">", "")
-            probe = f"\n\n✅ Пробное чтение OK ({len(fetched.items or [])} элементов):\n<i>{preview}…</i>"
-        else:
-            hints = {
-                "telegram": (
-                    "\n\n⚠️ Канал пока не читается. Нужен <b>публичный</b> канал "
-                    "(t.me/s/имя). Приватные каналы пока не поддерживаются."
-                ),
-                "website": "\n\n⚠️ Сайт не ответил. Проверьте URL или RSS-ссылку.",
-            }
-            probe = hints.get(parsed_type, "\n\n⚠️ Источник добавлен, но данные пока не получены.")
-
-    type_label = SOURCE_TYPE_LABELS.get(parsed_type, parsed_type)
+    await _seed_source_baseline(source, fetched)
+    preview = fetched.content[:200].replace("<", "").replace(">", "")
+    probe = (
+        f"\n\n{type_note}\n" if type_note else ""
+    ) + f"✅ Пробное чтение OK ({len(fetched.items or [])} элементов):\n<i>{preview}…</i>"
     if filter_query:
         await state.clear()
         await answer_menu(
@@ -966,6 +1075,41 @@ async def cb_recon_event(callback: CallbackQuery, session: AsyncSession) -> None
             reply_markup=recon_event_view_keyboard(event.id, back_callback=back),
             parse_mode="HTML",
         )
+
+
+@router.callback_query(F.data.startswith("recon:type_menu:"))
+async def cb_recon_type_menu(callback: CallbackQuery, session: AsyncSession) -> None:
+    if not callback.data or not callback.message:
+        await callback.answer()
+        return
+    source_id = int(callback.data.split(":")[-1])
+    await callback.answer()
+    text = f"🔁 <b>Сменить тип #{source_id}</b>\n\nВыберите правильный тип источника:"
+    markup = recon_source_type_keyboard(source_id)
+    try:
+        await callback.message.edit_text(text, reply_markup=markup, parse_mode="HTML")
+    except TelegramBadRequest:
+        await callback.message.answer(text, reply_markup=markup, parse_mode="HTML")
+
+
+@router.callback_query(F.data.regexp(r"^recon:set_type:\d+:\w+$"))
+async def cb_recon_set_type(callback: CallbackQuery, session: AsyncSession) -> None:
+    if not callback.data or not callback.from_user or not callback.message:
+        await callback.answer()
+        return
+    _, _, source_id, new_type = callback.data.split(":", 3)
+    user = await user_service.get_or_create(
+        session,
+        telegram_id=callback.from_user.id,
+        username=callback.from_user.username,
+        first_name=callback.from_user.first_name,
+    )
+    source = await recon_service.get_source(session, user, int(source_id))
+    if not source:
+        await callback.answer("Не найден", show_alert=True)
+        return
+    await callback.answer("Меняю тип…")
+    await _apply_source_type_change(callback.message, session, user, source, new_type)
 
 
 @router.callback_query(F.data.startswith("recon:settings:"))

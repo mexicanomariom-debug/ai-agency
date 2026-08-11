@@ -302,7 +302,38 @@ def recon_settings_keyboard(source_id: int, *, verify_enabled: bool, interval_mi
                 ),
             ],
             [
+                InlineKeyboardButton(
+                    text="🔁 Сменить тип",
+                    callback_data=f"recon:type_menu:{source_id}",
+                ),
+            ],
+            [
                 InlineKeyboardButton(text="◀️ К источнику", callback_data=f"recon:src:{source_id}"),
+            ],
+        ]
+    )
+
+
+def recon_source_type_keyboard(source_id: int) -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [
+                InlineKeyboardButton(text="📢 Telegram", callback_data=f"recon:set_type:{source_id}:telegram"),
+                InlineKeyboardButton(text="🎵 TikTok", callback_data=f"recon:set_type:{source_id}:tiktok"),
+            ],
+            [
+                InlineKeyboardButton(text="📸 Instagram", callback_data=f"recon:set_type:{source_id}:instagram"),
+                InlineKeyboardButton(text="🐦 Twitter/X", callback_data=f"recon:set_type:{source_id}:twitter"),
+            ],
+            [
+                InlineKeyboardButton(text="📘 Facebook", callback_data=f"recon:set_type:{source_id}:facebook"),
+                InlineKeyboardButton(text="💬 WhatsApp", callback_data=f"recon:set_type:{source_id}:whatsapp"),
+            ],
+            [
+                InlineKeyboardButton(text="🌐 Сайт/RSS", callback_data=f"recon:set_type:{source_id}:website"),
+            ],
+            [
+                InlineKeyboardButton(text="◀️ Назад", callback_data=f"recon:settings:{source_id}"),
             ],
         ]
     )

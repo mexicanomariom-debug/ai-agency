@@ -22,6 +22,7 @@ async def _run_ytdlp_download(url: str, out_dir: Path) -> Path | None:
         "-f",
         "best[filesize<?48M]/best",
         "--no-playlist",
+        "--no-warnings",
         "-o",
         out_template,
         url,

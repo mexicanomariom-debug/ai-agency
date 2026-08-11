@@ -34,6 +34,7 @@ FETCH_REASON_LABELS = {
     "not_public": "не публичный канал",
     "network": "ошибка сети",
     "empty": "нет постов",
+    "ambiguous": "укажите тип",
 }
 
 
@@ -87,7 +88,7 @@ def _detect_source_type(text: str) -> str | None:
     lowered = text.strip().lower()
     if lowered in ("auto", "календарь", "calendar", "эко", "эконом"):
         return ReconSourceType.ECON_CALENDAR.value
-    if lowered.startswith("@") or "t.me/" in lowered or "telegram.me/" in lowered:
+    if "t.me/" in lowered or "telegram.me/" in lowered:
         return ReconSourceType.TELEGRAM.value
     if "whatsapp.com/channel" in lowered or lowered.startswith("channel/"):
         return ReconSourceType.WHATSAPP.value
@@ -99,7 +100,7 @@ def _detect_source_type(text: str) -> str | None:
         return ReconSourceType.TWITTER.value
     if "facebook.com" in lowered or "fb.com" in lowered:
         return ReconSourceType.FACEBOOK.value
-    if lowered.startswith("http") or "." in lowered:
+    if lowered.startswith("http") or ("." in lowered and not lowered.startswith("@")):
         return ReconSourceType.WEBSITE.value
     return None
 
@@ -124,6 +125,15 @@ def _parse_source_input(text: str, source_type: str | None = None) -> tuple[str,
         label = label_part or None
 
     detected = source_type or _detect_source_type(raw)
+    if not detected and raw.strip().startswith("@"):
+        raise FetchFailure(
+            "ambiguous",
+            user_hint=(
+                "Ник @username без ссылки — укажите тип.\n"
+                "Например: ➕ Источник → 🎵 TikTok → @ник\n"
+                "Или: <code>/recon add tiktok @ник</code>"
+            ),
+        )
     if not detected:
         detected = ReconSourceType.WEBSITE.value
 

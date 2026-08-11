@@ -27,6 +27,36 @@ ITEM_BASED_SOURCE_TYPES = frozenset(
 
 MEDIA_SOURCE_TYPES = frozenset({"tiktok", "instagram"})
 
+RECON_TYPE_ALIASES = {
+    "website": "website",
+    "сайт": "website",
+    "rss": "website",
+    "telegram": "telegram",
+    "телеграм": "telegram",
+    "tg": "telegram",
+    "tiktok": "tiktok",
+    "тикток": "tiktok",
+    "tt": "tiktok",
+    "instagram": "instagram",
+    "инстаграм": "instagram",
+    "ig": "instagram",
+    "twitter": "twitter",
+    "твиттер": "twitter",
+    "x": "twitter",
+    "facebook": "facebook",
+    "фейсбук": "facebook",
+    "fb": "facebook",
+    "whatsapp": "whatsapp",
+    "wa": "whatsapp",
+    "econ": "econ_calendar",
+    "calendar": "econ_calendar",
+    "календарь": "econ_calendar",
+}
+
+
+def resolve_recon_type_name(name: str) -> str | None:
+    return RECON_TYPE_ALIASES.get(name.strip().lower())
+
 VERDICT_LABELS = {
     "confirmed": "✅ Подтверждено",
     "unconfirmed": "⚠️ Не подтверждено",
@@ -191,6 +221,29 @@ class ReconService:
             source.check_interval_min = max(15, min(360, check_interval_min))
         if keywords is not None:
             source.keywords = keywords.strip() if keywords.strip() else None
+        return source
+
+    async def update_source_type(
+        self,
+        session: AsyncSession,
+        user: User,
+        source_id: int,
+        *,
+        source_type: str,
+        url_or_handle: str | None = None,
+        label: str | None = None,
+    ) -> ReconSource | None:
+        source = await self.get_source(session, user, source_id)
+        if not source:
+            return None
+        source.source_type = source_type
+        if url_or_handle is not None:
+            source.url_or_handle = url_or_handle.strip()
+        if label is not None:
+            source.label = label.strip() or None
+        source.last_content_hash = None
+        source.last_preview = None
+        source.last_seen_item_ids = None
         return source
 
     async def delete_source(self, session: AsyncSession, user: User, source_id: int) -> bool:
