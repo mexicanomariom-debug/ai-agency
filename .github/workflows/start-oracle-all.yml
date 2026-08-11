@@ -1,5 +1,6 @@
 name: Start All Oracle Services
 
+# Restarts personal-agent + language-tutor on Oracle when old server is stopped.
 on:
   workflow_dispatch:
   push:
