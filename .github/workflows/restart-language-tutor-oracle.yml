@@ -5,6 +5,7 @@ on:
   push:
     branches: [cursor/personal-agent-task-scheduler-64cf, main]
     paths:
+      - 'language-tutor/**'
       - '.github/workflows/restart-language-tutor-oracle.yml'
 
 concurrency:
@@ -90,8 +91,22 @@ jobs:
           USER="${{ secrets.ORACLE_SSH_USER || 'ubuntu' }}"
           ssh -o StrictHostKeyChecking=no "${USER}@${HOST}" '
             cd /opt/opus5
-            sudo docker compose -f docker-compose.prod.yml ps
-            STATUS=$(sudo docker compose -f docker-compose.prod.yml ps --format json bot 2>/dev/null | head -1)
-            echo "$STATUS"
-            sudo docker compose -f docker-compose.prod.yml logs bot --tail 25
+            sudo docker compose -f docker-compose.prod.yml ps -a
+            echo "--- waiting for Start polling (up to 60s) ---"
+            for i in 1 2 3 4 5 6; do
+              if sudo docker compose -f docker-compose.prod.yml logs bot 2>&1 | grep -q "Start polling"; then
+                echo "@All_languages_bot polling confirmed"
+                break
+              fi
+              sleep 10
+            done
+            sudo docker compose -f docker-compose.prod.yml logs bot --tail 30
+            if sudo docker compose -f docker-compose.prod.yml logs bot 2>&1 | grep -qi "TelegramConflictError"; then
+              echo "::error::TelegramConflictError — stop @All_languages_bot elsewhere"
+              exit 1
+            fi
+            if ! sudo docker compose -f docker-compose.prod.yml logs bot 2>&1 | grep -q "Start polling"; then
+              echo "::error::@All_languages_bot failed to start polling"
+              exit 1
+            fi
           '
