@@ -86,8 +86,12 @@ $sshArgs = @("-i", $key, "-o", "StrictHostKeyChecking=no", "-o", "BatchMode=yes"
 $scpArgs = @("-i", $key, "-o", "StrictHostKeyChecking=no")
 $server = "${User}@${TargetHost}"
 
-& ssh @sshArgs $server "sudo mkdir -p $RemoteDir && sudo chown -R `$(whoami):`$(whoami) $RemoteDir"
+$mkdirCmd = "sudo mkdir -p $RemoteDir && sudo chown -R `$(whoami):`$(whoami) $RemoteDir"
+& ssh @sshArgs $server $mkdirCmd
+if ($LASTEXITCODE -ne 0) { exit 1 }
+
 & scp @scpArgs $Archive "${server}:/tmp/ai-ege-tutor-deploy.tar.gz"
+if ($LASTEXITCODE -ne 0) { exit 1 }
 
 $envFile = Join-Path $root ".env.production"
 if (-not (Test-Path $envFile)) { $envFile = Join-Path $root ".env" }
@@ -95,10 +99,14 @@ if (-not (Test-Path $envFile)) {
     Write-Host "WARN: no .env in project — create .env with BOT_TOKEN for @repetitors_ai_bot" -ForegroundColor Yellow
 } else {
     & scp @scpArgs $envFile "${server}:${RemoteDir}/.env"
+    if ($LASTEXITCODE -ne 0) { exit 1 }
 }
 
-$remoteCmd = @"
-cd $RemoteDir
+# Bash script via stdin — avoids PowerShell parsing [ -f ... ] and chmod
+$bashScript = @'
+set -euo pipefail
+REMOTE_DIR="__REMOTE_DIR__"
+cd "$REMOTE_DIR"
 tar -xzf /tmp/ai-ege-tutor-deploy.tar.gz
 rm -f /tmp/ai-ege-tutor-deploy.tar.gz
 if [ -f oracle-redeploy.sh ]; then
@@ -109,12 +117,12 @@ elif [ -f docker-compose.prod.yml ]; then
 elif [ -f docker-compose.yml ]; then
   sudo docker compose up -d --build
 else
-  echo 'No oracle-redeploy.sh or docker-compose — check project structure'
+  echo "No oracle-redeploy.sh or docker-compose in project"
   exit 1
 fi
-"@
+'@ -replace '__REMOTE_DIR__', $RemoteDir
 
-& ssh @sshArgs $server $remoteCmd
+$bashScript | & ssh @sshArgs $server "bash -s"
 if ($LASTEXITCODE -ne 0) { exit 1 }
 
 Write-Host ""
