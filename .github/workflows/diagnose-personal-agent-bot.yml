@@ -20,63 +20,53 @@ jobs:
           HOST="${{ secrets.ORACLE_HOST || '140.84.183.154' }}"
           USER="${{ secrets.ORACLE_SSH_USER || 'ubuntu' }}"
           ssh-keyscan -H "$HOST" >> ~/.ssh/known_hosts 2>/dev/null || true
-          ssh -o StrictHostKeyChecking=no "${USER}@${HOST}" '
-            set -e
-            cd /opt/personal-agent
+          ssh -o StrictHostKeyChecking=no "${USER}@${HOST}" "bash -s" <<'REMOTE'
+          set -e
+          cd /opt/personal-agent
 
-            echo "=== CONTAINERS ==="
-            sudo docker compose -f docker-compose.prod.yml ps -a
+          echo "=== CONTAINERS ==="
+          sudo docker compose -f docker-compose.prod.yml ps -a
 
-            echo "=== TELEGRAM WEBHOOK / CONFLICT CHECK ==="
-            python3 - <<'"'"'PY'"'"'
-            from pathlib import Path
-            import json, urllib.request
+          TOKEN=$(grep '^BOT_TOKEN=' .env | cut -d= -f2-)
+          if [ -z "$TOKEN" ]; then
+            echo "ERROR: BOT_TOKEN missing"
+            exit 1
+          fi
 
-            token = None
-            for line in Path(".env").read_text(encoding="utf-8").splitlines():
-                if line.startswith("BOT_TOKEN="):
-                    token = line.split("=", 1)[1].strip()
-                    break
-            if not token:
-                print("ERROR: BOT_TOKEN missing in .env")
-            else:
-                for method in ("getMe", "getWebhookInfo"):
-                    url = f"https://api.telegram.org/bot{token}/{method}"
-                    try:
-                        with urllib.request.urlopen(url, timeout=15) as resp:
-                            data = json.loads(resp.read().decode())
-                        if method == "getMe":
-                            r = data.get("result", {})
-                            print(f"getMe: @{r.get('username')} id={r.get('id')} name={r.get('first_name')!r}")
-                        else:
-                            r = data.get("result", {})
-                            print(f"webhook url={r.get('url')!r} pending={r.get('pending_update_count')}")
-                            if r.get("url"):
-                                print("WARNING: webhook is set — polling will not receive updates!")
-                    except Exception as exc:
-                        print(f"{method} failed: {exc}")
-            PY
+          echo "=== TELEGRAM getMe ==="
+          curl -sS "https://api.telegram.org/bot${TOKEN}/getMe" | head -c 300
+          echo
 
-            echo "=== RECENT BOT LOGS (200 lines, errors highlighted) ==="
-            sudo docker compose -f docker-compose.prod.yml logs bot --tail 200 2>&1 | grep -iE "error|exception|conflict|traceback|polling|handled|warning|freeze|locked" || true
-            echo "--- full tail ---"
-            sudo docker compose -f docker-compose.prod.yml logs bot --tail 60
+          echo "=== TELEGRAM getWebhookInfo ==="
+          curl -sS "https://api.telegram.org/bot${TOKEN}/getWebhookInfo"
+          echo
 
-            echo "=== FORCE RECREATE BOT (drop pending updates) ==="
-            sudo docker compose -f docker-compose.prod.yml up -d --force-recreate bot
-            sleep 15
+          echo "=== DELETE WEBHOOK (force polling) ==="
+          curl -sS "https://api.telegram.org/bot${TOKEN}/deleteWebhook?drop_pending_updates=true"
+          echo
 
-            echo "=== AFTER RECREATE ==="
-            sudo docker compose -f docker-compose.prod.yml ps -a
-            sudo docker compose -f docker-compose.prod.yml logs bot --tail 40
+          echo "=== RECENT ERRORS IN LOGS ==="
+          sudo docker compose -f docker-compose.prod.yml logs bot --tail 300 2>&1 \
+            | grep -iE "error|exception|conflict|traceback|handled|polling stopped" || echo "(no errors matched)"
 
-            if sudo docker compose -f docker-compose.prod.yml logs bot 2>&1 | grep -qi "conflict"; then
-              echo "::error::TelegramConflictError — another instance is polling the same token"
-              exit 1
-            fi
-            if ! sudo docker compose -f docker-compose.prod.yml logs bot 2>&1 | grep -q "Start polling"; then
-              echo "::error::Bot not polling after recreate"
-              exit 1
-            fi
-            echo "DIAGNOSE OK — bot polling"
-          '
+          echo "=== LAST 30 LOG LINES ==="
+          sudo docker compose -f docker-compose.prod.yml logs bot --tail 30
+
+          echo "=== FORCE RECREATE BOT ==="
+          sudo docker compose -f docker-compose.prod.yml up -d --force-recreate bot
+          sleep 18
+
+          echo "=== AFTER RECREATE ==="
+          sudo docker compose -f docker-compose.prod.yml ps -a
+          sudo docker compose -f docker-compose.prod.yml logs bot --tail 25
+
+          if sudo docker compose -f docker-compose.prod.yml logs bot 2>&1 | grep -qi "conflict"; then
+            echo "ERROR: TelegramConflictError — stop bot on old server or other machine"
+            exit 1
+          fi
+          if ! sudo docker compose -f docker-compose.prod.yml logs bot 2>&1 | grep -q "Start polling"; then
+            echo "ERROR: Bot not polling"
+            exit 1
+          fi
+          echo "DIAGNOSE OK"
+          REMOTE
