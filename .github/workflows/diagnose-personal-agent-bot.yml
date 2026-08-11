@@ -45,7 +45,9 @@ jobs:
           curl -sS "https://api.telegram.org/bot${TOKEN}/deleteWebhook?drop_pending_updates=true"
           echo
 
-          echo "=== PENDING UPDATES (getUpdates) ==="
+          echo "=== PENDING UPDATES (stop bot first to avoid 409 with polling) ==="
+          sudo docker compose -f docker-compose.prod.yml stop bot
+          sleep 3
           curl -sS "https://api.telegram.org/bot${TOKEN}/getUpdates?limit=3&timeout=1" | head -c 800
           echo
 
@@ -66,13 +68,12 @@ jobs:
           sudo docker compose -f docker-compose.prod.yml up -d --force-recreate bot
           sleep 20
 
-          echo "=== CONFLICT CHECK (getUpdates must not 409) ==="
-          UPD=$(curl -sS "https://api.telegram.org/bot${TOKEN}/getUpdates?limit=1&timeout=2" || true)
-          echo "$UPD" | head -c 400
-          echo
-          if echo "$UPD" | grep -q "Conflict"; then
-            echo "ERROR: TelegramConflictError persists — stop @mychatbot7_bot on OLD server, PC (start-bot.bat), or other VM"
-            sudo docker compose -f docker-compose.prod.yml logs bot --tail 30
+          echo "=== AFTER RECREATE ==="
+          sudo docker compose -f docker-compose.prod.yml ps -a
+          sudo docker compose -f docker-compose.prod.yml logs bot --tail 25
+
+          if sudo docker compose -f docker-compose.prod.yml logs bot 2>&1 | grep -qi "TelegramConflictError"; then
+            echo "ERROR: TelegramConflictError in logs — @mychatbot7_bot runs elsewhere too (old server / PC start-bot.bat)"
             exit 1
           fi
           if ! sudo docker compose -f docker-compose.prod.yml logs bot 2>&1 | grep -q "Start polling"; then
