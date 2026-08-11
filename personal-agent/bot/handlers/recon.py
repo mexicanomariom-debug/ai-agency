@@ -29,8 +29,8 @@ from bot.states.recon import ReconSetupStates
 from bot.utils.menu_forward import try_forward_menu_button
 from bot.utils.html import h as html_escape
 from bot.utils.messages import answer_menu
-from services.recon import format_event_message, get_recon_monitor, ReconFetchError
-from services.recon_providers import _parse_source_input, fetch_source_content
+from services.recon import ReconFetchError, format_event_message, get_recon_monitor
+from services.recon_providers import FETCH_REASON_LABELS, FetchFailure, _parse_source_input, fetch_source_content
 from services.recon_service import (
     SOURCE_TYPE_LABELS,
     VERDICT_LABELS,
@@ -46,6 +46,11 @@ router = Router(name="recon")
 
 RECON_BUTTON = "🔍 Разведка и Вериф"
 _SKIP_INTEREST = {"-", "skip", "всё", "все", "всё подряд", "без фильтра", "нет"}
+
+
+def _fetch_error_label(exc: ReconFetchError) -> str:
+    label = FETCH_REASON_LABELS.get(exc.reason, "ошибка")
+    return label
 
 
 async def apply_recon_keywords(
@@ -414,21 +419,26 @@ async def _add_source_from_text(
         filter_query=filter_query,
     )
 
-    fetched = await fetch_source_content(parsed_type, url)
-    probe = ""
-    if fetched:
-        await _seed_source_baseline(source, fetched)
-        preview = fetched.content[:200].replace("<", "").replace(">", "")
-        probe = f"\n\n✅ Пробное чтение OK ({len(fetched.items or [])} элементов):\n<i>{preview}…</i>"
+    try:
+        fetched = await fetch_source_content(parsed_type, url)
+    except FetchFailure as exc:
+        fetched = None
+        probe = f"\n\n⚠️ {html_escape(exc.user_hint or 'Не удалось прочитать источник.')}"
     else:
-        hints = {
-            "telegram": (
-                "\n\n⚠️ Канал пока не читается. Нужен <b>публичный</b> канал "
-                "(t.me/s/имя). Приватные каналы пока не поддерживаются."
-            ),
-            "website": "\n\n⚠️ Сайт не ответил. Проверьте URL или RSS-ссылку.",
-        }
-        probe = hints.get(parsed_type, "\n\n⚠️ Источник добавлен, но данные пока не получены.")
+        probe = ""
+        if fetched:
+            await _seed_source_baseline(source, fetched)
+            preview = fetched.content[:200].replace("<", "").replace(">", "")
+            probe = f"\n\n✅ Пробное чтение OK ({len(fetched.items or [])} элементов):\n<i>{preview}…</i>"
+        else:
+            hints = {
+                "telegram": (
+                    "\n\n⚠️ Канал пока не читается. Нужен <b>публичный</b> канал "
+                    "(t.me/s/имя). Приватные каналы пока не поддерживаются."
+                ),
+                "website": "\n\n⚠️ Сайт не ответил. Проверьте URL или RSS-ссылку.",
+            }
+            probe = hints.get(parsed_type, "\n\n⚠️ Источник добавлен, но данные пока не получены.")
 
     type_label = SOURCE_TYPE_LABELS.get(parsed_type, parsed_type)
     if filter_query:
@@ -690,10 +700,10 @@ async def cb_recon_check_one(callback: CallbackQuery, session: AsyncSession) -> 
     if monitor:
         try:
             result = await monitor.check_source(source, force=True)
-        except ReconFetchError:
+        except ReconFetchError as exc:
             await callback.message.answer(
-                "❌ Не удалось получить данные из источника.\n"
-                "Проверьте ссылку, доступность аккаунта или попробуйте позже."
+                exc.user_hint
+                or f"❌ Не удалось получить данные из источника ({_fetch_error_label(exc)})."
             )
             return
         if result:
@@ -754,9 +764,9 @@ async def cb_recon_check_all(callback: CallbackQuery, session: AsyncSession) -> 
             for source in sources:
                 try:
                     result = await monitor.check_source(source, force=True)
-                except ReconFetchError:
+                except ReconFetchError as exc:
                     name = html_escape((source.label or source.url_or_handle)[:30])
-                    failed.append(f"#{source.id} {name} (нет данных)")
+                    failed.append(f"#{source.id} {name} ({_fetch_error_label(exc)})")
                     continue
                 except Exception:
                     logger.exception("Recon check failed for source %s", source.id)

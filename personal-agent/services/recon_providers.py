@@ -21,6 +21,22 @@ _WS_RE = re.compile(r"\s+")
 _INTEREST_RE = re.compile(r"(?:\s|^)(?:интерес|interest)\s*:\s*(.+)$", re.I)
 
 
+class FetchFailure(Exception):
+    """Source content could not be loaded."""
+
+    def __init__(self, reason: str, *, user_hint: str = "") -> None:
+        self.reason = reason
+        self.user_hint = user_hint
+        super().__init__(user_hint or reason)
+
+
+FETCH_REASON_LABELS = {
+    "not_public": "не публичный канал",
+    "network": "ошибка сети",
+    "empty": "нет постов",
+}
+
+
 @dataclass
 class ContentItem:
     item_id: str
@@ -173,7 +189,10 @@ async def fetch_source_content(source_type: str, url_or_handle: str) -> FetchRes
     fetcher = fetchers.get(source_type)
     if not fetcher:
         return None
-    return await fetcher(url_or_handle)
+    try:
+        return await fetcher(url_or_handle)
+    except FetchFailure:
+        raise
 
 
 def _build_result(title: str, items: list[ContentItem]) -> FetchResult | None:
@@ -272,18 +291,78 @@ def _parse_rss(body: str, source: str) -> FetchResult | None:
 
 
 async def _fetch_telegram(handle: str) -> FetchResult | None:
+    import asyncio
+
+    last_failure: FetchFailure | None = None
+    for attempt in range(3):
+        try:
+            result = await _fetch_telegram_once(handle)
+            if result:
+                return result
+        except FetchFailure as exc:
+            last_failure = exc
+            if exc.reason == "not_public":
+                raise
+        except Exception:
+            logger.exception("Telegram fetch attempt %s failed for %s", attempt + 1, handle)
+        if attempt < 2:
+            await asyncio.sleep(1.5 * (attempt + 1))
+
+    if last_failure:
+        raise last_failure
+    raise FetchFailure(
+        "network",
+        user_hint="Не удалось загрузить канал. Попробуйте позже.",
+    )
+
+
+def _telegram_not_public(html: str, channel: str) -> bool:
+    if "tgme_widget_message" in html:
+        return False
+    title_match = re.search(r"<title[^>]*>(.*?)</title>", html, re.I | re.S)
+    title = _normalize_text(title_match.group(1), limit=200) if title_match else ""
+    if re.search(rf"Contact @{re.escape(channel)}", title, re.I):
+        return True
+    if "tgme_page_photo" in html and "tgme_channel_info" not in html:
+        return True
+    return False
+
+
+async def _fetch_telegram_once(handle: str) -> FetchResult | None:
     channel = _normalize_telegram_handle(handle)
     if not channel:
-        return None
+        raise FetchFailure("empty", user_hint="Укажите имя канала, например @channelname")
+
     url = f"https://t.me/s/{channel}"
     try:
-        async with httpx.AsyncClient(timeout=20.0, follow_redirects=True) as client:
-            resp = await client.get(url, headers={"User-Agent": "Mozilla/5.0"})
+        async with httpx.AsyncClient(timeout=25.0, follow_redirects=True) as client:
+            resp = await client.get(
+                url,
+                headers={
+                    "User-Agent": (
+                        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+                        "(KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
+                    ),
+                    "Accept-Language": "en-US,en;q=0.9,ru;q=0.8",
+                },
+            )
             resp.raise_for_status()
             html = resp.text
-    except Exception:
+    except Exception as exc:
         logger.exception("Telegram fetch failed for %s", handle)
-        return None
+        raise FetchFailure(
+            "network",
+            user_hint=f"Сеть: не удалось открыть t.me/s/{channel}",
+        ) from exc
+
+    if _telegram_not_public(html, channel):
+        raise FetchFailure(
+            "not_public",
+            user_hint=(
+                f"@{channel} — не публичный канал с постами.\n"
+                "Нужен канал с превью на t.me/s/имя (не личный профиль и не приватный чат)."
+            ),
+        )
 
     items: list[ContentItem] = []
     for post_id, raw_html in re.findall(
@@ -301,7 +380,7 @@ async def _fetch_telegram(handle: str) -> FetchResult | None:
             html,
             re.S | re.I,
         )
-        for idx, raw_html in enumerate(messages[-8:]):
+        for raw_html in messages[-12:]:
             text = _normalize_text(raw_html, limit=800)
             if text:
                 items.append(ContentItem(item_id=_item_id("tg", channel, text), text=text))
@@ -319,7 +398,10 @@ async def _fetch_telegram(handle: str) -> FetchResult | None:
                     items=[item],
                 )
         logger.warning("Telegram channel @%s: no messages in HTML", channel)
-        return None
+        raise FetchFailure(
+            "empty",
+            user_hint=f"@{channel}: посты не найдены (канал пуст или закрыт).",
+        )
 
     return _build_result(f"Telegram @{channel}", items)
 

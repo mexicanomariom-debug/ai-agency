@@ -11,7 +11,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 
 from database.models import ReconEvent, ReconSource
-from services.recon_providers import ContentItem, FetchResult, fetch_source_content
+from services.recon_providers import ContentItem, FetchFailure, FetchResult, fetch_source_content
 from services.recon_service import (
     ITEM_BASED_SOURCE_TYPES,
     MEDIA_SOURCE_TYPES,
@@ -35,6 +35,11 @@ _MAX_NEW_ITEMS_PER_CHECK = 3
 
 class ReconFetchError(Exception):
     """Source could not be fetched (network, auth, invalid URL)."""
+
+    def __init__(self, message: str, *, reason: str = "unknown", user_hint: str = "") -> None:
+        self.reason = reason
+        self.user_hint = user_hint
+        super().__init__(message)
 
 
 def _source_label(source: ReconSource) -> str:
@@ -82,7 +87,14 @@ class ReconMonitor:
             if delta < timedelta(minutes=source.check_interval_min or 60):
                 return None
 
-        fetched = await fetch_source_content(source.source_type, source.url_or_handle)
+        try:
+            fetched = await fetch_source_content(source.source_type, source.url_or_handle)
+        except FetchFailure as exc:
+            raise ReconFetchError(
+                f"source #{source.id}",
+                reason=exc.reason,
+                user_hint=exc.user_hint,
+            ) from exc
         async with self.session_factory() as session:
             db_source = await session.get(ReconSource, source.id)
             if not db_source:
@@ -93,7 +105,7 @@ class ReconMonitor:
 
             if not fetched:
                 await session.commit()
-                raise ReconFetchError(f"source #{db_source.id}")
+                raise ReconFetchError(f"source #{db_source.id}", reason="empty")
 
             db_source.last_preview = fetched.content[:500]
 
