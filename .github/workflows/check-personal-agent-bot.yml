@@ -3,7 +3,7 @@ name: Check Personal Agent Bot
 on:
   workflow_dispatch:
   push:
-    branches: [cursor/personal-agent-task-scheduler-64cf, cursor/bot-restart-fix-64cf]
+    branches: [cursor/personal-agent-task-scheduler-64cf, cursor/bot-restart-fix-64cf, cursor/agent-tutor-modules-64cf]
     paths:
       - 'personal-agent/**'
       - '.github/workflows/check-personal-agent-bot.yml'
@@ -16,29 +16,43 @@ jobs:
         with:
           ssh-private-key: ${{ secrets.ORACLE_SSH_KEY }}
 
-      - name: Check personal-agent bot
+      - name: Start and verify personal-agent containers
         run: |
           HOST="${{ secrets.ORACLE_HOST || '140.84.183.154' }}"
           USER="${{ secrets.ORACLE_SSH_USER || 'ubuntu' }}"
           ssh-keyscan -H "$HOST" >> ~/.ssh/known_hosts 2>/dev/null || true
           ssh -o StrictHostKeyChecking=no "${USER}@${HOST}" '
             cd /opt/personal-agent
-            echo "=== CONTAINERS ==="
+            echo "=== BEFORE ==="
+            sudo docker compose -f docker-compose.prod.yml ps -a || true
+            echo "=== START CONTAINERS ==="
+            sudo docker compose -f docker-compose.prod.yml up -d
+            sleep 10
+            echo "=== AFTER UP ==="
             sudo docker compose -f docker-compose.prod.yml ps -a
             echo "=== BOT STATUS ==="
             sudo docker inspect -f "status={{.State.Status}} started={{.State.StartedAt}} restarts={{.RestartCount}}" personal-agent-bot 2>/dev/null || echo missing
-            echo "=== BOT LOGS (last 80) ==="
-            sudo docker compose -f docker-compose.prod.yml logs bot --tail 80
+            echo "=== OAUTH STATUS ==="
+            sudo docker inspect -f "status={{.State.Status}} started={{.State.StartedAt}} restarts={{.RestartCount}}" personal-agent-oauth 2>/dev/null || echo missing
+            echo "=== BOT LOGS (last 40) ==="
+            sudo docker compose -f docker-compose.prod.yml logs bot --tail 40
             if ! sudo docker compose -f docker-compose.prod.yml logs bot 2>&1 | grep -q "Start polling"; then
               echo "=== BOT NOT POLLING — RESTART ==="
               sudo docker compose -f docker-compose.prod.yml restart bot
               sleep 12
-              sudo docker compose -f docker-compose.prod.yml logs bot --tail 40
+              sudo docker compose -f docker-compose.prod.yml logs bot --tail 30
             fi
             echo "=== FINAL STATUS ==="
-            sudo docker inspect -f "status={{.State.Status}} restarts={{.RestartCount}}" personal-agent-bot 2>/dev/null || echo missing
+            sudo docker compose -f docker-compose.prod.yml ps -a
+            BOT_STATUS=$(sudo docker inspect -f "{{.State.Status}}" personal-agent-bot 2>/dev/null || echo missing)
+            OAUTH_STATUS=$(sudo docker inspect -f "{{.State.Status}}" personal-agent-oauth 2>/dev/null || echo missing)
+            if [ "$BOT_STATUS" != "running" ] || [ "$OAUTH_STATUS" != "running" ]; then
+              echo "::error::Containers not running: bot=$BOT_STATUS oauth=$OAUTH_STATUS"
+              exit 1
+            fi
             if ! sudo docker compose -f docker-compose.prod.yml logs bot 2>&1 | grep -q "Start polling"; then
-              echo "::error::Bot is not polling after restart"
+              echo "::error::Bot is not polling after start"
+              sudo docker compose -f docker-compose.prod.yml logs bot --tail 50
               exit 1
             fi
             echo "Bot polling OK"
