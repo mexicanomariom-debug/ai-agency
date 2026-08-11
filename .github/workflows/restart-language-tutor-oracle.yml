@@ -3,7 +3,10 @@ name: Restart Language Tutor on Oracle
 on:
   workflow_dispatch:
   push:
-    branches: [cursor/personal-agent-task-scheduler-64cf, main]
+    branches:
+      - cursor/personal-agent-task-scheduler-64cf
+      - cursor/repetitor-projects-align-64cf
+      - main
     paths:
       - 'language-tutor/**'
       - '.github/workflows/restart-language-tutor-oracle.yml'
@@ -28,18 +31,58 @@ jobs:
           HOST="${{ secrets.ORACLE_HOST || '140.84.183.154' }}"
           ssh-keyscan -H "$HOST" >> ~/.ssh/known_hosts 2>/dev/null || true
 
+      - name: Resolve @repetitors_ai_bot token
+        id: resolve
+        env:
+          REPETITORS_BOT_TOKEN: ${{ secrets.REPETITORS_BOT_TOKEN }}
+          BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
+        run: |
+          set -euo pipefail
+          HOST="${{ secrets.ORACLE_HOST || '140.84.183.154' }}"
+          USER="${{ secrets.ORACLE_SSH_USER || 'ubuntu' }}"
+
+          pick_token() {
+            local t="$1"
+            [ -z "$t" ] && return 1
+            local me
+            me=$(curl -sS --max-time 15 "https://api.telegram.org/bot${t}/getMe" || true)
+            if echo "$me" | grep -q 'repetitors_ai_bot'; then
+              echo "$t" > /tmp/repetitors_bot_token
+              echo "Resolved @repetitors_ai_bot from CI env"
+              return 0
+            fi
+            return 1
+          }
+
+          TOKEN=""
+          if [ -n "${REPETITORS_BOT_TOKEN:-}" ]; then pick_token "$REPETITORS_BOT_TOKEN" && TOKEN=ok; fi
+          if [ -z "$TOKEN" ] && [ -n "${BOT_TOKEN:-}" ]; then pick_token "$BOT_TOKEN" && TOKEN=ok; fi
+
+          if [ -z "$TOKEN" ]; then
+            echo "Searching server Projects/.env for @repetitors_ai_bot token..."
+            scp -o StrictHostKeyChecking=no language-tutor/scripts/resolve-repetitors-token.sh "${USER}@${HOST}:/tmp/resolve-repetitors-token.sh"
+            ssh -o StrictHostKeyChecking=no "${USER}@${HOST}" 'chmod +x /tmp/resolve-repetitors-token.sh && /tmp/resolve-repetitors-token.sh' > /tmp/repetitors_bot_token || true
+            if [ -s /tmp/repetitors_bot_token ]; then
+              echo "Resolved @repetitors_ai_bot from server Projects/.env"
+            fi
+          fi
+
+          if [ ! -s /tmp/repetitors_bot_token ]; then
+            echo "::error::No @repetitors_ai_bot token. Add GitHub secret REPETITORS_BOT_TOKEN or copy .env to server /home/ubuntu/Projects/opus5/.env"
+            exit 1
+          fi
+
+          ME=$(curl -sS "https://api.telegram.org/bot$(cat /tmp/repetitors_bot_token)/getMe")
+          echo "getMe: ${ME:0:120}..."
+
       - name: Create production .env
         env:
-          BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD || 'opus5_prod_secret_2026' }}
           API_SECRET_KEY: ${{ secrets.API_SECRET_KEY || 'opus5-api-secret-2026' }}
         run: |
-          if [ -z "$BOT_TOKEN" ]; then
-            echo "::error::BOT_TOKEN secret is required for @repetitors_ai_bot"
-            exit 1
-          fi
+          BOT_TOKEN=$(cat /tmp/repetitors_bot_token)
           cat > language-tutor/.env <<EOF
           BOT_TOKEN=${BOT_TOKEN}
           BOT_USERNAME=repetitors_ai_bot
@@ -85,36 +128,51 @@ jobs:
             ./oracle-redeploy.sh
           "
 
-      - name: Verify language-tutor bot is running
+      - name: Verify @repetitors_ai_bot is running
         run: |
           HOST="${{ secrets.ORACLE_HOST || '140.84.183.154' }}"
           USER="${{ secrets.ORACLE_SSH_USER || 'ubuntu' }}"
           ssh -o StrictHostKeyChecking=no "${USER}@${HOST}" '
             cd /opt/opus5
             sudo docker compose -f docker-compose.prod.yml ps -a
-            TOKEN=$(grep '^BOT_TOKEN=' .env | cut -d= -f2-)
+            TOKEN=$(grep "^BOT_TOKEN=" .env | cut -d= -f2-)
             ME=$(curl -sS "https://api.telegram.org/bot${TOKEN}/getMe")
             echo "getMe: $ME" | head -c 400
             echo
-            if ! echo "$ME" | grep -q 'repetitors_ai_bot'; then
-              echo "::error::BOT_TOKEN is not @repetitors_ai_bot — update GitHub Actions secret BOT_TOKEN"
+            if ! echo "$ME" | grep -q "repetitors_ai_bot"; then
+              echo "::error::BOT_TOKEN is not @repetitors_ai_bot"
               exit 1
             fi
-            echo "--- waiting for Start polling (up to 60s) ---"
             for i in 1 2 3 4 5 6; do
               if sudo docker compose -f docker-compose.prod.yml logs bot 2>&1 | grep -q "Start polling"; then
                 echo "@repetitors_ai_bot polling confirmed"
-                break
+                sudo docker compose -f docker-compose.prod.yml logs bot --tail 15
+                exit 0
               fi
               sleep 10
             done
             sudo docker compose -f docker-compose.prod.yml logs bot --tail 30
             if sudo docker compose -f docker-compose.prod.yml logs bot 2>&1 | grep -qi "TelegramConflictError"; then
-              echo "::error::TelegramConflictError — stop @repetitors_ai_bot elsewhere"
-              exit 1
+              echo "::error::TelegramConflictError — stop duplicate @repetitors_ai_bot elsewhere"
             fi
-            if ! sudo docker compose -f docker-compose.prod.yml logs bot 2>&1 | grep -q "Start polling"; then
-              echo "::error::@repetitors_ai_bot failed to start polling"
-              exit 1
+            echo "::error::@repetitors_ai_bot failed to start polling"
+            exit 1
+          '
+
+      - name: Restart personal-agent (@mychatbot7_bot)
+        run: |
+          HOST="${{ secrets.ORACLE_HOST || '140.84.183.154' }}"
+          USER="${{ secrets.ORACLE_SSH_USER || 'ubuntu' }}"
+          ssh -o StrictHostKeyChecking=no "${USER}@${HOST}" '
+            if [ -d /opt/personal-agent ]; then
+              cd /opt/personal-agent
+              sudo docker compose -f docker-compose.prod.yml up -d
+              sudo docker compose -f docker-compose.prod.yml restart bot oauth
+              sleep 8
+              if sudo docker compose -f docker-compose.prod.yml logs bot 2>&1 | grep -q "Start polling"; then
+                echo "@mychatbot7_bot polling OK"
+              else
+                echo "::warning::personal-agent not polling — run Deploy Personal Agent workflow"
+              fi
             fi
           '

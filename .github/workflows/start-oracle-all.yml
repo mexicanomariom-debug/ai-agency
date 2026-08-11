@@ -16,7 +16,7 @@ jobs:
         with:
           ssh-private-key: ${{ secrets.ORACLE_SSH_KEY }}
 
-      - name: Start personal-agent + language-tutor
+      - name: Start personal-agent + language-tutor (@repetitors_ai_bot)
         run: |
           HOST="${{ secrets.ORACLE_HOST || '140.84.183.154' }}"
           USER="${{ secrets.ORACLE_SSH_USER || 'ubuntu' }}"

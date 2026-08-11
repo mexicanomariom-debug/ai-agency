@@ -1,6 +1,8 @@
 # Personal Agent — Oracle Deploy
 
-Рядом с language-tutor (`/opt/opus5`) на том же сервере **140.84.183.154**.
+Рядом с репетитором (`/opt/opus5`, @repetitors_ai_bot) на том же сервере **140.84.183.154**.
+
+Локально: `C:\Users\DavidPC\Projects\ai-agency\personal-agent` — см. `language-tutor/PROJECTS.md`.
 
 | Проект | Путь на сервере | Порт |
 |--------|-----------------|------|
