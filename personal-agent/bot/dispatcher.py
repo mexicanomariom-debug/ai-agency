@@ -19,6 +19,7 @@ from bot.handlers import (
     voice,
 )
 from bot.middlewares.db import DbSessionMiddleware
+from bot.middlewares.log_updates import LogUpdatesMiddleware
 from bot.middlewares.translator import ClearTranslatorOnMenuMiddleware
 from bot.utils.messages import answer_menu
 
@@ -43,6 +44,7 @@ async def on_handler_error(event: ErrorEvent) -> bool:
 
 def setup_dispatcher(dp: Dispatcher) -> None:
     dp.errors.register(on_handler_error)
+    dp.update.middleware(LogUpdatesMiddleware())
     dp.update.middleware(DbSessionMiddleware())
     dp.update.middleware(ClearTranslatorOnMenuMiddleware())
     dp.include_router(start.router)

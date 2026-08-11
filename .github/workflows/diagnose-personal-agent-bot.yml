@@ -45,6 +45,10 @@ jobs:
           curl -sS "https://api.telegram.org/bot${TOKEN}/deleteWebhook?drop_pending_updates=true"
           echo
 
+          echo "=== PENDING UPDATES (getUpdates) ==="
+          curl -sS "https://api.telegram.org/bot${TOKEN}/getUpdates?limit=3&timeout=1" | head -c 800
+          echo
+
           echo "=== RECENT ERRORS IN LOGS ==="
           sudo docker compose -f docker-compose.prod.yml logs bot --tail 300 2>&1 \
             | grep -iE "error|exception|conflict|traceback|handled|polling stopped" || echo "(no errors matched)"
