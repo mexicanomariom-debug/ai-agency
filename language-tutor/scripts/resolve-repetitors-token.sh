@@ -35,13 +35,22 @@ candidates=(
   "/opt/opus5/.env"
   "/opt/opus5/.env.production"
   "/opt/opus5/.env.local"
+  "/opt/opus5/.env.bak"
   "/home/ubuntu/Projects/opus5/.env"
   "/home/ubuntu/Projects/language-tutor/.env"
   "/home/ubuntu/Projects/ai-agency/language-tutor/.env"
+  "/home/ubuntu/ai-agency/language-tutor/.env"
+  "/home/ubuntu/opus5/.env"
   "$HOME/Projects/opus5/.env"
   "$HOME/Projects/language-tutor/.env"
   "$HOME/Projects/ai-agency/language-tutor/.env"
 )
+
+if [ -d /home/ubuntu ]; then
+  while IFS= read -r f; do
+    candidates+=("$f")
+  done < <(find /home/ubuntu -maxdepth 5 -name '.env' 2>/dev/null)
+fi
 
 for f in "${candidates[@]}"; do
   if try_file "$f"; then exit 0; fi
@@ -50,7 +59,13 @@ done
 if [ -d /home/ubuntu/Projects ]; then
   while IFS= read -r f; do
     if try_file "$f"; then exit 0; fi
-  done < <(find /home/ubuntu/Projects -maxdepth 4 -name '.env' 2>/dev/null)
+  done < <(find /home/ubuntu/Projects -maxdepth 5 -name '.env' 2>/dev/null)
+fi
+
+if [ -d /home/ubuntu ]; then
+  while IFS= read -r f; do
+    if try_file "$f"; then exit 0; fi
+  done < <(find /home/ubuntu -maxdepth 5 -name '.env' 2>/dev/null)
 fi
 
 echo "ERROR: no @repetitors_ai_bot token in REPETITORS_BOT_TOKEN, BOT_TOKEN, or Projects/.env files" >&2

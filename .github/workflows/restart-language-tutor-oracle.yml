@@ -68,6 +68,12 @@ jobs:
           fi
 
           if [ ! -s /tmp/repetitors_bot_token ]; then
+            echo "=== Server .env search (diagnostic) ==="
+            ssh -o StrictHostKeyChecking=no "${USER}@${HOST}" '
+              ls -la /home/ubuntu/ 2>/dev/null || true
+              ls -la /home/ubuntu/Projects 2>/dev/null || echo "no /home/ubuntu/Projects"
+              find /home/ubuntu -maxdepth 4 -name ".env" 2>/dev/null | head -30 || true
+            ' || true
             echo "::error::No @repetitors_ai_bot token. Add GitHub secret REPETITORS_BOT_TOKEN or copy .env to server /home/ubuntu/Projects/opus5/.env"
             exit 1
           fi
