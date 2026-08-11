@@ -4,7 +4,9 @@ name: Start All Oracle Services
 on:
   workflow_dispatch:
   push:
-    branches: [cursor/personal-agent-task-scheduler-64cf]
+    branches:
+      - cursor/personal-agent-task-scheduler-64cf
+      - cursor/repetitor-projects-align-64cf
     paths:
       - '.github/workflows/start-oracle-all.yml'
 
