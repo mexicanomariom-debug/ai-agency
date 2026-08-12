@@ -1,0 +1,105 @@
+name: Deploy ai-ege-tutor-bot to Oracle
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'ai-ege-tutor-bot/**'
+      - 'scripts/oracle-redeploy-remote.sh'
+      - '.github/workflows/deploy-ai-ege-tutor-oracle.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-ai-ege-tutor-oracle
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check project files
+        run: |
+          if [ ! -f ai-ege-tutor-bot/docker-compose.yml ] && [ ! -f ai-ege-tutor-bot/docker-compose.prod.yml ] && [ ! -f ai-ege-tutor-bot/oracle-redeploy.sh ]; then
+            echo "::error::ai-ege-tutor-bot/ empty or incomplete — copy project from PC (see ai-ege-tutor-bot/README.md)"
+            ls -la ai-ege-tutor-bot/ || true
+            exit 1
+          fi
+          echo "Project files OK"
+          ls -la ai-ege-tutor-bot/ | head -20
+
+      - name: Setup SSH agent
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.ORACLE_SSH_KEY }}
+
+      - name: Add Oracle host key
+        run: |
+          HOST="${{ secrets.ORACLE_HOST || '140.84.183.154' }}"
+          ssh-keyscan -H "$HOST" >> ~/.ssh/known_hosts 2>/dev/null || true
+
+      - name: Resolve @repetitors_ai_bot token
+        id: token
+        env:
+          REPETITORS_BOT_TOKEN: ${{ secrets.REPETITORS_BOT_TOKEN }}
+          BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
+        run: |
+          pick() {
+            local t="$1"
+            [ -z "$t" ] && return 1
+            curl -sS --max-time 15 "https://api.telegram.org/bot${t}/getMe" | grep -q repetitors_ai_bot
+          }
+          TOKEN=""
+          if pick "$REPETITORS_BOT_TOKEN"; then TOKEN="$REPETITORS_BOT_TOKEN"
+          elif pick "$BOT_TOKEN"; then TOKEN="$BOT_TOKEN"
+          fi
+          if [ -z "$TOKEN" ]; then
+            echo "::error::Add GitHub secret REPETITORS_BOT_TOKEN = token for @repetitors_ai_bot"
+            exit 1
+          fi
+          echo "Token OK for @repetitors_ai_bot"
+          echo "$TOKEN" > /tmp/bot_token
+
+      - name: Build and upload
+        run: |
+          HOST="${{ secrets.ORACLE_HOST || '140.84.183.154' }}"
+          USER="${{ secrets.ORACLE_SSH_USER || 'ubuntu' }}"
+          REMOTE_DIR="/opt/opus5"
+          SERVER="${USER}@${HOST}"
+
+          tar -czf /tmp/ai-ege-deploy.tar.gz \
+            --exclude=node_modules --exclude=.next --exclude=__pycache__ --exclude=.venv --exclude=.git \
+            -C ai-ege-tutor-bot .
+
+          scp -o StrictHostKeyChecking=no /tmp/ai-ege-deploy.tar.gz "$SERVER:/tmp/ai-ege-tutor-deploy.tar.gz"
+          scp -o StrictHostKeyChecking=no scripts/oracle-redeploy-remote.sh "$SERVER:/tmp/oracle-redeploy-remote.sh"
+
+          BOT_TOKEN=$(cat /tmp/bot_token)
+          cat > /tmp/repetitors.env <<EOF
+          BOT_TOKEN=${BOT_TOKEN}
+          BOT_USERNAME=repetitors_ai_bot
+          ENVIRONMENT=production
+          EOF
+          sed -i 's/^          //' /tmp/repetitors.env
+          # Merge with .env.example keys if present
+          if [ -f ai-ege-tutor-bot/.env.example ]; then
+            grep -v '^BOT_TOKEN=' ai-ege-tutor-bot/.env.example >> /tmp/repetitors.env || true
+          fi
+          scp -o StrictHostKeyChecking=no /tmp/repetitors.env "$SERVER:$REMOTE_DIR/.env"
+
+          ssh -o StrictHostKeyChecking=no "$SERVER" "chmod +x /tmp/oracle-redeploy-remote.sh && bash /tmp/oracle-redeploy-remote.sh $REMOTE_DIR"
+
+      - name: Verify bot
+        run: |
+          HOST="${{ secrets.ORACLE_HOST || '140.84.183.154' }}"
+          USER="${{ secrets.ORACLE_SSH_USER || 'ubuntu' }}"
+          ssh -o StrictHostKeyChecking=no "${USER}@${HOST}" '
+            cd /opt/opus5
+            TOKEN=$(grep "^BOT_TOKEN=" .env | cut -d= -f2-)
+            curl -sS "https://api.telegram.org/bot${TOKEN}/getMe" | head -c 200
+            echo
+            if [ -f docker-compose.prod.yml ]; then
+              sudo docker compose -f docker-compose.prod.yml logs bot --tail 20 2>/dev/null || true
+            fi
+          '
