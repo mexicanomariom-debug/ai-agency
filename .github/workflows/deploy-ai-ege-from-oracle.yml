@@ -1,11 +1,12 @@
 name: Deploy ai-ege from Oracle /opt
 
-# Deploys existing /opt/ai-ege-tutor-bot on Oracle to /opt/opus5 with @repetitors_ai_bot
+# Deploys /opt/ai-ege-tutor-bot on Oracle. Prefers @repetitors_ai_bot token.
 on:
   push:
     branches: [main]
     paths:
       - '.github/workflows/deploy-ai-ege-from-oracle.yml'
+      - 'scripts/oracle-redeploy-remote.sh'
   workflow_dispatch:
 
 jobs:
@@ -24,6 +25,27 @@ jobs:
           HOST="${{ secrets.ORACLE_HOST || '140.84.183.154' }}"
           ssh-keyscan -H "$HOST" >> ~/.ssh/known_hosts 2>/dev/null || true
 
+      - name: Inspect /opt/ai-ege-tutor-bot
+        run: |
+          HOST="${{ secrets.ORACLE_HOST || '140.84.183.154' }}"
+          USER="${{ secrets.ORACLE_SSH_USER || 'ubuntu' }}"
+          ssh -o StrictHostKeyChecking=no "${USER}@${HOST}" '
+            set -e
+            echo "=== /opt/ai-ege-tutor-bot ==="
+            ls -la /opt/ai-ege-tutor-bot | head -40
+            echo "=== compose / main files ==="
+            ls /opt/ai-ege-tutor-bot/docker-compose*.yml /opt/ai-ege-tutor-bot/oracle-redeploy.sh /opt/ai-ege-tutor-bot/requirements.txt /opt/ai-ege-tutor-bot/bot/main.py 2>/dev/null || true
+            find /opt/ai-ege-tutor-bot -maxdepth 2 -type f \( -name "*.py" -o -name "*.yml" -o -name "*.toml" -o -name "Dockerfile" -o -name "package.json" \) 2>/dev/null | head -40
+            echo "=== .env KEYS (no values) ==="
+            if [ -f /opt/ai-ege-tutor-bot/.env ]; then
+              cut -d= -f1 /opt/ai-ege-tutor-bot/.env | sed "s/^/KEY: /"
+            else
+              echo "no .env"
+            fi
+            echo "=== running containers ==="
+            sudo docker ps --format "table {{.Names}}\t{{.Status}}\t{{.Image}}" 2>/dev/null | head -20 || true
+          '
+
       - name: Deploy /opt/ai-ege-tutor-bot -> /opt/opus5
         env:
           REPETITORS_BOT_TOKEN: ${{ secrets.REPETITORS_BOT_TOKEN }}
@@ -35,72 +57,137 @@ jobs:
 
           scp -o StrictHostKeyChecking=no scripts/oracle-redeploy-remote.sh "$SERVER:/tmp/oracle-redeploy-remote.sh"
 
-          # Prefer token that is @repetitors_ai_bot
           pick() {
             local t="$1"
             [ -z "$t" ] && return 1
+            local me
+            me=$(curl -sS --max-time 15 "https://api.telegram.org/bot${t}/getMe" || true)
+            echo "$me" | grep -q '"ok":true' || return 1
+            echo "$me" | head -c 200
+            echo
+            return 0
+          }
+
+          is_repetitors() {
+            local t="$1"
             curl -sS --max-time 15 "https://api.telegram.org/bot${t}/getMe" | grep -q repetitors_ai_bot
           }
 
           TOKEN=""
-          if pick "${REPETITORS_BOT_TOKEN:-}"; then TOKEN="$REPETITORS_BOT_TOKEN"; echo "token from REPETITORS_BOT_TOKEN"; fi
-          if [ -z "$TOKEN" ] && pick "${BOT_TOKEN:-}"; then TOKEN="$BOT_TOKEN"; echo "token from BOT_TOKEN"; fi
+          SOURCE=""
 
-          # Get token from server .env files
+          if [ -n "${REPETITORS_BOT_TOKEN:-}" ] && pick "$REPETITORS_BOT_TOKEN" >/tmp/me.txt; then
+            TOKEN="$REPETITORS_BOT_TOKEN"; SOURCE="REPETITORS_BOT_TOKEN"
+          fi
+
+          # Read candidates from server env files (do not print token)
           if [ -z "$TOKEN" ]; then
-            for f in /opt/ai-ege-tutor-bot/.env /home/ubuntu/inbox/ai-ege-tutor-bot/.env /opt/opus5/.env; do
-              CAND=$(ssh -o StrictHostKeyChecking=no "$SERVER" "grep -m1 '^BOT_TOKEN=' $f 2>/dev/null | cut -d= -f2-" || true)
-              if pick "$CAND"; then TOKEN="$CAND"; echo "token from $f"; break; fi
-            done
+            while IFS= read -r line; do
+              CAND="$line"
+              if [ -n "$CAND" ] && is_repetitors "$CAND"; then
+                TOKEN="$CAND"; SOURCE="server_env_repetitors"; break
+              fi
+            done < <(ssh -o StrictHostKeyChecking=no "$SERVER" '
+              for f in /opt/ai-ege-tutor-bot/.env /home/ubuntu/inbox/ai-ege-tutor-bot/.env; do
+                [ -f "$f" ] || continue
+                grep -E "^(BOT_TOKEN|TELEGRAM_BOT_TOKEN|TELEGRAM_TOKEN|TG_TOKEN)=" "$f" | cut -d= -f2-
+              done
+            ')
+          fi
+
+          if [ -z "$TOKEN" ] && [ -n "${BOT_TOKEN:-}" ] && is_repetitors "$BOT_TOKEN"; then
+            TOKEN="$BOT_TOKEN"; SOURCE="BOT_TOKEN"
+          fi
+
+          # Last resort: any valid token from ai-ege .env (warn if not repetitors)
+          if [ -z "$TOKEN" ]; then
+            while IFS= read -r line; do
+              CAND="$line"
+              if [ -n "$CAND" ] && pick "$CAND" >/tmp/me.txt; then
+                TOKEN="$CAND"; SOURCE="ai-ege-.env-any-valid"
+                break
+              fi
+            done < <(ssh -o StrictHostKeyChecking=no "$SERVER" '
+              for f in /opt/ai-ege-tutor-bot/.env; do
+                [ -f "$f" ] || continue
+                grep -E "^(BOT_TOKEN|TELEGRAM_BOT_TOKEN|TELEGRAM_TOKEN|TG_TOKEN)=" "$f" | cut -d= -f2-
+              done
+            ')
           fi
 
           if [ -z "$TOKEN" ]; then
-            echo "::error::No @repetitors_ai_bot token found in secrets or /opt/ai-ege-tutor-bot/.env"
-            # Still show what bot the ege .env has
-            ssh -o StrictHostKeyChecking=no "$SERVER" '
-              T=$(grep -m1 "^BOT_TOKEN=" /opt/ai-ege-tutor-bot/.env | cut -d= -f2-)
-              echo "ai-ege-tutor-bot getMe:"
-              curl -sS "https://api.telegram.org/bot${T}/getMe" | head -c 300
-              echo
-            '
+            echo "::error::No valid Telegram bot token. Set GitHub secret REPETITORS_BOT_TOKEN from your PC .env"
+            echo "PowerShell:"
+            echo '  $t = (Get-Content "C:\Users\DavidPC\Projects\ai-ege-tutor-bot 2\ai-ege-tutor-bot\.env" | Where-Object { $_ -match "^BOT_TOKEN=" }) -replace "^BOT_TOKEN=",""'
+            echo '  $t | gh secret set REPETITORS_BOT_TOKEN'
             exit 1
           fi
 
-          echo "Deploying with @repetitors_ai_bot token..."
+          echo "Using token source: $SOURCE"
+          if ! is_repetitors "$TOKEN"; then
+            echo "::warning::Token is valid but NOT @repetitors_ai_bot — bot will run as another username"
+            curl -sS "https://api.telegram.org/bot${TOKEN}/getMe" | head -c 250; echo
+          else
+            echo "Confirmed @repetitors_ai_bot"
+          fi
+
           ssh -o StrictHostKeyChecking=no "$SERVER" bash -s <<EOF
           set -euo pipefail
           TOKEN='${TOKEN}'
           SRC=/opt/ai-ege-tutor-bot
           DEST=/opt/opus5
-          if [ ! -d "\$SRC" ]; then
-            echo "ERROR: \$SRC missing"
-            exit 1
-          fi
+          if [ ! -d "\$SRC" ]; then echo "ERROR: \$SRC missing"; exit 1; fi
           sudo mkdir -p \$DEST
           sudo chown -R \$(whoami):\$(whoami) \$DEST
-          tar -czf /tmp/ai-ege-tutor-deploy.tar.gz -C \$SRC \
-            --exclude=node_modules --exclude=.next --exclude=__pycache__ --exclude=.venv --exclude=.git .
-          if [ -f \$SRC/.env ]; then
+
+          # Prefer deploying ege project into its own path AND wire opus5 if ege has compose
+          # Keep /opt/ai-ege-tutor-bot as source of truth; redeploy there first
+          if [ -f \$SRC/docker-compose.prod.yml ] || [ -f \$SRC/docker-compose.yml ] || [ -f \$SRC/oracle-redeploy.sh ]; then
+            tar -czf /tmp/ai-ege-tutor-deploy.tar.gz -C \$SRC \
+              --exclude=node_modules --exclude=.next --exclude=__pycache__ --exclude=.venv --exclude=.git .
+            # Update token in place
+            if grep -qE '^(BOT_TOKEN|TELEGRAM_BOT_TOKEN)=' \$SRC/.env 2>/dev/null; then
+              sed -i "s/^BOT_TOKEN=.*/BOT_TOKEN=\${TOKEN}/" \$SRC/.env || true
+              sed -i "s/^TELEGRAM_BOT_TOKEN=.*/TELEGRAM_BOT_TOKEN=\${TOKEN}/" \$SRC/.env || true
+            else
+              echo "BOT_TOKEN=\${TOKEN}" >> \$SRC/.env
+            fi
+            grep -q '^BOT_USERNAME=' \$SRC/.env 2>/dev/null || echo 'BOT_USERNAME=repetitors_ai_bot' >> \$SRC/.env
+            sed -i 's/^BOT_USERNAME=.*/BOT_USERNAME=repetitors_ai_bot/' \$SRC/.env || true
+            # Redeploy in place at /opt/ai-ege-tutor-bot
+            cd \$SRC
+            if [ -f oracle-redeploy.sh ]; then
+              chmod +x oracle-redeploy.sh oracle-setup.sh 2>/dev/null || true
+              ./oracle-redeploy.sh
+            elif [ -f docker-compose.prod.yml ]; then
+              sudo docker compose -f docker-compose.prod.yml up -d --build
+            elif [ -f docker-compose.yml ]; then
+              sudo docker compose up -d --build
+            fi
+            # Also mirror to /opt/opus5 for legacy health checks
+            cp -a \$SRC/. \$DEST/ 2>/dev/null || true
             cp \$SRC/.env \$DEST/.env
-          fi
-          if grep -q '^BOT_TOKEN=' \$DEST/.env 2>/dev/null; then
-            sed -i "s/^BOT_TOKEN=.*/BOT_TOKEN=\${TOKEN}/" \$DEST/.env
           else
-            echo "BOT_TOKEN=\${TOKEN}" >> \$DEST/.env
+            # No compose — copy to DEST and use helper
+            tar -czf /tmp/ai-ege-tutor-deploy.tar.gz -C \$SRC \
+              --exclude=node_modules --exclude=.next --exclude=__pycache__ --exclude=.venv --exclude=.git .
+            echo "BOT_TOKEN=\${TOKEN}" > \$DEST/.env
+            echo "BOT_USERNAME=repetitors_ai_bot" >> \$DEST/.env
+            chmod +x /tmp/oracle-redeploy-remote.sh
+            bash /tmp/oracle-redeploy-remote.sh \$DEST
           fi
-          if grep -q '^BOT_USERNAME=' \$DEST/.env 2>/dev/null; then
-            sed -i 's/^BOT_USERNAME=.*/BOT_USERNAME=repetitors_ai_bot/' \$DEST/.env
-          else
-            echo 'BOT_USERNAME=repetitors_ai_bot' >> \$DEST/.env
-          fi
-          chmod +x /tmp/oracle-redeploy-remote.sh
-          bash /tmp/oracle-redeploy-remote.sh \$DEST
+
           echo "=== getMe ==="
-          curl -sS "https://api.telegram.org/bot\${TOKEN}/getMe" | head -c 300
+          curl -sS "https://api.telegram.org/bot\${TOKEN}/getMe"
           echo
-          if [ -f \$DEST/docker-compose.prod.yml ]; then
-            sudo docker compose -f \$DEST/docker-compose.prod.yml logs bot --tail 25 || true
-          elif [ -f \$DEST/docker-compose.yml ]; then
-            sudo docker compose -f \$DEST/docker-compose.yml logs bot --tail 25 || true
-          fi
+          echo "=== docker ps ==="
+          sudo docker ps --format "table {{.Names}}\t{{.Status}}" | head -20
+          echo "=== recent bot logs ==="
+          for d in \$SRC \$DEST; do
+            if [ -f \$d/docker-compose.prod.yml ]; then
+              sudo docker compose -f \$d/docker-compose.prod.yml logs --tail 30 2>/dev/null || true
+            elif [ -f \$d/docker-compose.yml ]; then
+              sudo docker compose -f \$d/docker-compose.yml logs --tail 30 2>/dev/null || true
+            fi
+          done
           EOF
