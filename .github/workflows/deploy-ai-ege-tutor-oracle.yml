@@ -76,16 +76,21 @@ jobs:
           scp -o StrictHostKeyChecking=no scripts/oracle-redeploy-remote.sh "$SERVER:/tmp/oracle-redeploy-remote.sh"
 
           BOT_TOKEN=$(cat /tmp/bot_token)
-          cat > /tmp/repetitors.env <<EOF
+          if [ -f ai-ege-tutor-bot/.env.example ]; then
+            cp ai-ege-tutor-bot/.env.example /tmp/repetitors.env
+            sed -i "s/^BOT_TOKEN=.*/BOT_TOKEN=${BOT_TOKEN}/" /tmp/repetitors.env
+            grep -q '^BOT_USERNAME=' /tmp/repetitors.env || echo "BOT_USERNAME=repetitors_ai_bot" >> /tmp/repetitors.env
+            sed -i 's/^BOT_USERNAME=.*/BOT_USERNAME=repetitors_ai_bot/' /tmp/repetitors.env
+          else
+            cat > /tmp/repetitors.env <<EOF
           BOT_TOKEN=${BOT_TOKEN}
           BOT_USERNAME=repetitors_ai_bot
           ENVIRONMENT=production
           EOF
-          sed -i 's/^          //' /tmp/repetitors.env
-          # Merge with .env.example keys if present
-          if [ -f ai-ege-tutor-bot/.env.example ]; then
-            grep -v '^BOT_TOKEN=' ai-ege-tutor-bot/.env.example >> /tmp/repetitors.env || true
+            sed -i 's/^          //' /tmp/repetitors.env
           fi
+
+          ssh -o StrictHostKeyChecking=no "$SERVER" "sudo mkdir -p $REMOTE_DIR && sudo chown -R \$(whoami):\$(whoami) $REMOTE_DIR"
           scp -o StrictHostKeyChecking=no /tmp/repetitors.env "$SERVER:$REMOTE_DIR/.env"
 
           ssh -o StrictHostKeyChecking=no "$SERVER" "chmod +x /tmp/oracle-redeploy-remote.sh && bash /tmp/oracle-redeploy-remote.sh $REMOTE_DIR"
