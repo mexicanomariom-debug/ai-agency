@@ -2,6 +2,11 @@ name: Oracle Dropbox for ai-ege-tutor
 
 # Creates /home/ubuntu/inbox/ai-ege-tutor-bot on Oracle and deploys if code is there.
 on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/oracle-inbox-ai-ege.yml'
+      - 'scripts/do-all-ai-ege-deploy.ps1'
   workflow_dispatch:
     inputs:
       action:
@@ -30,7 +35,7 @@ jobs:
           ssh-keyscan -H "$HOST" >> ~/.ssh/known_hosts 2>/dev/null || true
 
       - name: Prepare inbox on Oracle
-        if: github.event.inputs.action == 'prepare_inbox'
+        if: github.event_name == 'push' || github.event.inputs.action == 'prepare_inbox'
         run: |
           HOST="${{ secrets.ORACLE_HOST || '140.84.183.154' }}"
           USER="${{ secrets.ORACLE_SSH_USER || 'ubuntu' }}"
@@ -111,3 +116,4 @@ jobs:
             curl -sS "https://api.telegram.org/bot${TOKEN}/getMe" | head -c 250
             echo
           '
+Wed Aug 12 12:12:13 AM UTC 2026
