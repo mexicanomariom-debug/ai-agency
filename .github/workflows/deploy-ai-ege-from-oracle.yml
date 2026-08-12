@@ -61,7 +61,8 @@ jobs:
           }
           is_rep() {
             local t="$1"
-            curl -sS --max-time 15 "https://api.telegram.org/bot${t}/getMe" | grep -q 'repetitors_ai_bot'
+            # Telegram username case-insensitive; API may return Repetitors_ai_bot
+            curl -sS --max-time 15 "https://api.telegram.org/bot${t}/getMe" | grep -qi 'repetitors_ai_bot'
           }
 
           TOKEN=""
@@ -89,9 +90,20 @@ jobs:
 
           ME=$(curl -sS "https://api.telegram.org/bot${TOKEN}/getMe")
           echo "getMe: ${ME:0:200}"
-          if ! echo "$ME" | grep -q repetitors_ai_bot; then
-            echo "::warning::Not @repetitors_ai_bot — set REPETITORS_BOT_TOKEN"
+          if ! echo "$ME" | grep -qi repetitors_ai_bot; then
+            echo "::warning::Not @Repetitors_ai_bot — set REPETITORS_BOT_TOKEN"
+          else
+            echo "OK: @Repetitors_ai_bot"
           fi
+
+          # Stop legacy language-tutor (@All_languages_bot) so only EGE tutor runs
+          ssh -o StrictHostKeyChecking=no "$SERVER" '
+            if [ -f /opt/opus5/docker-compose.prod.yml ]; then
+              cd /opt/opus5
+              sudo docker compose -f docker-compose.prod.yml stop bot 2>/dev/null || true
+              echo "Stopped legacy opus5 bot if present"
+            fi
+          ' || true
 
           # Write token to a temp file on server, then restart without full --build first
           ssh -o StrictHostKeyChecking=no -o ServerAliveInterval=30 "$SERVER" "bash -s" <<EOS
