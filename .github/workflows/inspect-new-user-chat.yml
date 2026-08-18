@@ -1,0 +1,26 @@
+name: Inspect New User Chat
+
+on:
+  push:
+    branches:
+      - cursor/inspect-new-user-chat-c023
+  workflow_dispatch:
+
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.ORACLE_SSH_KEY }}
+      - name: Verify text-only + menu on prod
+        run: |
+          HOST="${{ secrets.ORACLE_HOST || '140.84.183.154' }}"
+          USER="${{ secrets.ORACLE_SSH_USER || 'ubuntu' }}"
+          ssh-keyscan -H "$HOST" >> ~/.ssh/known_hosts 2>/dev/null || true
+          ssh -o StrictHostKeyChecking=no "${USER}@${HOST}" "cd /opt/opus5 && \
+          echo '=== NO VOICE REPLY ===' && \
+          sudo docker compose -f docker-compose.prod.yml exec -T bot grep -n 'send_voice_reply\|answer_model_text\|from_voice' /app/services/chat_service.py && \
+          echo '=== MENU ROUTER ===' && \
+          sudo docker compose -f docker-compose.prod.yml exec -T bot grep -n 'menu.router\|BTN_START\|Начать обучение' /app/bot/dispatcher.py /app/bot/keyboards/reply.py /app/bot/handlers/menu.py | head -40 && \
+          echo '=== HEALTH ===' && curl -sS http://127.0.0.1:8000/health"
